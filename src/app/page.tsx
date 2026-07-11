@@ -41,7 +41,11 @@ import {
   Printer,
   Share2,
   Mail,
-  Download
+  Download,
+  CalendarPlus,
+  MessageSquare,
+  MessageCircle,
+  SlidersHorizontal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -197,7 +201,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [newPatAllergies, setNewPatAllergies] = useState("None");
   
   const [apptPatientId, setApptPatientId] = useState("");
-  const [apptDoctor, setApptDoctor] = useState("Dr. Sharma");
+  const [apptDoctor, setApptDoctor] = useState("Dr. Deepa Kodali");
   const [apptTreatment, setApptTreatment] = useState("Consultation");
   const [apptTime, setApptTime] = useState("09:00 AM");
   const [apptDate, setApptDate] = useState("12 Aug 2026");
@@ -243,12 +247,23 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [patientSortBy, setPatientSortBy] = useState("Name-ASC");
   const [patientVisibleCount, setPatientVisibleCount] = useState(5);
 
+  // Redesigned Appointments Hub states
+  const [apptView, setApptView] = useState<"Month" | "Week" | "Day">("Month");
+  const [apptSearchQuery, setApptSearchQuery] = useState("");
+  const [apptSelectedDoctor, setApptSelectedDoctor] = useState("All");
+  const [apptSelectedLocation, setApptSelectedLocation] = useState("All");
+  const [apptSelectedStatus, setApptSelectedStatus] = useState("All");
+  const [apptSelectedTreatment, setApptSelectedTreatment] = useState("All");
+  const [apptSelectedType, setApptSelectedType] = useState("All");
+  const [apptCalendarDate, setApptCalendarDate] = useState<Date>(new Date(2026, 7, 12)); // default Aug 12, 2026
+
   // Calendar slot selection for detail modal
+  const [selectedApptDetail, setSelectedApptDetail] = useState<Appointment | null>(null);
   const [selectedSlotData, setSelectedSlotData] = useState<{ date: string; time: string; appointment?: Appointment } | null>(null);
   
   // Slot booking form states
   const [slotPatientId, setSlotPatientId] = useState("");
-  const [slotDoctor, setSlotDoctor] = useState("Dr. Sharma");
+  const [slotDoctor, setSlotDoctor] = useState("Dr. Deepa Kodali");
   const [slotTreatment, setSlotTreatment] = useState("Consultation");
 
   // --- MOCK DATABASE DATABASE STATES ---
@@ -272,22 +287,24 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   ]);
 
   const [appointments, setAppointments] = useState<Appointment[]>([
-    { id: "appt-1", patientId: "DS-1001", patientName: "Aarav Mehta", doctor: "Dr. Sharma", treatment: "Root Canal", time: "09:00 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Lower left molar treatment.", avatarColor: "bg-blue-100 text-blue-600" },
-    { id: "appt-2", patientId: "DS-1002", patientName: "Priya Patel", doctor: "Dr. Priya", treatment: "Scaling", time: "09:30 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Routine scale and polish.", avatarColor: "bg-cyan-100 text-cyan-600" },
-    { id: "appt-3", patientId: "DS-1003", patientName: "Kabir Singh", doctor: "Dr. Sharma", treatment: "Root Canal", time: "10:00 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Penicillin allergy precaution.", avatarColor: "bg-purple-100 text-purple-600" },
-    { id: "appt-4", patientId: "DS-1004", patientName: "Ananya Rao", doctor: "Dr. Rahul", treatment: "Implant", time: "10:30 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Surgical post review.", avatarColor: "bg-emerald-100 text-emerald-600" },
-    { id: "appt-5", patientId: "DS-1005", patientName: "Rohan Kumar", doctor: "Dr. Priya", treatment: "Crown", time: "11:00 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Crown margins assessment.", avatarColor: "bg-indigo-100 text-indigo-600" }
+    { id: "appt-1", patientId: "DS-1001", patientName: "Aarav Mehta", doctor: "Dr. Deepa Kodali", treatment: "Root Canal", time: "09:00 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Lower left molar treatment.", avatarColor: "bg-blue-100 text-blue-600" },
+    { id: "appt-2", patientId: "DS-1002", patientName: "Priya Patel", doctor: "Dr. Raghuram", treatment: "Scaling", time: "09:30 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Routine scale and polish.", avatarColor: "bg-cyan-100 text-cyan-600" },
+    { id: "appt-3", patientId: "DS-1003", patientName: "Kabir Singh", doctor: "Dr. Deepa Kodali", treatment: "Root Canal", time: "10:00 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Penicillin allergy precaution.", avatarColor: "bg-purple-100 text-purple-600" },
+    { id: "appt-4", patientId: "DS-1004", patientName: "Ananya Rao", doctor: "Dr. Srinivasa", treatment: "Implant", time: "10:30 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Surgical post review.", avatarColor: "bg-emerald-100 text-emerald-600" },
+    { id: "appt-5", patientId: "DS-1005", patientName: "Rohan Kumar", doctor: "Dr. Priyanka Mane Pado", treatment: "Crown", time: "11:00 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Crown margins assessment.", avatarColor: "bg-indigo-100 text-indigo-600" }
   ]);
 
   const [invoices, setInvoices] = useState<InvoiceItem[]>([
-    { id: "INV-1001", patientId: "DS-1011", patientName: "Vikram Malhotra", doctor: "Dr. Sharma", treatment: "Consultation", items: [{ description: "Consultation Fee", amount: 500 }, { description: "Pain Reliever pills", amount: 300 }], discount: 10, tax: 18, subtotal: 800, total: 850, paidAmount: 850, status: "Paid", paymentDate: "10 Aug 2026", paymentLogs: [{ method: "UPI GPay", amount: 850, date: "10 Aug 2026" }] },
-    { id: "INV-1002", patientId: "DS-1012", patientName: "Meera Nair", doctor: "Dr. Priya", treatment: "Scaling", items: [{ description: "Scaling and Polishing", amount: 1500 }], discount: 0, tax: 18, subtotal: 1500, total: 1770, paidAmount: 1000, status: "Partially Paid", paymentDate: "05 Aug 2026", paymentLogs: [{ method: "Cash", amount: 1000, date: "05 Aug 2026" }] }
+    { id: "INV-1001", patientId: "DS-1011", patientName: "Vikram Malhotra", doctor: "Dr. Deepa Kodali", treatment: "Consultation", items: [{ description: "Consultation Fee", amount: 500 }, { description: "Pain Reliever pills", amount: 300 }], discount: 10, tax: 18, subtotal: 800, total: 850, paidAmount: 850, status: "Paid", paymentDate: "10 Aug 2026", paymentLogs: [{ method: "UPI GPay", amount: 850, date: "10 Aug 2026" }] },
+    { id: "INV-1002", patientId: "DS-1012", patientName: "Meera Nair", doctor: "Dr. Raghuram", treatment: "Scaling", items: [{ description: "Scaling and Polishing", amount: 1500 }], discount: 0, tax: 18, subtotal: 1500, total: 1770, paidAmount: 1000, status: "Partially Paid", paymentDate: "05 Aug 2026", paymentLogs: [{ method: "Cash", amount: 1000, date: "05 Aug 2026" }] }
   ]);
 
   const [doctors, setDoctors] = useState<Doctor[]>([
-    { name: "Dr. Sharma", speciality: "Endodontist", status: "Available" },
-    { name: "Dr. Priya", speciality: "General Surgeon", status: "Available" },
-    { name: "Dr. Rahul", speciality: "Orthodontist", status: "Available" }
+    { name: "Dr. Deepa Kodali", speciality: "Endodontist", status: "Available" },
+    { name: "Dr. Raghuram", speciality: "Orthodontist", status: "Available" },
+    { name: "Dr. Srinivasa", speciality: "Periodontist", status: "Available" },
+    { name: "Dr. Priyanka Mane Pado", speciality: "Pedodontist", status: "Available" },
+    { name: "Dr. Krishna Teja", speciality: "Prosthodontist", status: "Available" }
   ]);
 
   const [activities, setActivities] = useState<ActivityItem[]>([
@@ -1692,89 +1709,662 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     );
   };
 
-  const renderAppointmentsModule = () => (
-    <div className="space-y-6 animate-fadeIn">
-      <div className="flex justify-between items-center bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-        <div className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-blue-600" />
-          <span className="text-sm font-bold text-slate-808 dark:text-white">Appointments Hub</span>
-        </div>
-        <Button onClick={() => setActiveModal("addAppointment")} className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-9 rounded-lg px-4">
-          <Plus className="h-4 w-4 mr-1.5" /> Book Appointment
-        </Button>
-      </div>
+  const renderAppointmentsModule = () => {
+    const getDaysInMonth = (date: Date) => {
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const firstDayIndex = new Date(year, month, 1).getDay();
+      const totalDays = new Date(year, month + 1, 0).getDate();
+      const prevMonthTotalDays = new Date(year, month, 0).getDate();
+      
+      const days: { date: Date; isCurrentMonth: boolean }[] = [];
+      let firstDayOffset = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+      
+      for (let i = firstDayOffset - 1; i >= 0; i--) {
+        days.push({
+          date: new Date(year, month - 1, prevMonthTotalDays - i),
+          isCurrentMonth: false
+        });
+      }
+      
+      for (let i = 1; i <= totalDays; i++) {
+        days.push({
+          date: new Date(year, month, i),
+          isCurrentMonth: true
+        });
+      }
+      
+      const remainingSlots = 42 - days.length;
+      for (let i = 1; i <= remainingSlots; i++) {
+        days.push({
+          date: new Date(year, month + 1, i),
+          isCurrentMonth: false
+        });
+      }
+      
+      return days;
+    };
 
-      {activeSubTab === "Today" && (
-        <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            {renderScheduleTimeline()}
-          </div>
-          <div>
-            {renderWaitingRoom()}
-          </div>
-        </div>
-      )}
+    const getWeekDays = (baseDate: Date) => {
+      const currentDay = baseDate.getDay(); 
+      const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+      const monday = new Date(baseDate);
+      monday.setDate(baseDate.getDate() + distanceToMonday);
+      
+      return Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        return d;
+      });
+    };
 
-      {activeSubTab === "Calendar" && (
-        <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
-          <div className="lg:col-span-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
-            <span className="font-bold text-sm block mb-4">Calendar Scheduler Grid</span>
-            <div className="grid grid-cols-7 gap-1 text-center text-xs">
-              {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(d => (
-                <div key={d} className="font-bold text-slate-400 py-1">{d}</div>
-              ))}
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="py-2.5 opacity-20">26</div>
-              ))}
-              {[...Array(20)].map((_, i) => {
-                const day = i + 1;
-                const isToday = day === 12;
+    const formatDateString = (d: Date) => {
+      const day = d.getDate();
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const month = months[d.getMonth()];
+      const year = d.getFullYear();
+      return `${day < 10 ? '0' + day : day} ${month} ${year}`;
+    };
+
+    // Filter appointments dynamically
+    const filteredAppts = appointments.filter(a => {
+      if (apptSearchQuery.trim()) {
+        const q = apptSearchQuery.toLowerCase();
+        const matches = a.patientName?.toLowerCase().includes(q) || 
+                        a.patientId?.toLowerCase().includes(q) || 
+                        a.doctor?.toLowerCase().includes(q) ||
+                        a.treatment?.toLowerCase().includes(q);
+        if (!matches) return false;
+      }
+      if (apptSelectedDoctor !== "All" && a.doctor !== apptSelectedDoctor) return false;
+      if (apptSelectedStatus !== "All" && a.status !== apptSelectedStatus) return false;
+      if (apptSelectedTreatment !== "All" && a.treatment !== apptSelectedTreatment) return false;
+      if (apptSelectedLocation !== "All") {
+        const pat = patients.find(p => p.id === a.patientId);
+        if (pat && !pat.address?.toLowerCase().includes(apptSelectedLocation.toLowerCase())) return false;
+      }
+      if (apptSelectedType !== "All") {
+        const isWalkin = a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in");
+        if (apptSelectedType === "Walk-In" && !isWalkin) return false;
+        if (apptSelectedType === "Scheduled" && isWalkin) return false;
+      }
+      return true;
+    });
+
+    return (
+      <div className="animate-fadeIn grid grid-cols-1 lg:grid-cols-12 gap-6 text-xs font-semibold text-slate-700">
+        
+        {/* LEFT SIDEBAR PANEL (25% - Col Span 3) */}
+        <div className="lg:col-span-3 space-y-6">
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
+            <Button 
+              onClick={() => setActiveModal("addAppointment")} 
+              className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs"
+            >
+              <CalendarPlus className="h-4.5 w-4.5" /> Book Appointment
+            </Button>
+
+            <Button 
+              variant="outline"
+              className="w-full h-11 border-slate-200 hover:bg-slate-50 dark:border-slate-800 text-blue-600 font-bold text-xs rounded-xl flex items-center justify-center gap-2"
+              onClick={() => {
+                const dateStr = prompt("Enter target date (YYYY-MM-DD):", "2026-08-12");
+                if (dateStr) {
+                  const parts = dateStr.split("-");
+                  if (parts.length === 3) {
+                    const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                    setApptCalendarDate(d);
+                  }
+                }
+              }}
+            >
+              <Calendar className="h-4.5 w-4.5" /> Go to Date
+            </Button>
+
+            <hr className="border-slate-100 dark:border-slate-800" />
+
+            {/* Location Dropdown */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-405 uppercase tracking-wider block">Location</label>
+              <select 
+                value={apptSelectedLocation}
+                onChange={(e) => setApptSelectedLocation(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-705"
+              >
+                <option value="All">All Locations</option>
+                <option value="Bengaluru">Bengaluru Clinic</option>
+                <option value="Jayanagar">Jayanagar Branch</option>
+                <option value="Whitefield">Whitefield Center</option>
+              </select>
+            </div>
+          </div>
+
+          {/* All Doctors Section */}
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+            <span className="font-bold text-xs text-slate-400 uppercase tracking-wider block mb-3">All Doctors</span>
+            <div className="space-y-2">
+              <div 
+                onClick={() => setApptSelectedDoctor("All")}
+                className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3 ${
+                  apptSelectedDoctor === "All" 
+                    ? "bg-blue-50/50 border-blue-500 dark:bg-blue-950/20" 
+                    : "bg-slate-50/30 border-slate-100 hover:bg-slate-50 dark:bg-slate-900/10 dark:border-slate-800"
+                }`}
+              >
+                <div className="h-8 w-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">ALL</div>
+                <div>
+                  <span className="font-bold text-xs text-slate-800 dark:text-slate-200 block">Show All Doctors</span>
+                  <p className="text-[9px] text-slate-400">View combined schedule</p>
+                </div>
+              </div>
+
+              {doctors.map((doc, idx) => {
+                const isActive = apptSelectedDoctor === doc.name;
+                const initials = doc.name.replace("Dr. ", "").split(" ").map(n => n[0]).join("").toUpperCase();
+                const colors = [
+                  "bg-blue-100 text-blue-700",
+                  "bg-purple-100 text-purple-700",
+                  "bg-emerald-100 text-emerald-700",
+                  "bg-indigo-100 text-indigo-700",
+                  "bg-pink-100 text-pink-700"
+                ];
+                const avatarColor = colors[idx % colors.length];
+                const todayCount = appointments.filter(a => a.doctor === doc.name && a.date === "12 Aug 2026" && a.status !== "Cancelled").length;
+
                 return (
-                  <div key={day} className={`py-3 font-bold rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${
-                    isToday ? "bg-blue-600 text-white font-extrabold shadow-sm" : "hover:bg-slate-100 text-slate-700 dark:hover:bg-slate-900"
-                  }`}>
-                    <span>{day}</span>
-                    {day === 12 && <span className="h-1 w-1 rounded-full bg-white mt-1" />}
+                  <div 
+                    key={doc.name}
+                    onClick={() => setApptSelectedDoctor(isActive ? "All" : doc.name)}
+                    className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                      isActive 
+                        ? "bg-blue-50/50 border-blue-500 dark:bg-blue-955/20" 
+                        : "bg-slate-50/30 border-slate-100 hover:bg-slate-50 dark:bg-slate-900/10 dark:border-slate-800"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`h-8 w-8 rounded-full font-extrabold text-xs flex items-center justify-center ${avatarColor}`}>
+                        {initials}
+                      </div>
+                      <div>
+                        <span className="font-bold text-xs text-slate-800 dark:text-slate-200 block">{doc.name}</span>
+                        <p className="text-[9px] text-slate-450">{doc.speciality}</p>
+                      </div>
+                    </div>
+                    {todayCount > 0 && (
+                      <span className="text-[9px] bg-slate-100 dark:bg-slate-850 px-2 py-0.5 rounded-full font-bold text-slate-600 dark:text-slate-300">{todayCount} Today</span>
+                    )}
                   </div>
                 );
               })}
             </div>
           </div>
-          <div>
-            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
-              <span className="font-bold text-sm block mb-3">Today's Summary stats</span>
-              <p className="text-xs text-slate-500">Appointments scheduled today: <strong className="text-slate-800 font-extrabold">{kpiCounts.todayAppointments} Slots</strong></p>
+        </div>
+
+        {/* RIGHT PANEL (75% - Col Span 9) */}
+        <div className="lg:col-span-9 space-y-6">
+          
+          {/* Top Toolbar */}
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
+            
+            {/* Month Navigator */}
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => {
+                  const prev = new Date(apptCalendarDate);
+                  prev.setMonth(prev.getMonth() - 1);
+                  setApptCalendarDate(prev);
+                }}
+                className="h-8 w-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 dark:border-slate-800 dark:text-slate-400"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="font-extrabold text-sm text-slate-800 dark:text-slate-200 min-w-[125px] text-center">
+                {apptCalendarDate.toLocaleString("default", { month: "long", year: "numeric" })}
+              </span>
+              <button 
+                onClick={() => {
+                  const next = new Date(apptCalendarDate);
+                  next.setMonth(next.getMonth() + 1);
+                  setApptCalendarDate(next);
+                }}
+                className="h-8 w-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 dark:border-slate-800 dark:text-slate-400"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search appointments..."
+                value={apptSearchQuery}
+                onChange={(e) => setApptSearchQuery(e.target.value)}
+                className="h-9 pl-9 pr-3 w-full rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+              />
+            </div>
+
+            {/* View Toggle */}
+            <div className="bg-slate-100 dark:bg-slate-900 p-0.5 rounded-xl flex items-center">
+              {(["Month", "Week", "Day"] as const).map((view) => (
+                <button
+                  key={view}
+                  onClick={() => setApptView(view)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    apptView === view 
+                      ? "bg-white text-blue-600 shadow-sm dark:bg-slate-950" 
+                      : "text-slate-550 hover:text-slate-800 dark:text-slate-400"
+                  }`}
+                >
+                  {view}
+                </button>
+              ))}
             </div>
           </div>
-        </div>
-      )}
 
-      {activeSubTab === "Queue" && (
-        <div className="max-w-4xl">
-          {renderWaitingRoom()}
-        </div>
-      )}
+          {/* Filters Row */}
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-600">
+            <div className="flex items-center gap-1">
+              <SlidersHorizontal className="h-3.5 w-3.5 text-slate-450 mr-1" />
+              <span>Filters:</span>
+            </div>
 
-      {activeSubTab === "History" && (
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs max-w-4xl">
-          <span className="font-bold text-sm block mb-4">Past/Completed Appointments Records</span>
-          <div className="divide-y divide-slate-100 dark:divide-slate-900">
-            {appointments.filter(a => a.status === "Completed" || a.status === "Cancelled").map((app) => (
-              <div key={app.id} className="py-3.5 flex justify-between items-center text-xs font-semibold">
-                <div>
-                  <span className="font-bold text-slate-900 dark:text-white">{app.patientName}</span>
-                  <p className="text-slate-450 mt-0.5">{app.treatment} with {app.doctor} on {app.date}</p>
-                </div>
-                <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] ${
-                  app.status === "Completed" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
-                }`}>{app.status}</span>
-              </div>
-            ))}
+            <select 
+              value={apptSelectedStatus}
+              onChange={(e) => setApptSelectedStatus(e.target.value)}
+              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700 dark:text-slate-300"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Scheduled">Scheduled</option>
+              <option value="Waiting">Waiting</option>
+              <option value="In Procedure">In Procedure</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+
+            <select 
+              value={apptSelectedTreatment}
+              onChange={(e) => setApptSelectedTreatment(e.target.value)}
+              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700 dark:text-slate-300"
+            >
+              <option value="All">All Treatments</option>
+              <option value="Root Canal">Root Canal</option>
+              <option value="Scaling">Scaling</option>
+              <option value="Implant">Implant</option>
+              <option value="Crown">Crown</option>
+              <option value="Consultation">Consultation</option>
+            </select>
+
+            <select 
+              value={apptSelectedType}
+              onChange={(e) => setApptSelectedType(e.target.value)}
+              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700 dark:text-slate-300"
+            >
+              <option value="All">All Types</option>
+              <option value="Scheduled">Scheduled Only</option>
+              <option value="Walk-In">Walk-Ins Only</option>
+            </select>
           </div>
+
+          {/* MONTH VIEW */}
+          {apptView === "Month" && (
+            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+              <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-400 mb-3 border-b pb-2">
+                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
+                  <div key={d} className="py-1">{d}</div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-2">
+                {getDaysInMonth(apptCalendarDate).map((dayObj, index) => {
+                  const dateStr = formatDateString(dayObj.date);
+                  const dayAppts = filteredAppts.filter(a => a.date === dateStr);
+                  const isToday = dayObj.date.toDateString() === new Date().toDateString();
+                  
+                  return (
+                    <div 
+                      key={index} 
+                      className={`min-h-[110px] p-2 border rounded-xl flex flex-col justify-between transition-colors ${
+                        dayObj.isCurrentMonth 
+                          ? "bg-white border-slate-200 dark:bg-slate-955 dark:border-slate-800" 
+                          : "bg-slate-50/50 border-slate-100 text-slate-400 dark:bg-slate-900/10 dark:border-slate-900"
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-1">
+                        <span className={`text-[10px] font-extrabold h-5 w-5 rounded-full flex items-center justify-center ${
+                          isToday ? "bg-blue-600 text-white shadow-xs" : "text-slate-800 dark:text-slate-200"
+                        }`}>
+                          {dayObj.date.getDate()}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5 flex-1 overflow-y-auto pr-0.5 max-h-[80px]">
+                        {dayAppts.slice(0, 2).map(appt => {
+                          let docBorderColor = "border-l-blue-500 bg-blue-50/20";
+                          if (appt.doctor.includes("Raghuram")) docBorderColor = "border-l-cyan-500 bg-cyan-50/20";
+                          else if (appt.doctor.includes("Srinivasa")) docBorderColor = "border-l-purple-500 bg-purple-50/20";
+                          else if (appt.doctor.includes("Priyanka")) docBorderColor = "border-l-emerald-500 bg-emerald-50/20";
+                          else if (appt.doctor.includes("Krishna")) docBorderColor = "border-l-indigo-500 bg-indigo-50/20";
+
+                          return (
+                            <div 
+                              key={appt.id}
+                              onClick={() => setSelectedApptDetail(appt)}
+                              className={`p-1.5 border-l-2 rounded-md text-[9.5px] cursor-pointer hover:shadow-xs transition-shadow block leading-snug ${docBorderColor}`}
+                            >
+                              <p className="font-extrabold text-slate-900 dark:text-white truncate">{appt.patientName}</p>
+                              <p className="text-slate-500 text-[8px] truncate">{appt.patientId}</p>
+                              <p className="text-slate-450 text-[8px] truncate">{appt.doctor}</p>
+                            </div>
+                          );
+                        })}
+                        
+                        {dayAppts.length > 2 && (
+                          <button 
+                            onClick={() => {
+                              setSelectedSlotData({ date: dateStr, time: "Multiple" });
+                            }}
+                            className="w-full text-center py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 text-[9px] font-extrabold text-blue-600"
+                          >
+                            +{dayAppts.length - 2} More
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* WEEK VIEW */}
+          {apptView === "Week" && (
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs overflow-x-auto">
+              <div className="min-w-[800px]">
+                <div className="grid grid-cols-8 gap-2 text-center text-xs font-bold text-slate-400 border-b pb-3 mb-2">
+                  <div className="text-left py-1">Time</div>
+                  {getWeekDays(apptCalendarDate).map((day, idx) => {
+                    const daysName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                    return (
+                      <div key={idx} className="py-1">
+                        <span className="block text-[9.5px] uppercase">{daysName[day.getDay()]}</span>
+                        <span className="block text-sm font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">{day.getDate()}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="divide-y divide-slate-100 dark:divide-slate-900">
+                  {["09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM", "08:00 PM"].map((hourSlot) => (
+                    <div key={hourSlot} className="grid grid-cols-8 gap-2 py-3 items-stretch min-h-[70px]">
+                      <div className="text-[10px] text-slate-400 font-bold self-start mt-1">{hourSlot}</div>
+                      
+                      {getWeekDays(apptCalendarDate).map((day, idx) => {
+                        const dateStr = formatDateString(day);
+                        const slotAppts = filteredAppts.filter(a => {
+                          if (a.date !== dateStr) return false;
+                          const matchHour = a.time.split(":")[0];
+                          const matchAmPm = a.time.split(" ")[1];
+                          const slotHour = hourSlot.split(":")[0];
+                          const slotAmPm = hourSlot.split(" ")[1];
+                          return parseInt(matchHour) === parseInt(slotHour) && matchAmPm === slotAmPm;
+                        });
+
+                        return (
+                          <div key={idx} className="rounded-lg bg-slate-50/20 border border-dashed border-slate-100 dark:border-slate-850 p-1.5 flex flex-col gap-1.5">
+                            {slotAppts.map(appt => {
+                              let docBorderColor = "border-l-blue-500 bg-blue-50/25";
+                              if (appt.doctor.includes("Raghuram")) docBorderColor = "border-l-cyan-500 bg-cyan-50/25";
+                              else if (appt.doctor.includes("Srinivasa")) docBorderColor = "border-l-purple-500 bg-purple-50/25";
+                              else if (appt.doctor.includes("Priyanka")) docBorderColor = "border-l-emerald-500 bg-emerald-50/25";
+                              else if (appt.doctor.includes("Krishna")) docBorderColor = "border-l-indigo-500 bg-indigo-50/25";
+
+                              return (
+                                <div 
+                                  key={appt.id}
+                                  onClick={() => setSelectedApptDetail(appt)}
+                                  className={`p-2 border-l-2 rounded-lg text-[9.5px] cursor-pointer hover:shadow-xs transition-shadow block ${docBorderColor}`}
+                                >
+                                  <p className="font-extrabold text-slate-900 dark:text-white truncate">{appt.patientName}</p>
+                                  <p className="text-[8px] text-slate-450 truncate">{appt.patientId}</p>
+                                  <p className="text-[8px] text-slate-550 truncate">{appt.doctor}</p>
+                                  <p className="text-[8px] font-bold text-slate-600 mt-1">{appt.time}</p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* DAY VIEW */}
+          {apptView === "Day" && (
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
+              <span className="font-bold text-sm block mb-1">Timeline Schedule for {formatDateString(apptCalendarDate)}</span>
+              <p className="text-[10px] text-slate-400">15-minute time slots workflow tracker</p>
+              
+              <div className="divide-y divide-slate-100 dark:divide-slate-900 max-h-[600px] overflow-y-auto pr-2">
+                {Array.from({ length: 45 }, (_, idx) => {
+                  const totalMinutes = 9 * 60 + idx * 15;
+                  const hours = Math.floor(totalMinutes / 60);
+                  const minutes = totalMinutes % 60;
+                  const ampm = hours >= 12 ? "PM" : "AM";
+                  const displayHours = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
+                  const slotTimeStr = `${displayHours < 10 ? '0' + displayHours : displayHours}:${minutes < 10 ? '0' + minutes : minutes} ${ampm}`;
+                  
+                  const slotAppt = filteredAppts.find(a => {
+                    if (a.date !== formatDateString(apptCalendarDate)) return false;
+                    const cleanT = (t: string) => t.trim().toLowerCase().replace(/^0/, "");
+                    return cleanT(a.time) === cleanT(slotTimeStr);
+                  });
+
+                  return (
+                    <div key={idx} className="py-2.5 flex items-center justify-between gap-4 text-xs font-semibold">
+                      <span className="text-[10px] font-bold text-slate-400 w-16">{slotTimeStr}</span>
+                      
+                      {slotAppt ? (
+                        (() => {
+                          let docColor = "border-l-blue-500 bg-blue-50/15";
+                          if (slotAppt.doctor.includes("Raghuram")) docColor = "border-l-cyan-500 bg-cyan-50/15";
+                          else if (slotAppt.doctor.includes("Srinivasa")) docColor = "border-l-purple-500 bg-purple-50/15";
+                          else if (slotAppt.doctor.includes("Priyanka")) docColor = "border-l-emerald-500 bg-emerald-50/15";
+                          else if (slotAppt.doctor.includes("Krishna")) docColor = "border-l-indigo-500 bg-indigo-50/15";
+
+                          return (
+                            <div 
+                              onClick={() => setSelectedApptDetail(slotAppt)}
+                              className={`flex-1 p-3 border-l-3 rounded-xl flex items-center justify-between cursor-pointer hover:shadow-xs transition-shadow ${docColor}`}
+                            >
+                              <div>
+                                <span className="font-bold text-slate-800 dark:text-slate-200 block">{slotAppt.patientName}</span>
+                                <p className="text-[10px] text-slate-450 mt-0.5">{slotAppt.patientId} • Doctor: {slotAppt.doctor}</p>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold uppercase">{slotAppt.treatment}</span>
+                                <p className="text-[9px] text-slate-400 mt-1">{slotAppt.status}</p>
+                              </div>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <button 
+                          onClick={() => {
+                            setSelectedSlotData({ date: formatDateString(apptCalendarDate), time: slotTimeStr });
+                          }}
+                          className="flex-1 py-3 border border-dashed border-slate-100 hover:border-blue-300 rounded-xl text-[10px] text-slate-400 font-bold text-left px-4 hover:bg-slate-50/20"
+                        >
+                          + Block / Open Appointment Slot
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  );
+
+        {/* SIDE DRAWER FOR DETAILS */}
+        {selectedApptDetail && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex justify-end">
+            <div className="w-full max-w-md bg-white dark:bg-slate-950 h-full shadow-2xl p-6 overflow-y-auto space-y-6 flex flex-col justify-between animate-slideLeft">
+              <div className="space-y-6">
+                <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-900">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Appointment Details</span>
+                    <span className="text-lg font-bold text-slate-900 dark:text-white mt-0.5 block">{selectedApptDetail.patientName}</span>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedApptDetail(null)}
+                    className="h-8 w-8 rounded-full border hover:bg-slate-50 flex items-center justify-center text-slate-500"
+                  >
+                    <Plus className="h-4 w-4 rotate-45" />
+                  </button>
+                </div>
+
+                <div className="space-y-4 text-xs font-semibold text-slate-600">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase block">Patient ID</span>
+                      <strong className="text-slate-800 dark:text-slate-200 font-bold">{selectedApptDetail.patientId}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase block">Phone Number</span>
+                      <strong className="text-slate-800 dark:text-slate-200 font-bold">
+                        {patients.find(p => p.id === selectedApptDetail.patientId)?.phone || "+91 99000 11000"}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase block">Assigned Doctor</span>
+                      <strong className="text-slate-800 dark:text-slate-200 font-bold">{selectedApptDetail.doctor}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase block">Date & Time</span>
+                      <strong className="text-slate-800 dark:text-slate-200 font-bold">{selectedApptDetail.date} at {selectedApptDetail.time}</strong>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase block">Treatment</span>
+                      <span className="bg-blue-50 text-blue-700 dark:bg-blue-950/20 px-2.5 py-0.5 rounded-full font-bold uppercase text-[9px] inline-block mt-1">
+                        {selectedApptDetail.treatment}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase block">Status</span>
+                      <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 px-2.5 py-0.5 rounded-full font-bold uppercase text-[9px] inline-block mt-1">
+                        {selectedApptDetail.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase block">Notes</span>
+                    <p className="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl text-slate-700 dark:text-slate-350 mt-1 leading-normal font-medium">
+                      {selectedApptDetail.notes || "No clinical notes configured for this appointment slot."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons Grid */}
+              <div className="space-y-3 pt-6 border-t border-slate-100 dark:border-slate-900">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Workflow Actions</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    onClick={() => {
+                      handleApptCheckIn(selectedApptDetail.id);
+                      setSelectedApptDetail(null);
+                    }}
+                    disabled={selectedApptDetail.status !== "Scheduled"}
+                    className="h-10 text-[11px] font-bold bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg"
+                  >
+                    Check In
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      handleApptStartProcedure(selectedApptDetail.id);
+                      setSelectedApptDetail(null);
+                    }}
+                    disabled={selectedApptDetail.status !== "Checked In" && selectedApptDetail.status !== "Waiting"}
+                    className="h-10 text-[11px] font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-lg"
+                  >
+                    Start Procedure
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      const newDate = prompt("Enter new date (e.g. 15 Aug 2026):", selectedApptDetail.date);
+                      const newTime = prompt("Enter new time (e.g. 11:30 AM):", selectedApptDetail.time);
+                      if (newDate && newTime) {
+                        setAppointments(prev => prev.map(a => a.id === selectedApptDetail.id ? { ...a, date: newDate, time: newTime } : a));
+                        pushActivity("Appointment", `Rescheduled ${selectedApptDetail.patientName} to ${newDate} at ${newTime}.`);
+                      }
+                      setSelectedApptDetail(null);
+                    }}
+                    className="h-10 text-[11px] font-bold rounded-lg"
+                  >
+                    Reschedule
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedSlotData({ date: selectedApptDetail.date, time: selectedApptDetail.time, appointment: selectedApptDetail });
+                      setSelectedApptDetail(null);
+                    }}
+                    className="h-10 text-[11px] font-bold rounded-lg"
+                  >
+                    Edit
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setAppointments(prev => prev.map(a => a.id === selectedApptDetail.id ? { ...a, status: "Cancelled" } : a));
+                      pushActivity("Appointment", `Cancelled appointment for ${selectedApptDetail.patientName}.`);
+                      setSelectedApptDetail(null);
+                    }}
+                    disabled={selectedApptDetail.status === "Cancelled" || selectedApptDetail.status === "Completed"}
+                    className="h-10 text-[11px] font-bold bg-red-650 hover:bg-red-500 text-white rounded-lg col-span-2"
+                  >
+                    Cancel Appointment
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 pt-2">
+                  <button 
+                    onClick={() => alert(`Token printed for ${selectedApptDetail.patientName}.`)}
+                    className="py-2 text-[10px] font-bold border rounded-lg bg-slate-50 hover:bg-slate-100 flex flex-col items-center justify-center gap-1 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-350"
+                  >
+                    <Printer className="h-3.5 w-3.5" /> Print Token
+                  </button>
+                  <button 
+                    onClick={() => alert(`SMS reminder sent successfully to ${selectedApptDetail.patientName}.`)}
+                    className="py-2 text-[10px] font-bold border rounded-lg bg-slate-50 hover:bg-slate-100 flex flex-col items-center justify-center gap-1 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-350"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" /> Send SMS
+                  </button>
+                  <button 
+                    onClick={() => alert(`WhatsApp notification sent to ${selectedApptDetail.patientName}.`)}
+                    className="py-2 text-[10px] font-bold border rounded-lg bg-slate-50 hover:bg-slate-100 flex flex-col items-center justify-center gap-1 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-350"
+                  >
+                    <MessageCircle className="h-3.5 w-3.5 text-emerald-600" /> WhatsApp
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderPatientsModule = () => {
     if (selectedPatientId) {
