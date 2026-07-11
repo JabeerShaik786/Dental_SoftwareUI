@@ -1845,53 +1845,38 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             <div className="space-y-2">
               <div 
                 onClick={() => setApptSelectedDoctor("All")}
-                className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3 ${
+                className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
                   apptSelectedDoctor === "All" 
                     ? "bg-blue-50/50 border-blue-500 dark:bg-blue-950/20" 
                     : "bg-slate-50/30 border-slate-100 hover:bg-slate-50 dark:bg-slate-900/10 dark:border-slate-800"
                 }`}
               >
-                <div className="h-8 w-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">ALL</div>
                 <div>
-                  <span className="font-bold text-xs text-slate-800 dark:text-slate-200 block">Show All Doctors</span>
-                  <p className="text-[9px] text-slate-400">View combined schedule</p>
+                  <span className="font-bold text-xs text-slate-808 dark:text-slate-200 block">Show All Doctors</span>
+                  <p className="text-[9px] text-slate-400 mt-0.5">View combined schedule</p>
                 </div>
               </div>
 
               {doctors.map((doc, idx) => {
                 const isActive = apptSelectedDoctor === doc.name;
-                const initials = doc.name.replace("Dr. ", "").split(" ").map(n => n[0]).join("").toUpperCase();
-                const colors = [
-                  "bg-blue-100 text-blue-700",
-                  "bg-purple-100 text-purple-700",
-                  "bg-emerald-100 text-emerald-700",
-                  "bg-indigo-100 text-indigo-700",
-                  "bg-pink-100 text-pink-700"
-                ];
-                const avatarColor = colors[idx % colors.length];
                 const todayCount = appointments.filter(a => a.doctor === doc.name && a.date === "12 Aug 2026" && a.status !== "Cancelled").length;
 
                 return (
                   <div 
                     key={doc.name}
                     onClick={() => setApptSelectedDoctor(isActive ? "All" : doc.name)}
-                    className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                    className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
                       isActive 
                         ? "bg-blue-50/50 border-blue-500 dark:bg-blue-955/20" 
                         : "bg-slate-50/30 border-slate-100 hover:bg-slate-50 dark:bg-slate-900/10 dark:border-slate-800"
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`h-8 w-8 rounded-full font-extrabold text-xs flex items-center justify-center ${avatarColor}`}>
-                        {initials}
-                      </div>
-                      <div>
-                        <span className="font-bold text-xs text-slate-800 dark:text-slate-200 block">{doc.name}</span>
-                        <p className="text-[9px] text-slate-450">{doc.speciality}</p>
-                      </div>
+                    <div>
+                      <span className="font-bold text-xs text-slate-808 dark:text-slate-200 block">{doc.name}</span>
+                      <p className="text-[9px] text-slate-450 mt-0.5">{doc.speciality}</p>
                     </div>
                     {todayCount > 0 && (
-                      <span className="text-[9px] bg-slate-100 dark:bg-slate-850 px-2 py-0.5 rounded-full font-bold text-slate-600 dark:text-slate-300">{todayCount} Today</span>
+                      <span className="text-[9px] bg-slate-100 dark:bg-slate-850 px-2 py-0.5 rounded-full font-bold text-slate-600 dark:text-slate-300 shrink-0">{todayCount} Today</span>
                     )}
                   </div>
                 );
@@ -2021,14 +2006,25 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   const dayAppts = filteredAppts.filter(a => a.date === dateStr);
                   const isToday = dayObj.date.toDateString() === new Date().toDateString();
                   
+                  const hasAppts = dayAppts.length > 0;
+                  const handleCellClick = () => {
+                    if (!hasAppts) return;
+                    if (dayAppts.length === 1) {
+                      setSelectedApptDetail(dayAppts[0]);
+                    } else {
+                      setSelectedSlotData({ date: dateStr, time: "Multiple" });
+                    }
+                  };
+
                   return (
                     <div 
                       key={index} 
+                      onClick={handleCellClick}
                       className={`min-h-[110px] p-2 border rounded-xl flex flex-col justify-between transition-colors ${
                         dayObj.isCurrentMonth 
                           ? "bg-white border-slate-200 dark:bg-slate-955 dark:border-slate-800" 
                           : "bg-slate-50/50 border-slate-100 text-slate-400 dark:bg-slate-900/10 dark:border-slate-900"
-                      }`}
+                      } ${hasAppts ? "cursor-pointer hover:border-emerald-400 hover:bg-slate-50/20" : ""}`}
                     >
                       <div className="flex justify-between items-center mb-1">
                         <span className={`text-[10px] font-extrabold h-5 w-5 rounded-full flex items-center justify-center ${
@@ -2038,38 +2034,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         </span>
                       </div>
 
-                      <div className="space-y-1.5 flex-1 overflow-y-auto pr-0.5 max-h-[80px]">
-                        {dayAppts.slice(0, 2).map(appt => {
-                          let docBorderColor = "border-l-blue-500 bg-blue-50/20";
-                          if (appt.doctor.includes("Raghuram")) docBorderColor = "border-l-cyan-500 bg-cyan-50/20";
-                          else if (appt.doctor.includes("Srinivasa")) docBorderColor = "border-l-purple-500 bg-purple-50/20";
-                          else if (appt.doctor.includes("Priyanka")) docBorderColor = "border-l-emerald-500 bg-emerald-50/20";
-                          else if (appt.doctor.includes("Krishna")) docBorderColor = "border-l-indigo-500 bg-indigo-50/20";
-
-                          return (
-                            <div 
-                              key={appt.id}
-                              onClick={() => setSelectedApptDetail(appt)}
-                              className={`p-1.5 border-l-2 rounded-md text-[9.5px] cursor-pointer hover:shadow-xs transition-shadow block leading-snug ${docBorderColor}`}
-                            >
-                              <p className="font-extrabold text-slate-900 dark:text-white truncate">{appt.patientName}</p>
-                              <p className="text-slate-500 text-[8px] truncate">{appt.patientId}</p>
-                              <p className="text-slate-450 text-[8px] truncate">{appt.doctor}</p>
-                            </div>
-                          );
-                        })}
-                        
-                        {dayAppts.length > 2 && (
-                          <button 
-                            onClick={() => {
-                              setSelectedSlotData({ date: dateStr, time: "Multiple" });
-                            }}
-                            className="w-full text-center py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 text-[9px] font-extrabold text-blue-600"
-                          >
-                            +{dayAppts.length - 2} More
-                          </button>
-                        )}
-                      </div>
+                      {hasAppts && (
+                        <div className="flex justify-end items-center mt-auto">
+                          <span className="text-[9.5px] font-black bg-emerald-500 text-white h-5 min-w-[20px] px-1.5 rounded-full flex items-center justify-center shadow-sm">
+                            {dayAppts.length}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
