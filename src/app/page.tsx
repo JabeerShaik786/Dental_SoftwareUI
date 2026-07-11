@@ -80,7 +80,7 @@ interface Appointment {
   treatment: string;
   time: string;
   date: string;
-  status: "Scheduled" | "Checked In" | "Waiting" | "In Consultation" | "Completed" | "Paid" | "Cancelled" | "No Show";
+  status: "Scheduled" | "Checked In" | "Waiting" | "In Consultation" | "In Procedure" | "Completed" | "Cancelled" | "No Show";
   notes?: string;
   token?: string;
   avatarColor: string;
@@ -129,14 +129,9 @@ interface ActivityItem {
 
 // Predefined treatment base prices
 const TREATMENT_PRICES: Record<string, number> = {
-  "Dental Cleaning": 1500,
-  "Root Canal": 4500,
-  "Tooth Extraction": 2000,
-  "Scaling": 1500,
-  "Crown Placement": 5500,
-  "Composite Filling": 1200,
-  "Implant Consultation": 500,
   "Consultation": 500,
+  "Scaling": 1500,
+  "Root Canal": 4500,
   "Extraction": 2000,
   "Filling": 1200,
   "Implant": 25000,
@@ -226,23 +221,35 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [newCustomDesc, setNewCustomDesc] = useState("");
   const [newCustomAmt, setNewCustomAmt] = useState(0);
 
-  // Interactive Clinic Checklist Tasks
-  const [tasks, setTasks] = useState([
-    { id: "task-1", text: "Confirm tomorrow's appointments", priority: "High", due: "Today, 5 PM", completed: false },
-    { id: "task-2", text: "Call pending follow-ups", priority: "Medium", due: "Tomorrow", completed: false },
-    { id: "task-3", text: "Verify pending payments", priority: "High", due: "Today", completed: false },
-    { id: "task-4", text: "Low inventory alerts (Anesthetics)", priority: "High", due: "Immediate", completed: false },
-    { id: "task-5", text: "Lab cases ready (Crown for Rohan)", priority: "Medium", due: "Today", completed: false },
-    { id: "task-6", text: "Birthdays (Send greetings to Aarav)", priority: "Low", due: "Today", completed: false },
-    { id: "task-7", text: "Submit pending insurance claims", priority: "Low", due: "Within 3 days", completed: false }
-  ]);
-
-  const handleToggleTask = (taskId: string) => {
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t));
-  };
-
   // Timeframe filter for reports page
   const [reportsFilter, setReportsFilter] = useState<"Today" | "Week" | "Month" | "Year">("Today");
+
+  // Redesigned dashboard state variables
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState("12 Aug 2026");
+  const [blockedSlots, setBlockedSlots] = useState<Record<string, boolean>>({});
+  
+  // Add Patient quick panel inputs
+  const [quickFirstName, setQuickFirstName] = useState("");
+  const [quickLastName, setQuickLastName] = useState("");
+  const [quickMobile, setQuickMobile] = useState("");
+  const [quickGender, setQuickGender] = useState<"Male" | "Female">("Male");
+  const [quickAge, setQuickAge] = useState(30);
+  const [quickDOB, setQuickDOB] = useState("");
+  const [quickLocation, setQuickLocation] = useState("Bengaluru");
+
+  // Recently Added Patient list states
+  const [patientSearchQuery, setPatientSearchQuery] = useState("");
+  const [patientFilterGender, setPatientFilterGender] = useState("All");
+  const [patientSortBy, setPatientSortBy] = useState("Name-ASC");
+  const [patientVisibleCount, setPatientVisibleCount] = useState(5);
+
+  // Calendar slot selection for detail modal
+  const [selectedSlotData, setSelectedSlotData] = useState<{ date: string; time: string; appointment?: Appointment } | null>(null);
+  
+  // Slot booking form states
+  const [slotPatientId, setSlotPatientId] = useState("");
+  const [slotDoctor, setSlotDoctor] = useState("Dr. Sharma");
+  const [slotTreatment, setSlotTreatment] = useState("Consultation");
 
   // --- MOCK DATABASE DATABASE STATES ---
 
@@ -252,7 +259,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     { id: "DS-1003", name: "Kabir Singh", phone: "+91 98765 43210", age: 45, gender: "Male", address: "Koramangala, Bengaluru", visit: "08 Aug 2026", medicalNotes: "Latex Allergy, Hypertension", balance: "₹0", status: "Active", dentalChart: { 12: "Decayed" }, prescriptions: ["Paracetamol 650mg - as needed"], files: [], notes: ["Hypertension controlled under clinical prescription."] },
     { id: "DS-1004", name: "Ananya Rao", phone: "+91 95400 12044", age: 19, gender: "Female", address: "Whitefield, Bengaluru", visit: "05 Aug 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
     { id: "DS-1005", name: "Rohan Kumar", phone: "+91 98100 44028", age: 31, gender: "Male", address: "HSR Layout, Bengaluru", visit: "12 Aug 2026", medicalNotes: "Sulfa Drugs Allergy", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
-    { id: "DS-1006", name: "Sneha Verma", phone: "+91 95408 81229", age: 27, gender: "Female", address: "Jayanagar, Bengaluru", visit: "03 Aug 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
+    { id: "DS-1006", name: "Sneha Reddy", phone: "+91 95408 81229", age: 27, gender: "Female", address: "Jayanagar, Bengaluru", visit: "03 Aug 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
     { id: "DS-1007", name: "Rahul Verma", phone: "+91 98110 22912", age: 40, gender: "Male", address: "Malleshwaram, Bengaluru", visit: "28 Jul 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
     { id: "DS-1008", name: "Kavya Sharma", phone: "+91 99100 55109", age: 22, gender: "Female", address: "Hebbal, Bengaluru", visit: "25 Jul 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
     { id: "DS-1009", name: "Arjun Nair", phone: "+91 98760 12345", age: 36, gender: "Male", address: "Bannerghatta, Bengaluru", visit: "20 Jul 2026", medicalNotes: "Aspirin Sensitivity", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
@@ -326,16 +333,17 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
   const kpiCounts = {
     todayAppointments: appointments.filter(a => a.date === "12 Aug 2026" && a.status !== "Cancelled").length,
-    walkins: appointments.filter(a => a.notes?.toLowerCase().includes("walk-in")).length,
-    waiting: appointments.filter(a => a.status === "Waiting").length,
-    inTreatment: appointments.filter(a => a.status === "In Consultation").length,
-    completedToday: appointments.filter(a => a.status === "Completed" && a.date === "12 Aug 2026").length,
-    pendingBills: invoices.filter(i => i.status !== "Paid").length
+    walkins: appointments.filter(a => a.date === "12 Aug 2026" && (a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in"))).length,
+    waiting: appointments.filter(a => a.date === "12 Aug 2026" && (a.status === "Waiting" || a.status === "Checked In")).length,
+    inTreatment: appointments.filter(a => a.date === "12 Aug 2026" && (a.status === "In Procedure" || a.status === "In Consultation")).length,
+    completedToday: appointments.filter(a => a.date === "12 Aug 2026" && a.status === "Completed").length,
+    pendingBills: invoices.filter(i => i.status !== "Paid").length,
+    revenueToday: invoices.reduce((sum, inv) => sum + inv.paymentLogs.filter(log => log.date === "12 Aug 2026").reduce((s, l) => s + l.amount, 0), 0)
   };
 
   const pushActivity = (type: ActivityItem["type"], msg: string) => {
     const newAct: ActivityItem = {
-      id: `act-${Date.now()}`,
+      id: `act-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       type,
       msg,
       time: "Just now"
@@ -359,7 +367,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       pushActivity("Appointment", `Patient ${appt.patientName} checked in. Token ${tokenStr} assigned.`);
       // Add notification
       const newNotif = {
-        id: Date.now(),
+        id: Date.now() + Math.floor(Math.random() * 100000),
         msg: `Token ${tokenStr} (${appt.patientName}) is waiting in the queue.`,
         unread: true
       };
@@ -421,7 +429,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const medicineCost = consultPrescription ? 800 : 0; // Simulate medicine cost flat ₹800
     
     const newTreatmentLog: TreatmentItem = {
-      id: `tr-${Date.now()}`,
+      id: `tr-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       name: appt.treatment,
       patient: appt.patientName,
       doctor: appt.doctor,
@@ -491,127 +499,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setActiveSubTab("Invoices");
   };
 
-  // 3.5. Complete Consultation from Timeline
-  const handleCompleteTreatmentFromTimeline = (apptId: string) => {
-    const appt = appointments.find(a => a.id === apptId);
-    if (!appt) return;
-
-    // Change status in appointment table
-    setAppointments(prev =>
-      prev.map(app => (app.id === apptId ? { ...app, status: "Completed" } : app))
-    );
-
-    // Free the doctor
-    setDoctors(prev =>
-      prev.map(d => (d.name === appt.doctor ? { ...d, status: "Available" } : d))
-    );
-
-    // Save treatment log into patient database
-    const treatmentCost = TREATMENT_PRICES[appt.treatment] || 500;
-    
-    const newTreatmentLog: TreatmentItem = {
-      id: `tr-${Date.now()}`,
-      name: appt.treatment,
-      patient: appt.patientName,
-      doctor: appt.doctor,
-      stage: "Completed",
-      notes: "Completed successfully from timeline.",
-      nextVisit: "10 Sep 2026",
-      prescription: "None"
-    };
-
-    setTreatments(prev => [newTreatmentLog, ...prev]);
-
-    // Update patient record
-    setPatients(prev =>
-      prev.map(p => {
-        if (p.id === appt.patientId) {
-          return {
-            ...p,
-            visit: "12 Aug 2026"
-          };
-        }
-        return p;
-      })
-    );
-
-    // Auto-generate invoice
-    const invoiceNum = `INV-${1000 + invoices.length + 1}`;
-    const invoiceItems = [{ description: `${appt.treatment} Fee`, amount: treatmentCost }];
-    const sub = invoiceItems.reduce((acc, item) => acc + item.amount, 0);
-    const taxValue = Math.round(sub * 0.18);
-    const tot = sub + taxValue;
-
-    const newInvoice: InvoiceItem = {
-      id: invoiceNum,
-      patientId: appt.patientId,
-      patientName: appt.patientName,
-      doctor: appt.doctor,
-      treatment: appt.treatment,
-      items: invoiceItems,
-      discount: 0,
-      tax: 18,
-      subtotal: sub,
-      total: tot,
-      paidAmount: 0,
-      status: "Pending",
-      paymentDate: "12 Aug 2026",
-      paymentLogs: []
-    };
-
-    setInvoices(prev => [newInvoice, ...prev]);
-    pushActivity("Treatment", `Treatment completed for ${appt.patientName}. Invoice ${invoiceNum} generated.`);
-  };
-
-  const handleGenerateBill = (apptId: string) => {
-    const appt = appointments.find(a => a.id === apptId);
-    if (!appt) return;
-
-    // Try to find an existing pending invoice for this patient's treatment
-    let inv = invoices.find(i => i.patientId === appt.patientId && i.treatment === appt.treatment && i.status === "Pending");
-    
-    if (!inv) {
-      // Auto-generate invoice if not already present
-      const invoiceNum = `INV-${1000 + invoices.length + 1}`;
-      const treatmentCost = TREATMENT_PRICES[appt.treatment] || 500;
-      const invoiceItems = [{ description: `${appt.treatment} Fee`, amount: treatmentCost }];
-      const sub = invoiceItems.reduce((acc, item) => acc + item.amount, 0);
-      const taxValue = Math.round(sub * 0.18);
-      const tot = sub + taxValue;
-
-      inv = {
-        id: invoiceNum,
-        patientId: appt.patientId,
-        patientName: appt.patientName,
-        doctor: appt.doctor,
-        treatment: appt.treatment,
-        items: invoiceItems,
-        discount: 0,
-        tax: 18,
-        subtotal: sub,
-        total: tot,
-        paidAmount: 0,
-        status: "Pending",
-        paymentDate: "12 Aug 2026",
-        paymentLogs: []
-      };
-      setInvoices(prev => [inv!, ...prev]);
-    }
-
-    // Reset split-payment input fields
-    setPayCash(0);
-    setPayCard(0);
-    setPayUpi(0);
-    setPayCustomItems([]);
-    setPayDiscountPercent(0);
-    setPayTaxPercent(18);
-
-    // Open payment modal and redirect to Billing page
-    setSelectedInvoiceForPayment(inv);
-    setActiveTab("Billing");
-    setActiveSubTab("Invoices");
-  };
-
   // 4. Collect SPLIT/FULL Payment
   const handleCollectPayment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -654,19 +541,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         return inv;
       })
     );
-
-    // Update appointment status to Paid if invoice is paid
-    if (finalStatus === "Paid") {
-      setAppointments(prev =>
-        prev.map(app =>
-          app.patientId === selectedInvoiceForPayment.patientId &&
-          app.treatment === selectedInvoiceForPayment.treatment &&
-          (app.status === "Completed" || app.status === "In Consultation" || app.status === "Scheduled")
-            ? { ...app, status: "Paid" }
-            : app
-        )
-      );
-    }
 
     // Apply balance update to patient directory record
     const remainingBalance = Math.max(0, finalInvoiceTotal - totalPaidAmount);
@@ -749,7 +623,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     };
 
     // Book and check in instantly
-    const apptId = `appt-${Date.now()}`;
+    const apptId = `appt-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const tokenStr = `T-0${appointments.filter(a => a.status === "Waiting" || a.status === "In Consultation" || a.status === "Completed").length + 1}`;
     
     const walkinAppt: Appointment = {
@@ -785,7 +659,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     if (!pat) return;
 
     const newAppt: Appointment = {
-      id: `appt-${Date.now()}`,
+      id: `appt-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       patientId: pat.id,
       patientName: pat.name,
       doctor: apptDoctor,
@@ -803,31 +677,238 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setActiveModal(null);
   };
 
+  // --- REDESIGNED DASHBOARD WORKFLOW HANDLERS ---
+  const handleClearPatientForm = () => {
+    setQuickFirstName("");
+    setQuickLastName("");
+    setQuickMobile("");
+    setQuickGender("Male");
+    setQuickAge(30);
+    setQuickDOB("");
+    setQuickLocation("Bengaluru");
+  };
+
+  const handleSavePatientQuick = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickFirstName.trim() || !quickLastName.trim()) return;
+
+    const patientId = `DS-${1000 + patients.length + 1}`;
+    const fullName = `${quickFirstName.trim()} ${quickLastName.trim()}`;
+    const newPat: Patient = {
+      id: patientId,
+      name: fullName,
+      phone: quickMobile || "+91 99000 11000",
+      age: quickAge,
+      gender: quickGender,
+      address: quickLocation || "Bengaluru",
+      visit: "12 Aug 2026",
+      medicalNotes: "None",
+      balance: "₹0",
+      status: "Active",
+      dentalChart: {},
+      prescriptions: [],
+      files: [],
+      notes: []
+    };
+
+    setPatients(prev => [newPat, ...prev]);
+    pushActivity("Register", `Quick registered patient ${fullName} (${patientId}).`);
+
+    // Add notification
+    setNotifications(prev => [
+      {
+        id: Date.now() + Math.floor(Math.random() * 100000),
+        msg: `New Patient ${fullName} registered successfully.`,
+        unread: true
+      },
+      ...prev
+    ]);
+
+    handleClearPatientForm();
+  };
+
+  const handleSlotBookingSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSlotData || !slotPatientId) return;
+
+    const pat = patients.find(p => p.id === slotPatientId);
+    if (!pat) return;
+
+    const newAppt: Appointment = {
+      id: `appt-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      patientId: pat.id,
+      patientName: pat.name,
+      doctor: slotDoctor,
+      treatment: slotTreatment,
+      time: selectedSlotData.time,
+      date: selectedSlotData.date,
+      status: "Scheduled",
+      avatarColor: "bg-indigo-100 text-indigo-600"
+    };
+
+    setAppointments(prev => [...prev, newAppt]);
+    pushActivity("Appointment", `Booked appointment for ${pat.name} on ${selectedSlotData.date} at ${selectedSlotData.time}.`);
+    
+    // Clear and close
+    setSlotPatientId("");
+    setSelectedSlotData(null);
+  };
+
+  const handleBlockSlotToggle = (date: string, time: string) => {
+    const key = `${date}_${time}`;
+    setBlockedSlots(prev => {
+      const copy = { ...prev };
+      if (copy[key]) {
+        delete copy[key];
+        pushActivity("Appointment", `Unblocked slot on ${date} at ${time}.`);
+      } else {
+        copy[key] = true;
+        pushActivity("Appointment", `Blocked slot on ${date} at ${time}.`);
+      }
+      return copy;
+    });
+    setSelectedSlotData(null);
+  };
+
+  // Today's appointments custom transitions
+  const handleApptCheckIn = (apptId: string) => {
+    const activeApptsCount = appointments.filter(a => a.status === "Waiting" || a.status === "Checked In" || a.status === "In Procedure" || a.status === "Completed").length;
+    const tokenStr = `T-0${activeApptsCount + 1}`;
+    setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: "Checked In", token: tokenStr } : a));
+    
+    const app = appointments.find(a => a.id === apptId);
+    if (app) {
+      pushActivity("Appointment", `${app.patientName} checked in. Token ${tokenStr} assigned.`);
+      setNotifications(prev => [{ id: Date.now() + Math.floor(Math.random() * 100000), msg: `Token ${tokenStr} (${app.patientName}) arrived.`, unread: true }, ...prev]);
+    }
+    if (selectedSlotData && selectedSlotData.appointment?.id === apptId) {
+      setSelectedSlotData(null);
+    }
+  };
+
+  const handleApptStartProcedure = (apptId: string) => {
+    setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: "In Procedure" } : a));
+    const app = appointments.find(a => a.id === apptId);
+    if (app) {
+      setDoctors(prev => prev.map(d => d.name === app.doctor ? { ...d, status: "In Consultation" } : d));
+      pushActivity("Treatment", `Procedure started for ${app.patientName} with ${app.doctor}.`);
+    }
+    if (selectedSlotData && selectedSlotData.appointment?.id === apptId) {
+      setSelectedSlotData(null);
+    }
+  };
+
+  const handleApptCompleteProcedure = (apptId: string) => {
+    setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: "Completed" } : a));
+    const app = appointments.find(a => a.id === apptId);
+    if (app) {
+      setDoctors(prev => prev.map(d => d.name === app.doctor ? { ...d, status: "Available" } : d));
+      pushActivity("Treatment", `Procedure completed for ${app.patientName} for ${app.treatment}.`);
+      
+      // Auto-generate invoice
+      const invoiceNum = `INV-${1000 + invoices.length + 1}`;
+      const treatmentCost = TREATMENT_PRICES[app.treatment] || 500;
+      const invoiceItems = [{ description: `${app.treatment} Fee`, amount: treatmentCost }];
+      const sub = treatmentCost;
+      const taxValue = Math.round(sub * 0.18);
+      const tot = sub + taxValue;
+      
+      const newInvoice: InvoiceItem = {
+        id: invoiceNum,
+        patientId: app.patientId,
+        patientName: app.patientName,
+        doctor: app.doctor,
+        treatment: app.treatment,
+        items: invoiceItems,
+        discount: 0,
+        tax: 18,
+        subtotal: sub,
+        total: tot,
+        paidAmount: 0,
+        status: "Pending",
+        paymentDate: "12 Aug 2026",
+        paymentLogs: []
+      };
+
+      setInvoices(prev => [newInvoice, ...prev]);
+      pushActivity("Billing", `Invoice ${invoiceNum} generated for ${app.patientName}.`);
+    }
+    if (selectedSlotData && selectedSlotData.appointment?.id === apptId) {
+      setSelectedSlotData(null);
+    }
+  };
+
+  const handleApptGenerateBill = (apptId: string) => {
+    const app = appointments.find(a => a.id === apptId);
+    if (app) {
+      const inv = invoices.find(i => i.patientId === app.patientId && i.status === "Pending");
+      if (inv) {
+        setSelectedInvoiceForPayment(inv);
+        setPayCash(0);
+        setPayUpi(0);
+        setPayCard(0);
+        setPayDiscountPercent(inv.discount);
+        setPayTaxPercent(inv.tax);
+        setPayCustomItems([]);
+      } else {
+        // Create quick invoice if not already created
+        const invoiceNum = `INV-${1000 + invoices.length + 1}`;
+        const treatmentCost = TREATMENT_PRICES[app.treatment] || 500;
+        const invoiceItems = [{ description: `${app.treatment} Fee`, amount: treatmentCost }];
+        const sub = treatmentCost;
+        const taxValue = Math.round(sub * 0.18);
+        const tot = sub + taxValue;
+        
+        const newInvoice: InvoiceItem = {
+          id: invoiceNum,
+          patientId: app.patientId,
+          patientName: app.patientName,
+          doctor: app.doctor,
+          treatment: app.treatment,
+          items: invoiceItems,
+          discount: 0,
+          tax: 18,
+          subtotal: sub,
+          total: tot,
+          paidAmount: 0,
+          status: "Pending",
+          paymentDate: "12 Aug 2026",
+          paymentLogs: []
+        };
+        setInvoices(prev => [newInvoice, ...prev]);
+        setSelectedInvoiceForPayment(newInvoice);
+        setPayCash(0);
+        setPayUpi(0);
+        setPayCard(0);
+        setPayDiscountPercent(0);
+        setPayTaxPercent(18);
+        setPayCustomItems([]);
+      }
+    }
+    if (selectedSlotData && selectedSlotData.appointment?.id === apptId) {
+      setSelectedSlotData(null);
+    }
+  };
+
   const selectTab = (tabName: string) => {
     setActiveTab(tabName);
     setActiveSubTab(moduleSubTabs[tabName]?.[0] || "");
     setSelectedPatientId(null);
   };
 
-  const handleCallNextPatient = () => {
-    const nextWaiting = appointments.find(a => a.status === "Waiting");
-    if (nextWaiting) {
-      handleStartConsultation(nextWaiting.id);
-    }
-  };
+  // --- RENDER MODULE SCREENS ---
 
   const renderScheduleTimeline = () => (
-    <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+    <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
       <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
-        <span className="font-bold text-sm text-slate-808 dark:text-white">Today's Timeline Schedule</span>
-        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full font-bold">12 Aug 2026</span>
+        <span className="font-bold text-sm text-slate-800 dark:text-white">Today's Timeline Schedule</span>
+        <span className="text-[10px] bg-slate-100 text-slate-655 px-2 py-0.5 rounded-full font-bold">12 Aug 2026</span>
       </div>
 
       <div className="space-y-4 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
         {appointments.filter(a => a.date === "12 Aug 2026").map((app) => (
           <div key={app.id} className="flex gap-4 relative items-start group">
             <div className={`h-9 w-9 rounded-full shrink-0 flex items-center justify-center font-bold text-xs border-2 border-white dark:border-slate-955 shadow-xs z-10 ${
-              app.status === "Paid" ? "bg-emerald-500 text-white" :
               app.status === "Completed" ? "bg-emerald-500 text-white" :
               app.status === "In Consultation" ? "bg-blue-600 text-white animate-pulse" :
               app.status === "Waiting" ? "bg-amber-500 text-white animate-pulse" :
@@ -842,37 +923,25 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   <span className="font-bold text-sm text-slate-900 dark:text-white">{app.patientName}</span>
                   <span className="text-[10px] text-slate-405">• {app.treatment}</span>
                 </div>
-                <div className="text-xs text-slate-505">
-                  <span>Doctor: <strong className="font-bold text-slate-707 dark:text-slate-350">{app.doctor}</strong></span>
+                <div className="text-xs text-slate-500">
+                  <span>Doctor: <strong className="font-bold text-slate-700 dark:text-slate-300">{app.doctor}</strong></span>
                   <span className="mx-2">•</span>
                   <span>Time Slot: <strong className="font-semibold text-slate-700">{app.time}</strong></span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex gap-2 shrink-0">
                 {app.status === "Scheduled" && (
-                  <>
-                    <button onClick={() => handleCheckIn(app.id)} className="h-8 px-3.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xs transition-all duration-200">Check In</button>
-                    <button onClick={() => setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Cancelled" } : a))} className="h-8 px-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-955/20 rounded-lg text-xs font-semibold transition-all">Cancel</button>
-                  </>
+                  <button onClick={() => handleCheckIn(app.id)} className="h-8 px-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-xs">Check In</button>
                 )}
                 {app.status === "Waiting" && (
-                  <>
-                    <button onClick={() => handleStartConsultation(app.id)} className="h-8 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xs transition-all duration-200">Start Consultation</button>
-                    <button onClick={() => setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Cancelled" } : a))} className="h-8 px-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-955/20 rounded-lg text-xs font-semibold transition-all">Cancel</button>
-                  </>
+                  <button onClick={() => handleStartConsultation(app.id)} className="h-8 px-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xs">Start Consult</button>
                 )}
                 {app.status === "In Consultation" && (
-                  <button onClick={() => handleCompleteTreatmentFromTimeline(app.id)} className="h-8 px-3.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-xs transition-all duration-200">Complete Treatment</button>
+                  <button onClick={() => handleStartConsultation(app.id)} className="h-8 px-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-xs">In Consult</button>
                 )}
-                {app.status === "Completed" && (
-                  <button onClick={() => handleGenerateBill(app.id)} className="h-8 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition-all duration-200">Generate Bill</button>
-                )}
-                {app.status === "Paid" && (
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-955/20 px-2.5 py-1 rounded-lg">Completed</span>
-                )}
-                {app.status === "Cancelled" && (
-                  <span className="text-xs font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">Cancelled</span>
+                {app.status !== "Completed" && app.status !== "Cancelled" && (
+                  <button onClick={() => setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Cancelled" } : a))} className="h-8 px-2.5 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold">Cancel</button>
                 )}
               </div>
             </div>
@@ -882,198 +951,746 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     </div>
   );
 
-  const renderWaitingRoom = () => {
-    const waitingAppts = appointments.filter(a => a.status === "Waiting");
+  const renderWaitingRoom = () => (
+    <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+      <span className="font-bold text-xs text-slate-400 uppercase tracking-wider block mb-3">Appointments Waiting Queue</span>
+      <div className="space-y-3">
+        {appointments.filter(a => a.status === "Waiting").length > 0 ? (
+          appointments.filter(a => a.status === "Waiting").map((item) => (
+            <div key={item.id} className="p-3 border rounded-xl bg-amber-50/20 border-amber-100 flex items-center justify-between text-xs font-semibold">
+              <div>
+                <span className="font-bold block">{item.patientName} ({item.token})</span>
+                <p className="text-[10px] text-slate-500 mt-1">Doctor: {item.doctor} • {item.treatment}</p>
+              </div>
+              <button
+                onClick={() => handleStartConsultation(item.id)}
+                className="h-7 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-white font-bold text-[10px]"
+              >
+                Call In
+              </button>
+            </div>
+          ))
+        ) : (
+          <p className="text-xs text-slate-400 py-3 text-center">No patients currently waiting.</p>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderDashboardModule = () => {
+    const CALENDAR_DAYS = Array.from({ length: 31 }, (_, idx) => {
+      const dayNum = idx + 1;
+      const dateString = `${dayNum < 10 ? '0' + dayNum : dayNum} Aug 2026`;
+      const dateObj = new Date(2026, 7, dayNum); // Month 7 is August (0-indexed)
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const fullDayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const name = dayNames[dateObj.getDay()];
+      const fullName = fullDayNames[dateObj.getDay()];
+      return {
+        name,
+        fullName,
+        date: dateString,
+        isToday: dayNum === 12
+      };
+    });
+
+    const MORNING_SLOTS = [
+      "09:00 AM", "09:15 AM", "09:30 AM", "09:45 AM",
+      "10:00 AM", "10:15 AM", "10:30 AM", "10:45 AM",
+      "11:00 AM", "11:15 AM", "11:30 AM", "11:45 AM",
+      "12:00 PM", "12:15 PM", "12:30 PM", "12:45 PM"
+    ];
+
+    const EVENING_SLOTS = [
+      "04:00 PM", "04:15 PM", "04:30 PM", "04:45 PM",
+      "05:00 PM", "05:15 PM", "05:30 PM", "05:45 PM",
+      "06:00 PM", "06:15 PM", "06:30 PM", "06:45 PM",
+      "07:00 PM", "07:15 PM", "07:30 PM", "07:45 PM",
+      "08:00 PM"
+    ];
+
+    // Slot matcher helper
+    const getApptForSlot = (date: string, timeSlot: string) => {
+      const cleanT = (t: string) => t.trim().toLowerCase().replace(/^0/, "");
+      return appointments.find(a => a.date === date && cleanT(a.time) === cleanT(timeSlot) && a.status !== "Cancelled");
+    };
+
+    // Counters mapping
+    const counters = [
+      { title: "Today's Appointments", count: kpiCounts.todayAppointments, desc: "Active today", color: "text-blue-600", bg: "bg-blue-50/40 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30" },
+      { title: "Walk-ins", count: kpiCounts.walkins, desc: "Walk-ins today", color: "text-cyan-600", bg: "bg-cyan-50/40 dark:bg-cyan-950/20 border border-cyan-100 dark:border-cyan-900/30" },
+      { title: "Patients Waiting", count: kpiCounts.waiting, desc: "Waiting room", color: "text-amber-600 animate-pulse", bg: "bg-amber-50/40 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30" },
+      { title: "In Procedure", count: kpiCounts.inTreatment, desc: "Active chairs", color: "text-orange-600", bg: "bg-orange-50/40 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30" },
+      { title: "Completed Today", count: kpiCounts.completedToday, desc: "Finished sessions", color: "text-emerald-600", bg: "bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30" },
+      { title: "Pending Bills", count: kpiCounts.pendingBills, desc: "Unpaid checkouts", color: "text-red-600", bg: "bg-red-50/40 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30" },
+      { title: "Revenue Today", count: `₹${kpiCounts.revenueToday.toLocaleString()}`, desc: "Collected", color: "text-indigo-600", bg: "bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30" }
+    ];
+
+    // Recently added filter & sort computations
+    const filteredPatients = patients
+      .filter(p => {
+        if (!patientSearchQuery.trim()) return true;
+        const q = patientSearchQuery.toLowerCase();
+        return p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q) || p.phone.includes(q);
+      })
+      .filter(p => {
+        if (patientFilterGender === "All") return true;
+        return p.gender === patientFilterGender;
+      })
+      .sort((a, b) => {
+        if (patientSortBy === "Name-ASC") return a.name.localeCompare(b.name);
+        if (patientSortBy === "Name-DESC") return b.name.localeCompare(a.name);
+        if (patientSortBy === "ID-ASC") return a.id.localeCompare(b.id);
+        if (patientSortBy === "ID-DESC") return b.id.localeCompare(a.id);
+        return 0;
+      });
+
+    const displayedPatients = filteredPatients.slice(0, patientVisibleCount);
+
+    // Get next scheduled appointment for alert strip
+    const nextScheduled = appointments
+      .filter(a => a.date === "12 Aug 2026" && a.status === "Scheduled")
+      .sort((a, b) => a.time.localeCompare(b.time))[0];
+
+    // Today's appointments filtered list
+    const todayApptsList = appointments.filter(a => a.date === "12 Aug 2026" && a.status !== "Cancelled");
+
+    // Dynamic Chair Status Helper
+    const activeProcedures = appointments.filter(a => a.date === "12 Aug 2026" && a.status === "In Procedure");
+    const chairMap = [
+      { id: "Chair 1", doc: "Dr. Sharma", status: activeProcedures[0] ? `Occupied by ${activeProcedures[0].patientName}` : "Available", color: activeProcedures[0] ? "bg-orange-100 text-orange-700" : "bg-emerald-50 text-emerald-700" },
+      { id: "Chair 2", doc: "Dr. Priya", status: activeProcedures[1] ? `Occupied by ${activeProcedures[1].patientName}` : "Available", color: activeProcedures[1] ? "bg-orange-100 text-orange-700" : "bg-emerald-50 text-emerald-700" },
+      { id: "Chair 3", doc: "Dr. Rahul", status: activeProcedures[2] ? `Occupied by ${activeProcedures[2].patientName}` : "Available", color: activeProcedures[2] ? "bg-orange-100 text-orange-700" : "bg-emerald-50 text-emerald-700" }
+    ];
+
+    // Collections by method today
+    const collectionsToday = invoices
+      .flatMap(inv => inv.paymentLogs)
+      .filter(log => log.date === "12 Aug 2026");
+    const cashTotal = collectionsToday.filter(l => l.method === "Cash").reduce((s, l) => s + l.amount, 0);
+    const upiTotal = collectionsToday.filter(l => l.method.includes("UPI") || l.method.includes("GPay")).reduce((s, l) => s + l.amount, 0);
+    const cardTotal = collectionsToday.filter(l => l.method === "Card").reduce((s, l) => s + l.amount, 0);
+
+    const handleQuickEditPatient = (pat: Patient) => {
+      const newPhone = prompt(`Edit Mobile Number for ${pat.name}:`, pat.phone);
+      if (newPhone !== null) {
+        setPatients(prev => prev.map(p => p.id === pat.id ? { ...p, phone: newPhone } : p));
+        pushActivity("Register", `Updated phone number for ${pat.name} to ${newPhone}.`);
+      }
+    };
+
+    const handleQuickGenerateBill = (pat: Patient) => {
+      const invoiceNum = `INV-${1000 + invoices.length + 1}`;
+      const newInvoice: InvoiceItem = {
+        id: invoiceNum,
+        patientId: pat.id,
+        patientName: pat.name,
+        doctor: "Dr. Sharma",
+        treatment: "Consultation",
+        items: [{ description: "Consultation Fee", amount: 500 }],
+        discount: 0,
+        tax: 18,
+        subtotal: 500,
+        total: 590,
+        paidAmount: 0,
+        status: "Pending",
+        paymentDate: "12 Aug 2026",
+        paymentLogs: []
+      };
+      setInvoices(prev => [newInvoice, ...prev]);
+      setSelectedInvoiceForPayment(newInvoice);
+      setPayCash(0);
+      setPayUpi(0);
+      setPayCard(0);
+      setPayDiscountPercent(0);
+      setPayTaxPercent(18);
+      setPayCustomItems([]);
+      pushActivity("Billing", `Invoice ${invoiceNum} generated for ${pat.name}.`);
+    };
 
     return (
-      <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
-          <span className="font-bold text-xs text-slate-400 uppercase tracking-wider">Patients Waiting Queue</span>
-          {waitingAppts.length > 0 && (
-            <button
-              onClick={handleCallNextPatient}
-              className="h-7 px-3 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-955/40 dark:text-blue-400 font-bold text-[10px] shadow-2xs transition-colors shrink-0"
-            >
-              Call Next
-            </button>
-          )}
+      <div className="dashboard-container space-y-8 animate-fadeIn text-slate-700">
+        {/* Notification Strip */}
+        <div className="alerts-strip bg-blue-600/5 dark:bg-blue-955/20 border border-blue-500/15 rounded-xl px-4 py-2.5 flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-blue-800 dark:text-blue-350 items-center">
+          <span className="font-bold flex items-center gap-1.5">
+            <Bell className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+            Clinic Alerts Strip:
+          </span>
+          <span className="font-medium">
+            • {nextScheduled ? `Next appointment (${nextScheduled.patientName} - ${nextScheduled.treatment}) at ${nextScheduled.time}` : "Next appointment: none scheduled"}
+          </span>
+          <span className="font-medium">• 2 pending follow-ups due tomorrow</span>
+          <span className="font-medium">• {invoices.filter(i => i.status !== "Paid").length} unpaid invoices pending checkout</span>
         </div>
 
-        <div className="space-y-3">
-          {waitingAppts.length > 0 ? (
-            waitingAppts.map((item, idx) => {
-              const simulatedWait = idx === 0 ? "24m ago" : idx === 1 ? "12m ago" : "5m ago";
+        {/* Live Counters Banner */}
+        <section className="counter-section grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+          {counters.map((c, i) => (
+            <div key={i} className={`counter-card rounded-xl p-4 flex flex-col justify-between shadow-xs ${c.bg}`}>
+              <span className="counter-title uppercase tracking-wider block">{c.title}</span>
+              <div className="mt-2">
+                <span className={`counter-value tracking-tight ${c.color}`}>{c.count}</span>
+                <p className="counter-desc mt-0.5">{c.desc}</p>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {/* SECTION 1 - Weekly Appointment Calendar (TOP CENTER) */}
+        <div className="calendar-card bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-4 gap-3">
+            <div>
+              <span className="font-bold text-sm text-slate-900 dark:text-white block">Weekly Appointment Calendar</span>
+              <p className="text-[10px] text-slate-400">Select day of week to manage slots & book patients</p>
+            </div>
+            <div className="text-xs font-black text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-lg">
+              August 2026
+            </div>
+          </div>
+
+          {/* Day Selector */}
+          <div className="flex overflow-x-auto gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
+            {CALENDAR_DAYS.map((d) => {
+              const isActive = selectedCalendarDay === d.date;
+              const hasAppts = appointments.some(a => a.date === d.date && a.status !== "Cancelled");
               return (
-                <div key={item.id} className="p-3 border rounded-xl bg-amber-50/10 border-amber-100/50 flex items-center justify-between text-xs font-semibold hover:bg-amber-50/20 dark:bg-amber-955/5 dark:border-amber-900/30 transition-all duration-200">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-extrabold bg-amber-500 text-white h-4.5 px-1.5 rounded-md flex items-center justify-center shrink-0">{item.token}</span>
-                      <span className="font-bold text-slate-808 dark:text-slate-200">{item.patientName}</span>
-                    </div>
-                    <p className="text-[10px] text-slate-404 mt-1">Doctor: {item.doctor} • {item.treatment}</p>
-                  </div>
+                <button
+                  key={d.date}
+                  type="button"
+                  onClick={() => setSelectedCalendarDay(d.date)}
+                  className={`day-btn flex flex-col items-center py-2.5 px-3 rounded-xl transition-all border outline-none shrink-0 min-w-[56px] sm:min-w-[64px] ${
+                    isActive
+                      ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-105"
+                      : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
+                  }`}
+                >
+                  <span className="day-btn-name font-bold uppercase">{d.name}</span>
+                  <span className="day-btn-num font-extrabold mt-0.5">{d.date.split(" ")[0]}</span>
+                  {hasAppts && (
+                    <span className={`h-1.5 w-1.5 rounded-full mt-1.5 ${isActive ? "bg-white" : "bg-blue-600 animate-pulse"}`} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Time Slots Grid (Morning vs Evening) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+            {/* Morning Column */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-1.5 text-blue-650 font-extrabold uppercase text-[10px] tracking-wider border-b pb-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                <span>Morning Sessions (09:00 AM - 12:45 PM)</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {MORNING_SLOTS.map((time) => {
+                  const appt = getApptForSlot(selectedCalendarDay, time);
+                  const isBlocked = blockedSlots[`${selectedCalendarDay}_${time}`];
                   
-                  <div className="flex flex-col items-end gap-1.5">
-                    <span className="text-[9px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-955/20 px-2 py-0.5 rounded-md">
-                      Waiting {simulatedWait}
-                    </span>
+                  let btnStyle = "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900";
+                  let statusText = "Available";
+                  let statusBadge = null;
+
+                  if (isBlocked) {
+                    btnStyle = "bg-slate-100 border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800";
+                    statusText = "Blocked";
+                  } else if (appt) {
+                    statusText = appt.patientName;
+                    const st = appt.status;
+                    if (st === "Scheduled") statusBadge = "bg-blue-600 text-white";
+                    else if (st === "Checked In" || st === "Waiting") statusBadge = "bg-emerald-600 text-white";
+                    else if (st === "In Procedure") statusBadge = "bg-orange-500 text-white";
+                    else if (st === "In Consultation") statusBadge = "bg-purple-600 text-white";
+                    else if (st === "Completed") statusBadge = "bg-slate-500 text-white";
+                    else if (st === "Cancelled") statusBadge = "bg-red-600 text-white";
+                  }
+
+                  return (
                     <button
-                      onClick={() => handleStartConsultation(item.id)}
-                      className="h-6 px-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-white font-bold text-[10px] shadow-xs"
+                      key={time}
+                      type="button"
+                      onClick={() => {
+                        setSlotPatientId("");
+                        setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
+                      }}
+                      className={`slot-btn p-2.5 rounded-xl border text-[10px] flex flex-col justify-between items-start text-left h-20 transition-all ${
+                        appt ? "bg-white shadow-xs dark:bg-slate-955" : "bg-slate-50/50 border-dashed"
+                      } ${btnStyle}`}
                     >
-                      Call In
+                      <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
+                      {statusBadge ? (
+                        <div className="w-full mt-1">
+                          <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
+                          <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
+                            {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className={`slot-open-label text-[9px] font-semibold flex items-center gap-1 mt-1 ${isBlocked ? "font-bold" : ""}`}>
+                          {isBlocked ? "🔒 Blocked" : "+ Open Slot"}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Evening Column */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-1.5 text-indigo-650 font-extrabold uppercase text-[10px] tracking-wider border-b pb-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                <span>Evening Sessions (04:00 PM - 08:00 PM)</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {EVENING_SLOTS.map((time) => {
+                  const appt = getApptForSlot(selectedCalendarDay, time);
+                  const isBlocked = blockedSlots[`${selectedCalendarDay}_${time}`];
+                  
+                  let btnStyle = "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900";
+                  let statusText = "Available";
+                  let statusBadge = null;
+
+                  if (isBlocked) {
+                    btnStyle = "bg-slate-100 border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800";
+                    statusText = "Blocked";
+                  } else if (appt) {
+                    statusText = appt.patientName;
+                    const st = appt.status;
+                    if (st === "Scheduled") statusBadge = "bg-blue-600 text-white";
+                    else if (st === "Checked In" || st === "Waiting") statusBadge = "bg-emerald-600 text-white";
+                    else if (st === "In Procedure") statusBadge = "bg-orange-500 text-white";
+                    else if (st === "In Consultation") statusBadge = "bg-purple-600 text-white";
+                    else if (st === "Completed") statusBadge = "bg-slate-500 text-white";
+                    else if (st === "Cancelled") statusBadge = "bg-red-600 text-white";
+                  }
+
+                  return (
+                    <button
+                      key={time}
+                      type="button"
+                      onClick={() => {
+                        setSlotPatientId("");
+                        setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
+                      }}
+                      className={`slot-btn p-2.5 rounded-xl border text-[10px] flex flex-col justify-between items-start text-left h-20 transition-all ${
+                        appt ? "bg-white shadow-xs dark:bg-slate-955" : "bg-slate-50/50 border-dashed"
+                      } ${btnStyle}`}
+                    >
+                      <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
+                      {statusBadge ? (
+                        <div className="w-full mt-1">
+                          <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
+                          <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
+                            {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className={`slot-open-label text-[9px] font-semibold flex items-center gap-1 mt-1 ${isBlocked ? "font-bold" : ""}`}>
+                          {isBlocked ? "🔒 Blocked" : "+ Open Slot"}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3-Column Operational Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* SECTION 2 - Add Patient Panel (LEFT) */}
+          <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+            <span className="font-bold text-sm block mb-1">Quick Patient Registration</span>
+            <p className="text-[10px] text-slate-405 mb-4 uppercase tracking-wider font-extrabold">Generate and save intake file</p>
+            
+            <form onSubmit={handleSavePatientQuick} className="space-y-4">
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <Label htmlFor="qPatID" className="form-label-custom">Patient ID</Label>
+                  <Input id="qPatID" value={`DS-${1000 + patients.length + 1}`} disabled className="form-field-custom bg-slate-50 dark:bg-slate-900 opacity-60 cursor-not-allowed font-bold" />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="qMobile" className="form-label-custom">Mobile Number</Label>
+                  <Input id="qMobile" placeholder="e.g. +91 99000 11000" value={quickMobile} onChange={e => setQuickMobile(e.target.value)} required className="form-field-custom" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <Label htmlFor="qFirstName" className="form-label-custom">First Name</Label>
+                  <Input id="qFirstName" placeholder="e.g. Rahul" value={quickFirstName} onChange={e => setQuickFirstName(e.target.value)} required className="form-field-custom" />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="qLastName" className="form-label-custom">Last Name</Label>
+                  <Input id="qLastName" placeholder="e.g. Verma" value={quickLastName} onChange={e => setQuickLastName(e.target.value)} required className="form-field-custom" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <Label htmlFor="qAge" className="form-label-custom">Age</Label>
+                  <Input id="qAge" type="number" min="0" value={quickAge || ""} onChange={e => setQuickAge(parseInt(e.target.value) || 30)} required className="form-field-custom" />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="qGender" className="form-label-custom">Gender</Label>
+                  <select
+                    id="qGender"
+                    className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                    value={quickGender}
+                    onChange={e => setQuickGender(e.target.value as "Male" | "Female")}
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <Label htmlFor="qDOB" className="form-label-custom">Date of Birth</Label>
+                  <Input id="qDOB" type="date" value={quickDOB} onChange={e => setQuickDOB(e.target.value)} className="form-field-custom" />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="qLocation" className="form-label-custom">Location</Label>
+                  <Input id="qLocation" placeholder="e.g. Jayanagar" value={quickLocation} onChange={e => setQuickLocation(e.target.value)} className="form-field-custom" />
+                </div>
+              </div>
+              
+              <div className="flex gap-2 pt-3">
+                <Button type="button" variant="outline" onClick={handleClearPatientForm} className="form-btn-custom flex-1 text-[11px] font-bold h-9">Clear</Button>
+                <Button type="submit" className="form-btn-custom flex-1 text-[11px] font-bold h-9 bg-blue-600 hover:bg-blue-500 text-white shadow-xs">Save Patient</Button>
+              </div>
+            </form>
+          </div>
+
+          {/* SECTION 3 - Recently Added Patients (CENTER) */}
+          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between min-h-[400px]">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-bold text-sm block">Recently Added Patients</span>
+                <span className="text-[9px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold">{filteredPatients.length} Files</span>
+              </div>
+              
+              {/* Search, Filter, Sort Inputs */}
+              <div className="grid gap-2.5 grid-cols-3 mb-4">
+                <div className="col-span-3 relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search name, ID..."
+                    value={patientSearchQuery}
+                    onChange={e => setPatientSearchQuery(e.target.value)}
+                    className="h-8 pl-8 pr-2 w-full rounded-lg bg-slate-50 border border-slate-200 text-[10px] font-bold outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 dark:bg-slate-900 dark:border-slate-800"
+                  />
+                </div>
+                <div>
+                  <select
+                    value={patientFilterGender}
+                    onChange={e => setPatientFilterGender(e.target.value)}
+                    className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[9px] font-bold focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                  >
+                    <option value="All">All Genders</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <select
+                    value={patientSortBy}
+                    onChange={e => setPatientSortBy(e.target.value)}
+                    className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[9px] font-bold focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                  >
+                    <option value="Name-ASC">Sort: Name (A-Z)</option>
+                    <option value="Name-DESC">Sort: Name (Z-A)</option>
+                    <option value="ID-ASC">Sort: ID (Asc)</option>
+                    <option value="ID-DESC">Sort: ID (Desc)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Patient List container with simulated Infinite Scroll */}
+              <div className="space-y-2.5 max-h-[250px] overflow-y-auto pr-1">
+                {displayedPatients.map((pat) => (
+                  <div key={pat.id} className="patient-row p-3 border border-slate-100 hover:border-blue-300 dark:border-slate-800 dark:hover:border-blue-900/50 rounded-xl bg-slate-50/30 flex justify-between items-center transition-all group">
+                    <div className="min-w-0 flex-1 cursor-pointer" onClick={() => { setSelectedPatientId(pat.id); setActiveTab("Patients"); }}>
+                      <span className="patient-name-txt font-bold text-slate-800 dark:text-slate-200 hover:text-blue-600 block truncate">{pat.name}</span>
+                      <p className="patient-sub-txt text-[9px] text-slate-400 mt-0.5">{pat.id} • {pat.phone}</p>
+                    </div>
+                    {/* Action Icons */}
+                    <div className="flex gap-1.5 ml-2">
+                      <button
+                        title="Book Appointment"
+                        onClick={() => {
+                          setSlotPatientId(pat.id);
+                          setSelectedSlotData({ date: selectedCalendarDay, time: "09:00 AM" });
+                        }}
+                        className="h-6 w-6 rounded-md bg-white border dark:bg-slate-900 dark:border-slate-800 flex items-center justify-center text-blue-600 hover:bg-blue-50 transition-colors"
+                      >
+                        <CalendarDays className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        title="Dental Chart"
+                        onClick={() => {
+                          setSelectedPatientId(pat.id);
+                          setProfileSubTab("Dental Chart");
+                          setActiveTab("Patients");
+                        }}
+                        className="h-6 w-6 rounded-md bg-white border dark:bg-slate-900 dark:border-slate-800 flex items-center justify-center text-purple-600 hover:bg-purple-50"
+                      >
+                        <Activity className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        title="Generate Bill"
+                        onClick={() => handleQuickGenerateBill(pat)}
+                        className="h-6 w-6 rounded-md bg-white border dark:bg-slate-900 dark:border-slate-800 flex items-center justify-center text-emerald-600 hover:bg-emerald-50"
+                      >
+                        <Receipt className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        title="Quick Edit"
+                        onClick={() => handleQuickEditPatient(pat)}
+                        className="h-6 w-6 rounded-md bg-white border dark:bg-slate-900 dark:border-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-100"
+                      >
+                        <Settings className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                
+                {filteredPatients.length === 0 && (
+                  <p className="text-[10px] text-slate-400 py-6 text-center">No patients found</p>
+                )}
+              </div>
+            </div>
+
+            {/* Load More Button */}
+            {filteredPatients.length > patientVisibleCount && (
+              <button
+                type="button"
+                onClick={() => setPatientVisibleCount(prev => prev + 5)}
+                className="w-full h-8 mt-3 rounded-lg border border-dashed border-slate-300 text-slate-450 hover:bg-slate-50 text-[10px] font-bold"
+              >
+                Load More Patients
+              </button>
+            )}
+          </div>
+
+          {/* SECTION 4 - Today's Appointments (RIGHT) */}
+          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+            <span className="font-bold text-sm block mb-1">Today's Appointment Queue</span>
+            <p className="text-[10px] text-slate-405 mb-4 uppercase tracking-wider font-extrabold">Clinic Workflow Tracker</p>
+
+            <div className="space-y-3.5 max-h-[360px] overflow-y-auto pr-1">
+              {todayApptsList.map((app) => {
+                let badgeStyle = "bg-blue-50 text-blue-700 border border-blue-100";
+                if (app.status === "Checked In" || app.status === "Waiting") badgeStyle = "bg-emerald-50 text-emerald-700 border border-emerald-100";
+                else if (app.status === "In Procedure") badgeStyle = "bg-orange-50 text-orange-700 border border-orange-100 animate-pulse";
+                else if (app.status === "Completed") badgeStyle = "bg-slate-100 text-slate-600 border border-slate-200";
+
+                const isPaid = invoices.find(i => i.patientId === app.patientId && i.treatment === app.treatment)?.status === "Paid";
+                const isInvoicePending = invoices.find(i => i.patientId === app.patientId && i.treatment === app.treatment)?.status === "Pending";
+
+                return (
+                  <div key={app.id} className="queue-row p-3.5 border border-slate-100 dark:border-slate-800 rounded-xl bg-slate-50/20 hover:bg-slate-50/50 transition-colors space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-extrabold text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-700 dark:text-slate-300">
+                            {app.token || "T-NEW"}
+                          </span>
+                          <span className="queue-name-txt font-extrabold text-slate-900 dark:text-white">{app.patientName}</span>
+                        </div>
+                        <p className="queue-sub-txt text-[9px] text-slate-400 mt-1 font-bold">
+                          {app.doctor} • {app.treatment} at {app.time}
+                        </p>
+                      </div>
+                      <span className={`queue-badge px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shrink-0 ${badgeStyle}`}>
+                        {app.status}
+                      </span>
+                    </div>
+
+                    {/* Action buttons list */}
+                    <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                      {app.status === "Scheduled" && (
+                        <button
+                          type="button"
+                          onClick={() => handleApptCheckIn(app.id)}
+                          className="h-6 px-2.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[9px] shadow-xs"
+                        >
+                          Check In
+                        </button>
+                      )}
+
+                      {(app.status === "Checked In" || app.status === "Waiting") && (
+                        <button
+                          type="button"
+                          onClick={() => handleApptStartProcedure(app.id)}
+                          className="h-6 px-2.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[9px]"
+                        >
+                          Start Procedure
+                        </button>
+                      )}
+
+                      {app.status === "In Procedure" && (
+                        <button
+                          type="button"
+                          onClick={() => handleApptCompleteProcedure(app.id)}
+                          className="h-6 px-2.5 rounded bg-orange-500 hover:bg-orange-450 text-white font-bold text-[9px] shadow-xs"
+                        >
+                          Complete
+                        </button>
+                      )}
+
+                      {app.status === "Completed" && !isPaid && !isInvoicePending && (
+                        <button
+                          type="button"
+                          onClick={() => handleApptGenerateBill(app.id)}
+                          className="h-6 px-2.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[9px]"
+                        >
+                          Generate Bill
+                        </button>
+                      )}
+
+                      {app.status === "Completed" && isInvoicePending && (
+                        <button
+                          type="button"
+                          onClick={() => handleApptGenerateBill(app.id)}
+                          className="h-6 px-2.5 rounded bg-amber-500 hover:bg-amber-400 text-white font-bold text-[9px]"
+                        >
+                          Collect Payment
+                        </button>
+                      )}
+
+                      {(app.status === "Checked In" || app.status === "Waiting" || app.status === "Scheduled" || app.status === "Completed") && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            alert(`Mock Token Printed for ${app.patientName} (${app.token || "None"})`);
+                          }}
+                          className="h-6 px-2.5 rounded border border-slate-200 hover:bg-slate-100 text-slate-500 font-bold text-[9px]"
+                        >
+                          Print Token
+                        </button>
+                      )}
+
+                      {app.status !== "Completed" && (
+                        <button
+                          type="button"
+                          onClick={() => setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Cancelled" } : a))}
+                          className="h-6 px-2 text-red-600 hover:bg-red-50 rounded text-[9px] font-bold"
+                        >
+                          Cancel
+                        </button>
+                      )}
+
+                      {app.status === "Completed" && isPaid && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => alert(`Simulated SMS sent to patient ${app.patientName}: Your payment of is confirmed.`)}
+                            className="h-6 px-2.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-[9px]"
+                          >
+                            Send SMS
+                          </button>
+                          <span className="text-[9px] text-emerald-600 font-bold flex items-center gap-1 pl-1">
+                            ✓ Bill Paid
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {todayApptsList.length === 0 && (
+                <p className="text-[10px] text-slate-400 py-8 text-center">No appointments tracked today</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* BOTTOM DASHBOARD */}
+        <div className="bg-slate-50/50 dark:bg-slate-900/10 border-t border-slate-200 dark:border-slate-800 pt-6">
+          <span className="font-bold text-xs text-slate-400 uppercase tracking-wider block mb-4">Clinic Operational Widgets</span>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Widget 1 - Walk-In Queue */}
+            <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+              <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-3">Walk-In Queue</span>
+              <div className="space-y-2.5 max-h-[160px] overflow-y-auto pr-1">
+                {appointments
+                  .filter(a => a.date === "12 Aug 2026" && (a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in")) && (a.status === "Waiting" || a.status === "Checked In"))
+                  .map((item) => (
+                    <div key={item.id} className="p-2 border rounded-lg bg-amber-50/15 border-amber-100 dark:border-amber-900/20 flex items-center justify-between text-[10px]">
+                      <div>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block">{item.patientName}</span>
+                        <p className="text-[8px] text-slate-400">Token: {item.token || "NEW"} • {item.treatment}</p>
+                      </div>
+                      <button
+                        onClick={() => handleApptStartProcedure(item.id)}
+                        className="h-5 px-2 rounded bg-amber-500 hover:bg-amber-400 text-white font-bold text-[8px]"
+                      >
+                        Call In
+                      </button>
+                    </div>
+                  ))}
+                {appointments.filter(a => a.date === "12 Aug 2026" && (a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in")) && (a.status === "Waiting" || a.status === "Checked In")).length === 0 && (
+                  <p className="text-[9px] text-slate-400 py-6 text-center">No walk-ins waiting</p>
+                )}
+              </div>
+            </div>
+
+            {/* Widget 2 - Pending Bills */}
+            <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+              <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-3">Pending Bills</span>
+              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                {invoices.filter(i => i.status !== "Paid").map((inv) => (
+                  <div key={inv.id} className="p-2 border rounded-lg bg-red-50/15 border-red-100 dark:border-red-900/20 flex items-center justify-between text-[10px]">
+                    <div>
+                      <span className="font-bold text-slate-800 dark:text-slate-200 block">{inv.patientName}</span>
+                      <p className="text-[8px] text-red-505 font-bold">Unpaid: ₹{(inv.total - inv.paidAmount).toLocaleString()}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedInvoiceForPayment(inv);
+                        setPayCash(0);
+                        setPayUpi(0);
+                        setPayCard(0);
+                        setPayDiscountPercent(inv.discount);
+                        setPayTaxPercent(inv.tax);
+                        setPayCustomItems([]);
+                      }}
+                      className="h-5 px-2 rounded bg-red-650 hover:bg-red-500 text-white font-bold text-[8px]"
+                    >
+                      Pay
                     </button>
                   </div>
-                </div>
-              );
-            })
-          ) : (
-            <p className="text-xs text-slate-400 py-3 text-center">No patients currently waiting.</p>
-          )}
+                ))}
+                {invoices.filter(i => i.status !== "Paid").length === 0 && (
+                  <p className="text-[9px] text-slate-400 py-6 text-center">No bills outstanding</p>
+                )}
+              </div>
+            </div>
+
+            {/* Widget 3 - Recent Activity */}
+            <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+              <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-3">Recent Activity</span>
+              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                {activities.slice(0, 5).map((act) => (
+                  <div key={act.id} className="flex gap-2 text-[9px] relative">
+                    <div className="h-2 w-2 rounded-full mt-1.5 shrink-0 bg-blue-500" />
+                    <div>
+                      <p className="text-slate-700 dark:text-slate-350 font-bold leading-normal">{act.msg}</p>
+                      <span className="text-[8px] text-slate-400 font-semibold">{act.time}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
   };
-
-  const renderDashboardModule = () => (
-    <div className="space-y-6 animate-fadeIn">
-      {/* 6 Top Summary KPI Cards */}
-      <section className="grid gap-4 grid-cols-2 md:grid-cols-6">
-        {[
-          { title: "Today's Appointments", count: kpiCounts.todayAppointments, desc: "Scheduled blocks", color: "text-blue-600 dark:text-blue-450" },
-          { title: "Walk-ins", count: kpiCounts.walkins, desc: "Unscheduled walk-ins", color: "text-cyan-600 dark:text-cyan-450" },
-          { title: "Patients Waiting", count: kpiCounts.waiting, desc: "In waiting queue", color: "text-amber-605 dark:text-amber-450 animate-pulse" },
-          { title: "In Consultation", count: kpiCounts.inTreatment, desc: "Active chairs", color: "text-purple-600 dark:text-purple-450" },
-          { title: "Completed Today", count: kpiCounts.completedToday, desc: "Finished checkouts", color: "text-emerald-600 dark:text-emerald-450" },
-          { title: "Pending Payments", count: kpiCounts.pendingBills, desc: "Awaiting payment", color: "text-red-600 dark:text-red-450" }
-        ].map((c, i) => (
-          <div key={i} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xs">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{c.title}</span>
-            <div className="mt-2.5">
-              <span className={`text-2xl font-black ${c.color}`}>{c.count}</span>
-              <p className="text-[9px] text-slate-400 mt-1 font-medium">{c.desc}</p>
-            </div>
-          </div>
-        ))}
-      </section>
-
-      {/* 2-Column Operational Grid */}
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          {renderScheduleTimeline()}
-        </div>
-
-        <div className="space-y-6">
-          {/* Waiting Queue list */}
-          {renderWaitingRoom()}
-
-          {/* Doctor Status availability */}
-          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
-            <span className="font-bold text-xs text-slate-400 uppercase tracking-wider block mb-3">Doctor Availability</span>
-            <div className="space-y-3">
-              {doctors.map((doc) => {
-                const currentPatient = appointments.find(
-                  a => a.doctor === doc.name && a.status === "In Consultation"
-                )?.patientName;
-                const isBusy = !!currentPatient || doc.status === "In Consultation";
-                
-                return (
-                  <div key={doc.name} className="flex flex-col p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-all duration-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-xs font-bold text-slate-808 dark:text-slate-200">{doc.name}</span>
-                        <p className="text-[10px] text-slate-400 font-semibold">{doc.speciality}</p>
-                      </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1.5 ${
-                        isBusy ? "bg-purple-50 text-purple-700 dark:bg-purple-955/20 dark:text-purple-400" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/20 dark:text-emerald-450"
-                      }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${
-                          isBusy ? "bg-purple-500 animate-pulse" : "bg-emerald-500"
-                        }`} />
-                        {isBusy ? "Busy" : "Available"}
-                      </span>
-                    </div>
-                    {isBusy && currentPatient && (
-                      <div className="mt-2 pt-2 border-t border-slate-100/50 dark:border-slate-800/50 flex items-center justify-between text-[9px] text-slate-500 font-semibold">
-                        <span>Current Patient:</span>
-                        <span className="text-purple-600 dark:text-purple-400 font-bold">{currentPatient}</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Activities audit logs */}
-          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
-            <span className="font-bold text-xs text-slate-400 uppercase tracking-wider block mb-3">Recent Activity</span>
-            <div className="space-y-3.5 relative before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
-              {activities.map((act) => (
-                <div key={act.id} className="flex gap-3 text-xs relative z-10">
-                  <div className={`h-3 w-3 rounded-full mt-1.5 border-2 border-white dark:border-slate-955 shrink-0 bg-blue-500`} />
-                  <div className="space-y-0.5">
-                    <p className="text-slate-700 dark:text-slate-350 font-semibold leading-relaxed">{act.msg}</p>
-                    <span className="text-[10px] text-slate-400 font-semibold">{act.time}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Clinic Tasks Bottom Section */}
-      <section className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5 mb-4">
-          <div>
-            <h3 className="font-bold text-sm text-slate-808 dark:text-white">Daily Clinic Tasks</h3>
-            <p className="text-[10px] text-slate-400 font-medium">Interactive checklist for operational task management</p>
-          </div>
-          <span className="text-[10px] bg-slate-150 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full font-bold">
-            {tasks.filter(t => !t.completed).length} Tasks Pending
-          </span>
-        </div>
-
-        <div className="grid gap-3.5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {tasks.map((task) => (
-            <div
-              key={task.id}
-              onClick={() => handleToggleTask(task.id)}
-              className={`p-3.5 border rounded-xl flex items-center justify-between text-xs font-semibold cursor-pointer transition-all duration-200 ${
-                task.completed
-                  ? "bg-slate-50/50 border-slate-100 dark:bg-slate-900/10 dark:border-slate-850 opacity-60"
-                  : "bg-white border-slate-200 hover:border-blue-400 dark:bg-slate-950 dark:border-slate-800"
-              }`}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <input
-                  type="checkbox"
-                  checked={task.completed}
-                  onChange={() => {}}
-                  className="h-4 w-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 focus:ring-offset-0 shrink-0"
-                />
-                <span className={`truncate text-slate-700 dark:text-slate-205 font-semibold ${task.completed ? "line-through text-slate-400" : ""}`}>
-                  {task.text}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                  task.priority === "High" ? "bg-red-50 text-red-700 dark:bg-red-955/20 dark:text-red-400" :
-                  task.priority === "Medium" ? "bg-amber-50 text-amber-700 dark:bg-amber-955/20 dark:text-amber-400" :
-                  "bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                }`}>
-                  {task.priority}
-                </span>
-                <span className="text-[10px] text-slate-400 font-semibold">{task.due}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
 
   const renderAppointmentsModule = () => (
     <div className="space-y-6 animate-fadeIn">
@@ -1944,7 +2561,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 <button
                   type="button"
                   onClick={() => {
-                    const newXray = { name: `xray_scan_${Date.now()}.png`, size: "2.4 MB", type: "image/png" };
+                    const newXray = { name: `xray_scan_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.png`, size: "2.4 MB", type: "image/png" };
                     setConsultUploadedXrays(prev => [...prev, newXray]);
                     alert("Mock X-Ray scanner triggered and image attached.");
                   }}
@@ -1956,7 +2573,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 <button
                   type="button"
                   onClick={() => {
-                    const newFile = { name: `intraoral_photo_${Date.now()}.png`, size: "1.8 MB", type: "image/png" };
+                    const newFile = { name: `intraoral_photo_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.png`, size: "1.8 MB", type: "image/png" };
                     setConsultUploadedXrays(prev => [...prev, newFile]);
                     alert("Intraoral camera snapshot captured and attached.");
                   }}
@@ -2431,6 +3048,15 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               )}
             </div>
 
+            {/* Clinic Status & Date */}
+            <div className="hidden lg:flex flex-col text-right text-[11px] border-r pr-3 border-slate-200 dark:border-slate-800">
+              <span className="font-bold text-slate-800 dark:text-slate-200">Wednesday, 12 Aug 2026</span>
+              <span className="text-[9px] text-emerald-600 font-semibold flex items-center justify-end gap-1 mt-0.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Clinic Status: Active
+              </span>
+            </div>
+
             {/* Profile Avatar */}
             <div className="h-9 w-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold border-2 border-slate-100 shadow-sm shrink-0">
               AN
@@ -2722,7 +3348,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 <form onSubmit={handleRegisterWalkIn} className="space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="walkinName">Patient Name</Label>
-                    <Input id="walkinName" placeholder="e.g. Sneha Verma" value={newPatName} onChange={e => setNewPatName(e.target.value)} required />
+                    <Input id="walkinName" placeholder="e.g. Sneha Reddy" value={newPatName} onChange={e => setNewPatName(e.target.value)} required />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
@@ -2982,6 +3608,201 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   Close Receipt
                 </button>
               </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      {/* Calendar Slot Details / Action Modal */}
+      {selectedSlotData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/50 backdrop-blur-xs p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-md bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden text-xs font-semibold"
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b">
+              <span className="font-bold text-sm text-slate-900 dark:text-white">
+                Slot Management: {selectedSlotData.date} at {selectedSlotData.time}
+              </span>
+              <button onClick={() => setSelectedSlotData(null)} className="text-slate-405 hover:text-slate-650">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {selectedSlotData.appointment ? (
+                // Booked Slot
+                <div className="space-y-4">
+                  <div className="p-3 bg-blue-50/50 border border-blue-100 dark:bg-blue-950/20 dark:border-blue-900/30 rounded-xl space-y-2">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Appointment Details</span>
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <p>Patient: <strong className="text-slate-800 dark:text-slate-200">{selectedSlotData.appointment.patientName}</strong></p>
+                      <p>Doctor: <strong className="text-slate-800 dark:text-slate-200">{selectedSlotData.appointment.doctor}</strong></p>
+                      <p>Treatment: <strong className="text-slate-800 dark:text-slate-200">{selectedSlotData.appointment.treatment}</strong></p>
+                      <p>Status: <strong className="text-blue-600 dark:text-blue-400 uppercase">{selectedSlotData.appointment.status}</strong></p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    {selectedSlotData.appointment.status === "Scheduled" && (
+                      <button
+                        type="button"
+                        onClick={() => handleApptCheckIn(selectedSlotData.appointment!.id)}
+                        className="h-8 px-3 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold"
+                      >
+                        Check In
+                      </button>
+                    )}
+                    {(selectedSlotData.appointment.status === "Checked In" || selectedSlotData.appointment.status === "Waiting") && (
+                      <button
+                        type="button"
+                        onClick={() => handleApptStartProcedure(selectedSlotData.appointment!.id)}
+                        className="h-8 px-3 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold"
+                      >
+                        Start Procedure
+                      </button>
+                    )}
+                    {selectedSlotData.appointment.status === "In Procedure" && (
+                      <button
+                        type="button"
+                        onClick={() => handleApptCompleteProcedure(selectedSlotData.appointment!.id)}
+                        className="h-8 px-3 rounded bg-orange-500 hover:bg-orange-450 text-white font-bold"
+                      >
+                        Complete Procedure
+                      </button>
+                    )}
+                    {selectedSlotData.appointment.status === "Completed" && (
+                      <button
+                        type="button"
+                        onClick={() => handleApptGenerateBill(selectedSlotData.appointment!.id)}
+                        className="h-8 px-3 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                      >
+                        Generate Bill / Collect Payment
+                      </button>
+                    )}
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBlockedSlots(prev => {
+                          const copy = { ...prev };
+                          const key = `${selectedSlotData.date}_${selectedSlotData.time}`;
+                          copy[key] = true;
+                          return copy;
+                        });
+                        setAppointments(prev => prev.map(a => a.id === selectedSlotData.appointment!.id ? { ...a, status: "Cancelled" } : a));
+                        setSelectedSlotData(null);
+                      }}
+                      className="h-8 px-3 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 font-bold"
+                    >
+                      Block Slot
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAppointments(prev => prev.map(a => a.id === selectedSlotData.appointment!.id ? { ...a, status: "Cancelled" } : a));
+                        setSelectedSlotData(null);
+                      }}
+                      className="h-8 px-3 rounded bg-red-50 hover:bg-red-100 text-red-650 font-bold"
+                    >
+                      Cancel Appointment
+                    </button>
+                  </div>
+                </div>
+              ) : blockedSlots[`${selectedSlotData.date}_${selectedSlotData.time}`] ? (
+                // Blocked Slot
+                <div className="space-y-4 text-center py-3">
+                  <p className="text-slate-500 font-medium">This slot is currently blocked for clinical maintenance.</p>
+                  <div className="flex gap-2 justify-center">
+                    <button
+                      type="button"
+                      onClick={() => handleBlockSlotToggle(selectedSlotData.date, selectedSlotData.time)}
+                      className="h-9 px-4 rounded bg-emerald-650 hover:bg-emerald-500 text-white font-bold"
+                    >
+                      Unblock Slot
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSlotData(null)}
+                      className="h-9 px-4 rounded border font-bold"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                // Empty Slot - Allow Booking or Blocking
+                <form onSubmit={handleSlotBookingSubmit} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label>Select Patient Record</Label>
+                    <select
+                      className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
+                      value={slotPatientId}
+                      onChange={e => setSlotPatientId(e.target.value)}
+                      required
+                    >
+                      <option value="">-- Choose Patient --</option>
+                      {patients.map(p => (
+                        <option key={p.id} value={p.id}>{p.name} ({p.id})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label>Assign Doctor</Label>
+                      <select
+                        className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
+                        value={slotDoctor}
+                        onChange={e => setSlotDoctor(e.target.value)}
+                      >
+                        {doctors.map(d => (
+                          <option key={d.name} value={d.name}>{d.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label>Treatment Category</Label>
+                      <select
+                        className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
+                        value={slotTreatment}
+                        onChange={e => setSlotTreatment(e.target.value)}
+                      >
+                        {Object.keys(TREATMENT_PRICES).map(t => (
+                          <option key={t} value={t}>{t} (₹{TREATMENT_PRICES[t]})</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-3 border-t">
+                    <button
+                      type="button"
+                      onClick={() => handleBlockSlotToggle(selectedSlotData.date, selectedSlotData.time)}
+                      className="h-9 px-3 rounded border text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800"
+                    >
+                      Block Slot
+                    </button>
+                    <div className="flex-1 flex gap-2 justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSlotData(null)}
+                        className="h-9 px-3 rounded border font-bold hover:bg-slate-50 dark:hover:bg-slate-800"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold"
+                      >
+                        Save Appointment
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              )}
             </div>
           </motion.div>
         </div>
