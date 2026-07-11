@@ -80,7 +80,7 @@ interface Appointment {
   treatment: string;
   time: string;
   date: string;
-  status: "Scheduled" | "Checked In" | "Waiting" | "In Consultation" | "Completed" | "Cancelled" | "No Show";
+  status: "Scheduled" | "Checked In" | "Waiting" | "In Consultation" | "Completed" | "Paid" | "Cancelled" | "No Show";
   notes?: string;
   token?: string;
   avatarColor: string;
@@ -129,9 +129,14 @@ interface ActivityItem {
 
 // Predefined treatment base prices
 const TREATMENT_PRICES: Record<string, number> = {
-  "Consultation": 500,
-  "Scaling": 1500,
+  "Dental Cleaning": 1500,
   "Root Canal": 4500,
+  "Tooth Extraction": 2000,
+  "Scaling": 1500,
+  "Crown Placement": 5500,
+  "Composite Filling": 1200,
+  "Implant Consultation": 500,
+  "Consultation": 500,
   "Extraction": 2000,
   "Filling": 1200,
   "Implant": 25000,
@@ -221,6 +226,21 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [newCustomDesc, setNewCustomDesc] = useState("");
   const [newCustomAmt, setNewCustomAmt] = useState(0);
 
+  // Interactive Clinic Checklist Tasks
+  const [tasks, setTasks] = useState([
+    { id: "task-1", text: "Confirm tomorrow's appointments", priority: "High", due: "Today, 5 PM", completed: false },
+    { id: "task-2", text: "Call pending follow-ups", priority: "Medium", due: "Tomorrow", completed: false },
+    { id: "task-3", text: "Verify pending payments", priority: "High", due: "Today", completed: false },
+    { id: "task-4", text: "Low inventory alerts (Anesthetics)", priority: "High", due: "Immediate", completed: false },
+    { id: "task-5", text: "Lab cases ready (Crown for Rohan)", priority: "Medium", due: "Today", completed: false },
+    { id: "task-6", text: "Birthdays (Send greetings to Aarav)", priority: "Low", due: "Today", completed: false },
+    { id: "task-7", text: "Submit pending insurance claims", priority: "Low", due: "Within 3 days", completed: false }
+  ]);
+
+  const handleToggleTask = (taskId: string) => {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t));
+  };
+
   // Timeframe filter for reports page
   const [reportsFilter, setReportsFilter] = useState<"Today" | "Week" | "Month" | "Year">("Today");
 
@@ -232,7 +252,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     { id: "DS-1003", name: "Kabir Singh", phone: "+91 98765 43210", age: 45, gender: "Male", address: "Koramangala, Bengaluru", visit: "08 Aug 2026", medicalNotes: "Latex Allergy, Hypertension", balance: "₹0", status: "Active", dentalChart: { 12: "Decayed" }, prescriptions: ["Paracetamol 650mg - as needed"], files: [], notes: ["Hypertension controlled under clinical prescription."] },
     { id: "DS-1004", name: "Ananya Rao", phone: "+91 95400 12044", age: 19, gender: "Female", address: "Whitefield, Bengaluru", visit: "05 Aug 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
     { id: "DS-1005", name: "Rohan Kumar", phone: "+91 98100 44028", age: 31, gender: "Male", address: "HSR Layout, Bengaluru", visit: "12 Aug 2026", medicalNotes: "Sulfa Drugs Allergy", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
-    { id: "DS-1006", name: "Sneha Reddy", phone: "+91 95408 81229", age: 27, gender: "Female", address: "Jayanagar, Bengaluru", visit: "03 Aug 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
+    { id: "DS-1006", name: "Sneha Verma", phone: "+91 95408 81229", age: 27, gender: "Female", address: "Jayanagar, Bengaluru", visit: "03 Aug 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
     { id: "DS-1007", name: "Rahul Verma", phone: "+91 98110 22912", age: 40, gender: "Male", address: "Malleshwaram, Bengaluru", visit: "28 Jul 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
     { id: "DS-1008", name: "Kavya Sharma", phone: "+91 99100 55109", age: 22, gender: "Female", address: "Hebbal, Bengaluru", visit: "25 Jul 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
     { id: "DS-1009", name: "Arjun Nair", phone: "+91 98760 12345", age: 36, gender: "Male", address: "Bannerghatta, Bengaluru", visit: "20 Jul 2026", medicalNotes: "Aspirin Sensitivity", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
@@ -471,6 +491,127 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setActiveSubTab("Invoices");
   };
 
+  // 3.5. Complete Consultation from Timeline
+  const handleCompleteTreatmentFromTimeline = (apptId: string) => {
+    const appt = appointments.find(a => a.id === apptId);
+    if (!appt) return;
+
+    // Change status in appointment table
+    setAppointments(prev =>
+      prev.map(app => (app.id === apptId ? { ...app, status: "Completed" } : app))
+    );
+
+    // Free the doctor
+    setDoctors(prev =>
+      prev.map(d => (d.name === appt.doctor ? { ...d, status: "Available" } : d))
+    );
+
+    // Save treatment log into patient database
+    const treatmentCost = TREATMENT_PRICES[appt.treatment] || 500;
+    
+    const newTreatmentLog: TreatmentItem = {
+      id: `tr-${Date.now()}`,
+      name: appt.treatment,
+      patient: appt.patientName,
+      doctor: appt.doctor,
+      stage: "Completed",
+      notes: "Completed successfully from timeline.",
+      nextVisit: "10 Sep 2026",
+      prescription: "None"
+    };
+
+    setTreatments(prev => [newTreatmentLog, ...prev]);
+
+    // Update patient record
+    setPatients(prev =>
+      prev.map(p => {
+        if (p.id === appt.patientId) {
+          return {
+            ...p,
+            visit: "12 Aug 2026"
+          };
+        }
+        return p;
+      })
+    );
+
+    // Auto-generate invoice
+    const invoiceNum = `INV-${1000 + invoices.length + 1}`;
+    const invoiceItems = [{ description: `${appt.treatment} Fee`, amount: treatmentCost }];
+    const sub = invoiceItems.reduce((acc, item) => acc + item.amount, 0);
+    const taxValue = Math.round(sub * 0.18);
+    const tot = sub + taxValue;
+
+    const newInvoice: InvoiceItem = {
+      id: invoiceNum,
+      patientId: appt.patientId,
+      patientName: appt.patientName,
+      doctor: appt.doctor,
+      treatment: appt.treatment,
+      items: invoiceItems,
+      discount: 0,
+      tax: 18,
+      subtotal: sub,
+      total: tot,
+      paidAmount: 0,
+      status: "Pending",
+      paymentDate: "12 Aug 2026",
+      paymentLogs: []
+    };
+
+    setInvoices(prev => [newInvoice, ...prev]);
+    pushActivity("Treatment", `Treatment completed for ${appt.patientName}. Invoice ${invoiceNum} generated.`);
+  };
+
+  const handleGenerateBill = (apptId: string) => {
+    const appt = appointments.find(a => a.id === apptId);
+    if (!appt) return;
+
+    // Try to find an existing pending invoice for this patient's treatment
+    let inv = invoices.find(i => i.patientId === appt.patientId && i.treatment === appt.treatment && i.status === "Pending");
+    
+    if (!inv) {
+      // Auto-generate invoice if not already present
+      const invoiceNum = `INV-${1000 + invoices.length + 1}`;
+      const treatmentCost = TREATMENT_PRICES[appt.treatment] || 500;
+      const invoiceItems = [{ description: `${appt.treatment} Fee`, amount: treatmentCost }];
+      const sub = invoiceItems.reduce((acc, item) => acc + item.amount, 0);
+      const taxValue = Math.round(sub * 0.18);
+      const tot = sub + taxValue;
+
+      inv = {
+        id: invoiceNum,
+        patientId: appt.patientId,
+        patientName: appt.patientName,
+        doctor: appt.doctor,
+        treatment: appt.treatment,
+        items: invoiceItems,
+        discount: 0,
+        tax: 18,
+        subtotal: sub,
+        total: tot,
+        paidAmount: 0,
+        status: "Pending",
+        paymentDate: "12 Aug 2026",
+        paymentLogs: []
+      };
+      setInvoices(prev => [inv!, ...prev]);
+    }
+
+    // Reset split-payment input fields
+    setPayCash(0);
+    setPayCard(0);
+    setPayUpi(0);
+    setPayCustomItems([]);
+    setPayDiscountPercent(0);
+    setPayTaxPercent(18);
+
+    // Open payment modal and redirect to Billing page
+    setSelectedInvoiceForPayment(inv);
+    setActiveTab("Billing");
+    setActiveSubTab("Invoices");
+  };
+
   // 4. Collect SPLIT/FULL Payment
   const handleCollectPayment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -513,6 +654,19 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         return inv;
       })
     );
+
+    // Update appointment status to Paid if invoice is paid
+    if (finalStatus === "Paid") {
+      setAppointments(prev =>
+        prev.map(app =>
+          app.patientId === selectedInvoiceForPayment.patientId &&
+          app.treatment === selectedInvoiceForPayment.treatment &&
+          (app.status === "Completed" || app.status === "In Consultation" || app.status === "Scheduled")
+            ? { ...app, status: "Paid" }
+            : app
+        )
+      );
+    }
 
     // Apply balance update to patient directory record
     const remainingBalance = Math.max(0, finalInvoiceTotal - totalPaidAmount);
@@ -655,19 +809,25 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setSelectedPatientId(null);
   };
 
-  // --- RENDER MODULE SCREENS ---
+  const handleCallNextPatient = () => {
+    const nextWaiting = appointments.find(a => a.status === "Waiting");
+    if (nextWaiting) {
+      handleStartConsultation(nextWaiting.id);
+    }
+  };
 
   const renderScheduleTimeline = () => (
-    <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+    <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
       <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
-        <span className="font-bold text-sm text-slate-800 dark:text-white">Today's Timeline Schedule</span>
-        <span className="text-[10px] bg-slate-100 text-slate-655 px-2 py-0.5 rounded-full font-bold">12 Aug 2026</span>
+        <span className="font-bold text-sm text-slate-808 dark:text-white">Today's Timeline Schedule</span>
+        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full font-bold">12 Aug 2026</span>
       </div>
 
       <div className="space-y-4 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
         {appointments.filter(a => a.date === "12 Aug 2026").map((app) => (
           <div key={app.id} className="flex gap-4 relative items-start group">
             <div className={`h-9 w-9 rounded-full shrink-0 flex items-center justify-center font-bold text-xs border-2 border-white dark:border-slate-955 shadow-xs z-10 ${
+              app.status === "Paid" ? "bg-emerald-500 text-white" :
               app.status === "Completed" ? "bg-emerald-500 text-white" :
               app.status === "In Consultation" ? "bg-blue-600 text-white animate-pulse" :
               app.status === "Waiting" ? "bg-amber-500 text-white animate-pulse" :
@@ -682,25 +842,37 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   <span className="font-bold text-sm text-slate-900 dark:text-white">{app.patientName}</span>
                   <span className="text-[10px] text-slate-405">• {app.treatment}</span>
                 </div>
-                <div className="text-xs text-slate-500">
-                  <span>Doctor: <strong className="font-bold text-slate-700 dark:text-slate-300">{app.doctor}</strong></span>
+                <div className="text-xs text-slate-505">
+                  <span>Doctor: <strong className="font-bold text-slate-707 dark:text-slate-350">{app.doctor}</strong></span>
                   <span className="mx-2">•</span>
                   <span>Time Slot: <strong className="font-semibold text-slate-700">{app.time}</strong></span>
                 </div>
               </div>
 
-              <div className="flex gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 {app.status === "Scheduled" && (
-                  <button onClick={() => handleCheckIn(app.id)} className="h-8 px-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-xs">Check In</button>
+                  <>
+                    <button onClick={() => handleCheckIn(app.id)} className="h-8 px-3.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xs transition-all duration-200">Check In</button>
+                    <button onClick={() => setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Cancelled" } : a))} className="h-8 px-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-955/20 rounded-lg text-xs font-semibold transition-all">Cancel</button>
+                  </>
                 )}
                 {app.status === "Waiting" && (
-                  <button onClick={() => handleStartConsultation(app.id)} className="h-8 px-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xs">Start Consult</button>
+                  <>
+                    <button onClick={() => handleStartConsultation(app.id)} className="h-8 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xs transition-all duration-200">Start Consultation</button>
+                    <button onClick={() => setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Cancelled" } : a))} className="h-8 px-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-955/20 rounded-lg text-xs font-semibold transition-all">Cancel</button>
+                  </>
                 )}
                 {app.status === "In Consultation" && (
-                  <button onClick={() => handleStartConsultation(app.id)} className="h-8 px-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-xs">In Consult</button>
+                  <button onClick={() => handleCompleteTreatmentFromTimeline(app.id)} className="h-8 px-3.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-xs transition-all duration-200">Complete Treatment</button>
                 )}
-                {app.status !== "Completed" && app.status !== "Cancelled" && (
-                  <button onClick={() => setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Cancelled" } : a))} className="h-8 px-2.5 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold">Cancel</button>
+                {app.status === "Completed" && (
+                  <button onClick={() => handleGenerateBill(app.id)} className="h-8 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition-all duration-200">Generate Bill</button>
+                )}
+                {app.status === "Paid" && (
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-955/20 px-2.5 py-1 rounded-lg">Completed</span>
+                )}
+                {app.status === "Cancelled" && (
+                  <span className="text-xs font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">Cancelled</span>
                 )}
               </div>
             </div>
@@ -710,45 +882,72 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     </div>
   );
 
-  const renderWaitingRoom = () => (
-    <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
-      <span className="font-bold text-xs text-slate-400 uppercase tracking-wider block mb-3">Appointments Waiting Queue</span>
-      <div className="space-y-3">
-        {appointments.filter(a => a.status === "Waiting").length > 0 ? (
-          appointments.filter(a => a.status === "Waiting").map((item) => (
-            <div key={item.id} className="p-3 border rounded-xl bg-amber-50/20 border-amber-100 flex items-center justify-between text-xs font-semibold">
-              <div>
-                <span className="font-bold block">{item.patientName} ({item.token})</span>
-                <p className="text-[10px] text-slate-500 mt-1">Doctor: {item.doctor} • {item.treatment}</p>
-              </div>
-              <button
-                onClick={() => handleStartConsultation(item.id)}
-                className="h-7 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-white font-bold text-[10px]"
-              >
-                Call In
-              </button>
-            </div>
-          ))
-        ) : (
-          <p className="text-xs text-slate-400 py-3 text-center">No patients currently waiting.</p>
-        )}
+  const renderWaitingRoom = () => {
+    const waitingAppts = appointments.filter(a => a.status === "Waiting");
+
+    return (
+      <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+          <span className="font-bold text-xs text-slate-400 uppercase tracking-wider">Patients Waiting Queue</span>
+          {waitingAppts.length > 0 && (
+            <button
+              onClick={handleCallNextPatient}
+              className="h-7 px-3 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-955/40 dark:text-blue-400 font-bold text-[10px] shadow-2xs transition-colors shrink-0"
+            >
+              Call Next
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          {waitingAppts.length > 0 ? (
+            waitingAppts.map((item, idx) => {
+              const simulatedWait = idx === 0 ? "24m ago" : idx === 1 ? "12m ago" : "5m ago";
+              return (
+                <div key={item.id} className="p-3 border rounded-xl bg-amber-50/10 border-amber-100/50 flex items-center justify-between text-xs font-semibold hover:bg-amber-50/20 dark:bg-amber-955/5 dark:border-amber-900/30 transition-all duration-200">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-extrabold bg-amber-500 text-white h-4.5 px-1.5 rounded-md flex items-center justify-center shrink-0">{item.token}</span>
+                      <span className="font-bold text-slate-808 dark:text-slate-200">{item.patientName}</span>
+                    </div>
+                    <p className="text-[10px] text-slate-404 mt-1">Doctor: {item.doctor} • {item.treatment}</p>
+                  </div>
+                  
+                  <div className="flex flex-col items-end gap-1.5">
+                    <span className="text-[9px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-955/20 px-2 py-0.5 rounded-md">
+                      Waiting {simulatedWait}
+                    </span>
+                    <button
+                      onClick={() => handleStartConsultation(item.id)}
+                      className="h-6 px-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-white font-bold text-[10px] shadow-xs"
+                    >
+                      Call In
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-xs text-slate-400 py-3 text-center">No patients currently waiting.</p>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderDashboardModule = () => (
     <div className="space-y-6 animate-fadeIn">
       {/* 6 Top Summary KPI Cards */}
       <section className="grid gap-4 grid-cols-2 md:grid-cols-6">
         {[
-          { title: "Today's Appts", count: kpiCounts.todayAppointments, desc: "Scheduled blocks", color: "text-blue-600" },
-          { title: "Walk-in Patients", count: kpiCounts.walkins, desc: "Unscheduled walk-ins", color: "text-cyan-600" },
-          { title: "Patients Waiting", count: kpiCounts.waiting, desc: "In waiting queue", color: "text-amber-600 animate-pulse" },
-          { title: "In Consultation", count: kpiCounts.inTreatment, desc: "Active chairs", color: "text-purple-600" },
-          { title: "Completed Today", count: kpiCounts.completedToday, desc: "Finished checkouts", color: "text-emerald-600" },
-          { title: "Pending Bills", count: kpiCounts.pendingBills, desc: "Awaiting payment", color: "text-red-600" }
+          { title: "Today's Appointments", count: kpiCounts.todayAppointments, desc: "Scheduled blocks", color: "text-blue-600 dark:text-blue-450" },
+          { title: "Walk-ins", count: kpiCounts.walkins, desc: "Unscheduled walk-ins", color: "text-cyan-600 dark:text-cyan-450" },
+          { title: "Patients Waiting", count: kpiCounts.waiting, desc: "In waiting queue", color: "text-amber-605 dark:text-amber-450 animate-pulse" },
+          { title: "In Consultation", count: kpiCounts.inTreatment, desc: "Active chairs", color: "text-purple-600 dark:text-purple-450" },
+          { title: "Completed Today", count: kpiCounts.completedToday, desc: "Finished checkouts", color: "text-emerald-600 dark:text-emerald-450" },
+          { title: "Pending Payments", count: kpiCounts.pendingBills, desc: "Awaiting payment", color: "text-red-600 dark:text-red-450" }
         ].map((c, i) => (
-          <div key={i} className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xs">
+          <div key={i} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xs">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{c.title}</span>
             <div className="mt-2.5">
               <span className={`text-2xl font-black ${c.color}`}>{c.count}</span>
@@ -769,27 +968,40 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           {renderWaitingRoom()}
 
           {/* Doctor Status availability */}
-          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
             <span className="font-bold text-xs text-slate-400 uppercase tracking-wider block mb-3">Doctor Availability</span>
             <div className="space-y-3">
-              {doctors.map((doc) => (
-                <div key={doc.name} className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50">
-                  <div>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{doc.name}</span>
-                    <p className="text-[10px] text-slate-400 font-semibold">{doc.speciality}</p>
+              {doctors.map((doc) => {
+                const currentPatient = appointments.find(
+                  a => a.doctor === doc.name && a.status === "In Consultation"
+                )?.patientName;
+                const isBusy = !!currentPatient || doc.status === "In Consultation";
+                
+                return (
+                  <div key={doc.name} className="flex flex-col p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-all duration-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-slate-808 dark:text-slate-200">{doc.name}</span>
+                        <p className="text-[10px] text-slate-400 font-semibold">{doc.speciality}</p>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1.5 ${
+                        isBusy ? "bg-purple-50 text-purple-700 dark:bg-purple-955/20 dark:text-purple-400" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/20 dark:text-emerald-450"
+                      }`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${
+                          isBusy ? "bg-purple-500 animate-pulse" : "bg-emerald-500"
+                        }`} />
+                        {isBusy ? "Busy" : "Available"}
+                      </span>
+                    </div>
+                    {isBusy && currentPatient && (
+                      <div className="mt-2 pt-2 border-t border-slate-100/50 dark:border-slate-800/50 flex items-center justify-between text-[9px] text-slate-500 font-semibold">
+                        <span>Current Patient:</span>
+                        <span className="text-purple-600 dark:text-purple-400 font-bold">{currentPatient}</span>
+                      </div>
+                    )}
                   </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1.5 ${
-                    doc.status === "Available" ? "bg-emerald-50 text-emerald-700" :
-                    doc.status === "In Consultation" ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-500"
-                  }`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${
-                      doc.status === "Available" ? "bg-emerald-500" :
-                      doc.status === "In Consultation" ? "bg-blue-500" : "bg-slate-400"
-                    }`} />
-                    {doc.status}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -810,6 +1022,56 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
         </div>
       </div>
+
+      {/* Clinic Tasks Bottom Section */}
+      <section className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5 mb-4">
+          <div>
+            <h3 className="font-bold text-sm text-slate-808 dark:text-white">Daily Clinic Tasks</h3>
+            <p className="text-[10px] text-slate-400 font-medium">Interactive checklist for operational task management</p>
+          </div>
+          <span className="text-[10px] bg-slate-150 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full font-bold">
+            {tasks.filter(t => !t.completed).length} Tasks Pending
+          </span>
+        </div>
+
+        <div className="grid gap-3.5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {tasks.map((task) => (
+            <div
+              key={task.id}
+              onClick={() => handleToggleTask(task.id)}
+              className={`p-3.5 border rounded-xl flex items-center justify-between text-xs font-semibold cursor-pointer transition-all duration-200 ${
+                task.completed
+                  ? "bg-slate-50/50 border-slate-100 dark:bg-slate-900/10 dark:border-slate-850 opacity-60"
+                  : "bg-white border-slate-200 hover:border-blue-400 dark:bg-slate-950 dark:border-slate-800"
+              }`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <input
+                  type="checkbox"
+                  checked={task.completed}
+                  onChange={() => {}}
+                  className="h-4 w-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 focus:ring-offset-0 shrink-0"
+                />
+                <span className={`truncate text-slate-700 dark:text-slate-205 font-semibold ${task.completed ? "line-through text-slate-400" : ""}`}>
+                  {task.text}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                  task.priority === "High" ? "bg-red-50 text-red-700 dark:bg-red-955/20 dark:text-red-400" :
+                  task.priority === "Medium" ? "bg-amber-50 text-amber-700 dark:bg-amber-955/20 dark:text-amber-400" :
+                  "bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                }`}>
+                  {task.priority}
+                </span>
+                <span className="text-[10px] text-slate-400 font-semibold">{task.due}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 
@@ -2460,7 +2722,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 <form onSubmit={handleRegisterWalkIn} className="space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="walkinName">Patient Name</Label>
-                    <Input id="walkinName" placeholder="e.g. Sneha Reddy" value={newPatName} onChange={e => setNewPatName(e.target.value)} required />
+                    <Input id="walkinName" placeholder="e.g. Sneha Verma" value={newPatName} onChange={e => setNewPatName(e.target.value)} required />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
