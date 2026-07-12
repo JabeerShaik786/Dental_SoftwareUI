@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -181,6 +181,20 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
   // Global Dialog triggers
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const quickAddRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (quickAddRef.current && !quickAddRef.current.contains(event.target as Node)) {
+        setQuickAddOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const [showNotifications, setShowNotifications] = useState(false);
   const [globalSearchQuery, setGlobalSearchQuery] = useState("");
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -3688,7 +3702,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
           <div className="flex items-center gap-2 sm:gap-3.5">
             {/* + Quick Add Dropdown */}
-            <div className="relative">
+            <div ref={quickAddRef} className="relative">
               <button
                 onClick={() => setQuickAddOpen(!quickAddOpen)}
                 className="h-9 flex items-center gap-1 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-sm active:scale-95 transition-all"
@@ -3697,48 +3711,55 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 <span>Quick Add</span>
               </button>
               
-              {quickAddOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-slate-200 bg-white shadow-xl dark:bg-slate-950 dark:border-slate-800 p-1.5 z-50 text-xs font-semibold text-left">
-                  <button
-                    onClick={() => { setActiveModal("addPatient"); setQuickAddOpen(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-slate-705 hover:bg-slate-50 dark:hover:bg-slate-900"
-                  >
-                    <UserPlus className="h-4 w-4 text-blue-500" /> New Patient
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (patients.length > 0) {
-                        setApptPatientId(patients[0].id);
-                      }
-                      setActiveModal("addAppointment");
-                      setQuickAddOpen(false);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-slate-705 hover:bg-slate-50"
-                  >
-                    <CalendarDays className="h-4 w-4 text-cyan-500" /> New Appointment
-                  </button>
-                  <button
-                    onClick={() => { setActiveModal("addWalkIn"); setQuickAddOpen(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-slate-705 hover:bg-slate-50"
-                  >
-                    <UserCheck className="h-4 w-4 text-amber-500" /> Walk-in Patient
-                  </button>
-                  <button
-                    onClick={() => { selectTab("Billing"); setActiveSubTab("Invoices"); setQuickAddOpen(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-slate-705 hover:bg-slate-50"
-                  >
-                    <FileText className="h-4 w-4 text-red-500" /> Invoice list
-                  </button>
-                  <button
-                    onClick={() => { selectTab("Billing"); setActiveSubTab("Payments"); setQuickAddOpen(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-slate-705 hover:bg-slate-50"
-                  >
-                    <Receipt className="h-4 w-4 text-emerald-500" /> Payment logs
-                  </button>
-                </div>
-              )}
+              <div className={`absolute right-0 mt-2 w-60 rounded-xl border border-slate-200 bg-white shadow-xl dark:bg-slate-950 dark:border-slate-800 p-1.5 z-50 text-[14px] font-semibold text-left transition-all duration-200 origin-top-right transform ${
+                quickAddOpen
+                  ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
+                  : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
+              }`}>
+                <button
+                  onClick={() => { setActiveModal("addPatient"); setQuickAddOpen(false); }}
+                  className="w-full h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
+                >
+                  <UserPlus className="h-[18px] w-[18px] text-blue-500 shrink-0" />
+                  <span className="truncate">New Patient</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (patients.length > 0) {
+                      setApptPatientId(patients[0].id);
+                    }
+                    setActiveModal("addAppointment");
+                    setQuickAddOpen(false);
+                  }}
+                  className="w-full h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
+                >
+                  <CalendarDays className="h-[18px] w-[18px] text-cyan-500 shrink-0" />
+                  <span className="truncate">New Appointment</span>
+                </button>
+                <button
+                  onClick={() => { setActiveModal("addWalkIn"); setQuickAddOpen(false); }}
+                  className="w-full h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
+                >
+                  <UserCheck className="h-[18px] w-[18px] text-amber-500 shrink-0" />
+                  <span className="truncate">Walk-in Patient</span>
+                </button>
+                <button
+                  onClick={() => { selectTab("Billing"); setActiveSubTab("Invoices"); setQuickAddOpen(false); }}
+                  className="w-full h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
+                >
+                  <FileText className="h-[18px] w-[18px] text-red-500 shrink-0" />
+                  <span className="truncate">Invoice List</span>
+                </button>
+                <button
+                  onClick={() => { selectTab("Billing"); setActiveSubTab("Payments"); setQuickAddOpen(false); }}
+                  className="w-full h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
+                >
+                  <Receipt className="h-[18px] w-[18px] text-emerald-500 shrink-0" />
+                  <span className="truncate">Payment Logs</span>
+                </button>
+              </div>
             </div>
-
+ 
             {/* Notifications Alert Dropdown */}
             <div className="relative">
               <button
@@ -3750,7 +3771,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-red-650 border border-white animate-pulse" />
                 )}
               </button>
-
+ 
               {showNotifications && (
                 <div className="absolute right-0 mt-2 w-80 rounded-xl border border-slate-200 bg-white shadow-xl dark:bg-slate-955 dark:border-slate-800 p-2 z-50 text-xs">
                   <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 mb-2">
@@ -3778,16 +3799,12 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 </div>
               )}
             </div>
-
-            {/* Clinic Status & Date */}
-            <div className="hidden lg:flex flex-col text-right text-[11px] border-r pr-3 border-slate-200 dark:border-slate-800">
-              <span className="font-bold text-slate-800 dark:text-slate-200">Wednesday, 12 Aug 2026</span>
-              <span className="text-[9px] text-emerald-600 font-semibold flex items-center justify-end gap-1 mt-0.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Clinic Status: Active
-              </span>
+ 
+            {/* Clinic Date */}
+            <div className="hidden lg:block text-right text-[12px] border-r pr-3.5 border-slate-200 dark:border-slate-800 leading-none">
+              <span className="font-semibold text-slate-700 dark:text-slate-300">Wednesday, 12 Aug 2026</span>
             </div>
-
+ 
             {/* Profile Avatar */}
             <div className="h-9 w-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold border-2 border-slate-100 shadow-sm shrink-0">
               AN
