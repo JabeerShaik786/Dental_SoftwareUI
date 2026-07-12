@@ -1140,24 +1140,25 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           <span className="font-medium">• {invoices.filter(i => i.status !== "Paid").length} unpaid invoices pending checkout</span>
         </div>
 
-        {/* Live Counters Banner */}
-        <section className="counter-section grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
-          {counters.map((c, i) => (
-            <div key={i} className={`counter-card rounded-xl p-4 flex flex-col justify-between shadow-xs ${c.bg}`}>
-              <span className="counter-title uppercase tracking-wider block">{c.title}</span>
-              <div className="mt-2">
-                <span className={`counter-value tracking-tight ${c.color}`}>{c.count}</span>
-                <p className="counter-desc mt-0.5">{c.desc}</p>
-              </div>
-            </div>
-          ))}
-        </section>
-
         {/* SECTION 1 - Weekly Appointment Calendar (TOP CENTER) */}
-        <div className="calendar-card bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+        <div className="calendar-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-4 gap-3">
-            <div>
-              <span className="font-bold text-sm text-slate-900 dark:text-white block">Weekly Appointment Calendar</span>
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-bold text-sm text-slate-900 dark:text-white">Weekly Appointment Calendar</span>
+                <span className="bg-blue-50 text-blue-750 dark:bg-blue-950/40 dark:text-blue-400 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                  Total Appointments Today: {kpiCounts.todayAppointments}
+                </span>
+                <span className="bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-2.5 py-0.5 rounded-full text-[10px] font-bold animate-pulse">
+                  Waiting: {kpiCounts.waiting}
+                </span>
+                <span className="bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-400 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                  In Procedure: {kpiCounts.inTreatment}
+                </span>
+                <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                  Completed: {kpiCounts.completedToday}
+                </span>
+              </div>
               <p className="text-[10px] text-slate-400">Select day of week to manage slots & book patients</p>
             </div>
             <div className="text-xs font-black text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-lg">
