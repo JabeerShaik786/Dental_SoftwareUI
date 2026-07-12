@@ -1245,7 +1245,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     };
 
     return (
-      <div className="dashboard-container space-y-8 animate-fadeIn text-slate-700">
+      <div className="dashboard-container space-y-4 animate-fadeIn text-slate-700">
         {/* Notification Strip */}
         <div className="alerts-strip bg-blue-600/5 dark:bg-blue-955/20 border border-blue-500/15 rounded-xl px-4 py-2.5 flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-blue-800 dark:text-blue-350 items-center">
           <span className="font-bold flex items-center gap-1.5">
@@ -1260,7 +1260,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         </div>
 
         {/* SECTION 1 - Weekly Appointment Calendar (TOP CENTER) */}
-        <div className="calendar-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+        <div className="calendar-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-4 gap-3">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="font-bold text-sm text-slate-900 dark:text-white">Weekly Appointment Calendar</span>
@@ -1446,9 +1446,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         </div>
 
         {/* 3-Column Operational Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* SECTION 2 - Add Patient Panel (LEFT) */}
-          <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col h-[530px]">
+          <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
             <span className="font-semibold text-[18px] block mb-4 shrink-0">Patient Registration</span>
             
             <form onSubmit={handleSavePatientQuick} className="flex-1 flex flex-col overflow-hidden mt-2">
@@ -1513,7 +1513,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
 
           {/* SECTION 3 - Recently Added Patients (CENTER) */}
-          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col h-[530px]">
+          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
             <div className="flex justify-between items-center mb-4 shrink-0">
               <span className="font-semibold text-[18px] block">Recently Added Patients</span>
             </div>
@@ -1624,7 +1624,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
 
           {/* SECTION 4 - Today's Schedule (RIGHT) */}
-          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col h-[530px]">
+          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
             <div className="flex justify-between items-center mb-4 shrink-0">
               <span className="font-semibold text-[18px] block">Today's Schedule</span>
               <span className="text-[12px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-bold">
@@ -1736,10 +1736,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         </div>
 
         {/* BOTTOM DASHBOARD */}
-        <div className="bg-slate-50/50 dark:bg-slate-900/10 border-t border-slate-200 dark:border-slate-800 pt-6">
-          <span className="font-bold text-xs text-slate-400 uppercase tracking-wider block mb-4">Clinic Operational Widgets</span>
+        <div className="bg-slate-50/50 dark:bg-slate-900/10 border-t border-slate-200 dark:border-slate-800 pt-4 mt-2">
+          <span className="font-bold text-xs text-slate-400 uppercase tracking-wider block mb-3">Clinic Operational Widgets</span>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Widget 1 - Walk-In Queue */}
             <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
               <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-3">Walk-In Queue</span>
