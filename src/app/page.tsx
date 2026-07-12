@@ -4312,11 +4312,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             animate={{ opacity: 1, scale: 1 }}
             className="w-full max-w-md bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl overflow-hidden text-xs font-semibold"
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-              <span className="font-bold text-sm text-slate-900 dark:text-white">
-                Slot Management: {selectedSlotData.date} at {selectedSlotData.time}
-              </span>
-              <button onClick={() => setSelectedSlotData(null)} className="text-slate-400 hover:text-slate-650">
+            <div className="flex items-start justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col text-slate-900 dark:text-white">
+                <span className="text-[18px] font-bold leading-tight">Slot Management:</span>
+                <span className="text-[16px] font-semibold text-slate-500 dark:text-slate-400 mt-1 leading-normal">
+                  {selectedSlotData.date} at {selectedSlotData.time}
+                </span>
+              </div>
+              <button onClick={() => setSelectedSlotData(null)} className="text-slate-400 hover:text-slate-650 shrink-0 mt-0.5">
                 <X className="h-4 w-4" />
               </button>
             </div>
