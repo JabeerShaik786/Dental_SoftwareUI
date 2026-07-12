@@ -4310,51 +4310,58 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-md bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl overflow-hidden text-xs font-semibold"
+            className="w-full max-w-md bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl overflow-hidden text-xs font-semibold"
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-              <span className="font-bold text-[13px] text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+              <span className="font-bold text-sm text-slate-900 dark:text-white">
                 Slot Management: {selectedSlotData.date} at {selectedSlotData.time}
               </span>
               <button onClick={() => setSelectedSlotData(null)} className="text-slate-400 hover:text-slate-650">
-                <X className="h-3.5 w-3.5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="p-4 space-y-3.5">
+            <div className="p-5">
               {selectedSlotData.appointment ? (
                 // Booked Slot
-                <div className="space-y-3.5">
-                  <div className="p-3 bg-blue-50/40 border border-blue-100/60 dark:bg-blue-955/20 dark:border-blue-900/30 rounded-lg space-y-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Appointment Details</span>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[11px]">
-                      <div>
-                        <span className="text-slate-400 block mb-0.5">Patient</span>
-                        <strong className="text-slate-800 dark:text-slate-200 font-bold block">{selectedSlotData.appointment.patientName}</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block mb-0.5">Doctor</span>
-                        <strong className="text-slate-800 dark:text-slate-200 font-bold block">{selectedSlotData.appointment.doctor}</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block mb-0.5">Treatment</span>
-                        <strong className="text-slate-800 dark:text-slate-200 font-bold block">{selectedSlotData.appointment.treatment}</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block mb-0.5">Status</span>
-                        <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-400">
+                <div>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-6">
+                    <div>
+                      <span className="text-[13px] text-slate-450 dark:text-slate-500 block mb-1 uppercase tracking-wider font-semibold">Patient</span>
+                      <strong className="text-[16px] text-slate-850 dark:text-slate-100 font-semibold block leading-tight">{selectedSlotData.appointment.patientName}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[13px] text-slate-450 dark:text-slate-500 block mb-1 uppercase tracking-wider font-semibold">Doctor</span>
+                      <strong className="text-[16px] text-slate-850 dark:text-slate-100 font-semibold block leading-tight">{selectedSlotData.appointment.doctor}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[13px] text-slate-455 dark:text-slate-500 block mb-1 uppercase tracking-wider font-semibold">Treatment</span>
+                      <strong className="text-[16px] text-slate-850 dark:text-slate-100 font-semibold block leading-tight">{selectedSlotData.appointment.treatment}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[13px] text-slate-455 dark:text-slate-500 block mb-1 uppercase tracking-wider font-semibold">Status</span>
+                      <div className="mt-0.5">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
+                          selectedSlotData.appointment.status === "Scheduled" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-400" :
+                          selectedSlotData.appointment.status === "Checked In" || selectedSlotData.appointment.status === "Waiting" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400" :
+                          selectedSlotData.appointment.status === "In Procedure" ? "bg-orange-100 text-orange-850 dark:bg-orange-950/40 dark:text-orange-400" :
+                          selectedSlotData.appointment.status === "Completed" ? "bg-slate-100 text-slate-800 dark:bg-slate-900/40 dark:text-slate-400" :
+                          "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-400"
+                        }`}>
                           {selectedSlotData.appointment.status}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-2">
+                  {/* Horizontal Action Row */}
+                  <div className="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0 whitespace-nowrap">
+                    {/* Primary Status-based Action Button */}
                     {selectedSlotData.appointment.status === "Scheduled" && (
                       <button
                         type="button"
                         onClick={() => handleApptCheckIn(selectedSlotData.appointment!.id)}
-                        className="h-[30px] rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[11px] transition-all flex items-center justify-center cursor-pointer"
+                        className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all flex items-center justify-center cursor-pointer flex-1"
                       >
                         Check In
                       </button>
@@ -4363,7 +4370,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <button
                         type="button"
                         onClick={() => handleApptStartProcedure(selectedSlotData.appointment!.id)}
-                        className="h-[30px] rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] transition-all flex items-center justify-center cursor-pointer"
+                        className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all flex items-center justify-center cursor-pointer flex-1"
                       >
                         Start Procedure
                       </button>
@@ -4372,21 +4379,26 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <button
                         type="button"
                         onClick={() => handleApptCompleteProcedure(selectedSlotData.appointment!.id)}
-                        className="h-[30px] rounded bg-orange-500 hover:bg-orange-455 text-white font-bold text-[11px] transition-all flex items-center justify-center cursor-pointer"
+                        className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all flex items-center justify-center cursor-pointer flex-1"
                       >
                         Complete Procedure
                       </button>
                     )}
                     {selectedSlotData.appointment.status === "Completed" && (
-                      <button
-                        type="button"
-                        onClick={() => handleApptGenerateBill(selectedSlotData.appointment!.id)}
-                        className="h-[30px] rounded bg-emerald-650 hover:bg-emerald-500 text-white font-bold text-[11px] transition-all flex items-center justify-center cursor-pointer col-span-2"
-                      >
-                        Generate Bill / Collect Payment
-                      </button>
+                      (() => {
+                        const hasInvoice = invoices.some(i => i.patientId === selectedSlotData.appointment!.patientId);
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => handleApptGenerateBill(selectedSlotData.appointment!.id)}
+                            className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all flex items-center justify-center cursor-pointer flex-1"
+                          >
+                            {hasInvoice ? "Collect Payment" : "Generate Bill"}
+                          </button>
+                        );
+                      })()
                     )}
-                    
+
                     <button
                       type="button"
                       onClick={() => {
@@ -4399,7 +4411,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setAppointments(prev => prev.map(a => a.id === selectedSlotData.appointment!.id ? { ...a, status: "Cancelled" } : a));
                         setSelectedSlotData(null);
                       }}
-                      className="h-[30px] rounded bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 font-bold text-[11px] transition-all flex items-center justify-center cursor-pointer"
+                      className="h-9 px-4 rounded border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold text-xs transition-all flex items-center justify-center cursor-pointer flex-1"
                     >
                       Block Slot
                     </button>
@@ -4410,7 +4422,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setAppointments(prev => prev.map(a => a.id === selectedSlotData.appointment!.id ? { ...a, status: "Cancelled" } : a));
                         setSelectedSlotData(null);
                       }}
-                      className="h-[30px] rounded bg-red-50 hover:bg-red-100 text-red-650 font-bold text-[11px] transition-all flex items-center justify-center cursor-pointer"
+                      className="h-9 px-4 rounded border border-red-200 text-red-650 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/20 font-semibold text-xs transition-all flex items-center justify-center cursor-pointer flex-1"
                     >
                       Cancel Appointment
                     </button>
