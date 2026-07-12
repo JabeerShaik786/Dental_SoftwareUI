@@ -246,7 +246,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [patientSearchQuery, setPatientSearchQuery] = useState("");
   const [patientFilterGender, setPatientFilterGender] = useState("All");
   const [patientSortBy, setPatientSortBy] = useState("Name-ASC");
-  const [patientVisibleCount, setPatientVisibleCount] = useState(5);
+  const [patientVisibleCount, setPatientVisibleCount] = useState(7);
 
   // Redesigned Appointments Hub states
   const [apptView, setApptView] = useState<"Month" | "Week" | "Day">("Month");
@@ -1308,62 +1308,60 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         {/* 3-Column Operational Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* SECTION 2 - Add Patient Panel (LEFT) */}
-          <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between h-full">
+          <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col h-full">
             <span className="font-semibold text-[18px] block mb-4">Patient Registration</span>
             
-            <form onSubmit={handleSavePatientQuick} className="flex-grow flex flex-col justify-between mt-2">
-              <div className="space-y-6 flex-grow flex flex-col justify-center">
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-1">
-                    <Label htmlFor="qPatID" className="form-label-custom">Patient ID</Label>
-                    <Input id="qPatID" value={`DS-${1000 + patients.length + 1}`} disabled className="form-field-custom bg-slate-50 dark:bg-slate-900 opacity-60 cursor-not-allowed font-bold" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="qMobile" className="form-label-custom">Mobile Number</Label>
-                    <Input id="qMobile" placeholder="e.g. +91 99000 11000" value={quickMobile} onChange={e => setQuickMobile(e.target.value)} required className="form-field-custom" />
-                  </div>
+            <form onSubmit={handleSavePatientQuick} className="space-y-[18px] mt-2">
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <Label htmlFor="qPatID" className="form-label-custom">Patient ID</Label>
+                  <Input id="qPatID" value={`DS-${1000 + patients.length + 1}`} disabled className="form-field-custom bg-slate-50 dark:bg-slate-900 opacity-60 cursor-not-allowed font-bold" />
                 </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-1">
-                    <Label htmlFor="qFirstName" className="form-label-custom">First Name</Label>
-                    <Input id="qFirstName" placeholder="e.g. Rahul" value={quickFirstName} onChange={e => setQuickFirstName(e.target.value)} required className="form-field-custom" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="qLastName" className="form-label-custom">Last Name</Label>
-                    <Input id="qLastName" placeholder="e.g. Verma" value={quickLastName} onChange={e => setQuickLastName(e.target.value)} required className="form-field-custom" />
-                  </div>
+                <div className="space-y-1">
+                  <Label htmlFor="qMobile" className="form-label-custom">Mobile Number</Label>
+                  <Input id="qMobile" placeholder="e.g. +91 99000 11000" value={quickMobile} onChange={e => setQuickMobile(e.target.value)} required className="form-field-custom" />
                 </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-1">
-                    <Label htmlFor="qAge" className="form-label-custom">Age</Label>
-                    <Input id="qAge" type="number" min="0" value={quickAge || ""} onChange={e => setQuickAge(parseInt(e.target.value) || 30)} required className="form-field-custom" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="qGender" className="form-label-custom">Gender</Label>
-                    <select
-                      id="qGender"
-                      className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
-                      value={quickGender}
-                      onChange={e => setQuickGender(e.target.value as "Male" | "Female")}
-                    >
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                    </select>
-                  </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <Label htmlFor="qFirstName" className="form-label-custom">First Name</Label>
+                  <Input id="qFirstName" placeholder="e.g. Rahul" value={quickFirstName} onChange={e => setQuickFirstName(e.target.value)} required className="form-field-custom" />
                 </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-1">
-                    <Label htmlFor="qDOB" className="form-label-custom">Date of Birth</Label>
-                    <Input id="qDOB" type="date" value={quickDOB} onChange={e => setQuickDOB(e.target.value)} className="form-field-custom" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="qLocation" className="form-label-custom">Location</Label>
-                    <Input id="qLocation" placeholder="e.g. Jayanagar" value={quickLocation} onChange={e => setQuickLocation(e.target.value)} className="form-field-custom" />
-                  </div>
+                <div className="space-y-1">
+                  <Label htmlFor="qLastName" className="form-label-custom">Last Name</Label>
+                  <Input id="qLastName" placeholder="e.g. Verma" value={quickLastName} onChange={e => setQuickLastName(e.target.value)} required className="form-field-custom" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <Label htmlFor="qAge" className="form-label-custom">Age</Label>
+                  <Input id="qAge" type="number" min="0" value={quickAge || ""} onChange={e => setQuickAge(parseInt(e.target.value) || 30)} required className="form-field-custom" />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="qGender" className="form-label-custom">Gender</Label>
+                  <select
+                    id="qGender"
+                    className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                    value={quickGender}
+                    onChange={e => setQuickGender(e.target.value as "Male" | "Female")}
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <Label htmlFor="qDOB" className="form-label-custom">Date of Birth</Label>
+                  <Input id="qDOB" type="date" value={quickDOB} onChange={e => setQuickDOB(e.target.value)} className="form-field-custom" />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="qLocation" className="form-label-custom">Location</Label>
+                  <Input id="qLocation" placeholder="e.g. Jayanagar" value={quickLocation} onChange={e => setQuickLocation(e.target.value)} className="form-field-custom" />
                 </div>
               </div>
               
-              <div className="flex gap-2 pt-6 mt-auto">
+              <div className="flex gap-2 pt-2.5">
                 <Button type="button" variant="outline" onClick={handleClearPatientForm} className="form-btn-custom flex-1 text-[14px] font-semibold h-9 rounded-lg">Clear</Button>
                 <Button type="submit" className="form-btn-custom flex-1 text-[14px] font-semibold h-9 bg-blue-600 hover:bg-blue-500 text-white shadow-xs rounded-lg">Save Patient</Button>
               </div>
@@ -1487,7 +1485,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               <span className="text-[12px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-bold">{todayApptsList.length} Slots</span>
             </div>
 
-            <div className="space-y-4 flex-1 overflow-y-auto pr-1 scrollbar-thin">
+            <div className="space-y-3 flex-1 overflow-y-auto pr-1 scrollbar-thin">
                 {todayApptsList.map((app) => {
                   let badgeStyle = "bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30";
                   if (app.status === "Checked In" || app.status === "Waiting") badgeStyle = "bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-955/20 dark:text-emerald-450 dark:border-emerald-900/30";
@@ -1498,17 +1496,17 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   const isInvoicePending = invoices.find(i => i.patientId === app.patientId && i.treatment === app.treatment)?.status === "Pending";
 
                   return (
-                    <div key={app.id} className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/20 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-all shadow-2xs space-y-3 min-h-[110px] flex flex-col justify-between">
+                    <div key={app.id} className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/20 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-all shadow-2xs space-y-2 flex flex-col justify-between">
                       {/* Top Row: Patient Name & Status Badge */}
-                      <div className="flex justify-between items-start">
-                        <span className="font-semibold text-[18px] text-slate-800 dark:text-slate-200 truncate pr-2 leading-tight">{app.patientName}</span>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-[16px] text-slate-800 dark:text-slate-200 truncate pr-2 leading-none">{app.patientName}</span>
                         <span className={`px-2 py-0.5 rounded-full text-[12px] font-bold uppercase tracking-wider shrink-0 leading-none ${badgeStyle}`}>
                           {app.status === "Checked In" || app.status === "Waiting" ? `T-${app.token || "01"}` : app.status}
                         </span>
                       </div>
 
                       {/* Second Row: Doctor Name • Procedure • Time */}
-                      <p className="text-[14px] text-slate-450 dark:text-slate-400 font-normal leading-snug">
+                      <p className="text-[14px] text-slate-455 dark:text-slate-400 font-normal leading-none">
                         {app.doctor} • {app.treatment} • {app.time}
                       </p>
 
@@ -1519,7 +1517,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => handleApptCheckIn(app.id)}
-                            className="h-[34px] px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
+                            className="h-[36px] px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
                           >
                             ✔ Check In
                           </button>
@@ -1528,7 +1526,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => handleApptStartProcedure(app.id)}
-                            className="h-[34px] px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
+                            className="h-[36px] px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
                           >
                             ✔ Start Procedure
                           </button>
@@ -1537,7 +1535,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => handleApptCompleteProcedure(app.id)}
-                            className="h-[34px] px-4 rounded-lg bg-orange-500 hover:bg-orange-455 text-white font-semibold text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
+                            className="h-[36px] px-4 rounded-lg bg-orange-500 hover:bg-orange-455 text-white font-medium text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
                           >
                             ✔ Complete
                           </button>
@@ -1546,7 +1544,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => handleApptGenerateBill(app.id)}
-                            className="h-[34px] px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
+                            className="h-[36px] px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
                           >
                             ✔ Generate Bill
                           </button>
@@ -1555,7 +1553,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => handleApptGenerateBill(app.id)}
-                            className="h-[34px] px-4 rounded-lg bg-amber-500 hover:bg-amber-455 text-white font-semibold text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
+                            className="h-[36px] px-4 rounded-lg bg-amber-500 hover:bg-amber-455 text-white font-medium text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
                           >
                             ✔ Collect Payment
                           </button>
@@ -1574,7 +1572,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                               e.stopPropagation();
                               setOpenMenuId(openMenuId === app.id ? null : app.id);
                             }}
-                            className="h-[34px] w-[34px] rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-500 dark:text-slate-455 flex items-center justify-center font-bold text-[14px] transition-colors"
+                            className="h-[36px] w-[36px] rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-500 dark:text-slate-455 flex items-center justify-center font-bold text-[14px] transition-colors"
                           >
                             ⋮
                           </button>
