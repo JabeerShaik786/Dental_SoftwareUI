@@ -1371,103 +1371,101 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
 
           {/* SECTION 3 - Recently Added Patients (CENTER) */}
-          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between h-full">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-semibold text-[18px] block">Recently Added Patients</span>
-                <span className="text-[9px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold">{filteredPatients.length} Files</span>
+          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col h-full">
+            <div className="flex justify-between items-center mb-4 shrink-0">
+              <span className="font-semibold text-[18px] block">Recently Added Patients</span>
+              <span className="text-[9px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold">{filteredPatients.length} Files</span>
+            </div>
+            
+            {/* Search, Filter, Sort Inputs */}
+            <div className="grid gap-2.5 grid-cols-3 mb-4 shrink-0">
+              <div className="col-span-3 relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search name, ID..."
+                  value={patientSearchQuery}
+                  onChange={e => setPatientSearchQuery(e.target.value)}
+                  className="h-8 pl-8 pr-2 w-full rounded-lg bg-slate-50 border border-slate-200 text-[10px] font-bold outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 dark:bg-slate-900 dark:border-slate-800"
+                />
               </div>
-              
-              {/* Search, Filter, Sort Inputs */}
-              <div className="grid gap-2.5 grid-cols-3 mb-4">
-                <div className="col-span-3 relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search name, ID..."
-                    value={patientSearchQuery}
-                    onChange={e => setPatientSearchQuery(e.target.value)}
-                    className="h-8 pl-8 pr-2 w-full rounded-lg bg-slate-50 border border-slate-200 text-[10px] font-bold outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 dark:bg-slate-900 dark:border-slate-800"
-                  />
-                </div>
-                <div>
-                  <select
-                    value={patientFilterGender}
-                    onChange={e => setPatientFilterGender(e.target.value)}
-                    className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[9px] font-bold focus:outline-none dark:bg-slate-900 dark:border-slate-800"
-                  >
-                    <option value="All">All Genders</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                </div>
-                <div className="col-span-2">
-                  <select
-                    value={patientSortBy}
-                    onChange={e => setPatientSortBy(e.target.value)}
-                    className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[9px] font-bold focus:outline-none dark:bg-slate-900 dark:border-slate-800"
-                  >
-                    <option value="Name-ASC">Sort: Name (A-Z)</option>
-                    <option value="Name-DESC">Sort: Name (Z-A)</option>
-                    <option value="ID-ASC">Sort: ID (Asc)</option>
-                    <option value="ID-DESC">Sort: ID (Desc)</option>
-                  </select>
-                </div>
+              <div>
+                <select
+                  value={patientFilterGender}
+                  onChange={e => setPatientFilterGender(e.target.value)}
+                  className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[9px] font-bold focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                >
+                  <option value="All">All Genders</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
               </div>
+              <div className="col-span-2">
+                <select
+                  value={patientSortBy}
+                  onChange={e => setPatientSortBy(e.target.value)}
+                  className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[9px] font-bold focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                >
+                  <option value="Name-ASC">Sort: Name (A-Z)</option>
+                  <option value="Name-DESC">Sort: Name (Z-A)</option>
+                  <option value="ID-ASC">Sort: ID (Asc)</option>
+                  <option value="ID-DESC">Sort: ID (Desc)</option>
+                </select>
+              </div>
+            </div>
 
-              {/* Patient List container with simulated Infinite Scroll */}
-              <div className="space-y-2.5 max-h-[330px] overflow-y-auto pr-1">
-                {displayedPatients.map((pat) => (
-                  <div key={pat.id} className="patient-row p-3 border border-slate-100 hover:border-blue-300 dark:border-slate-800 dark:hover:border-blue-900/50 rounded-xl bg-slate-50/30 flex justify-between items-center transition-all group">
-                    <div className="min-w-0 flex-1 cursor-pointer" onClick={() => { setSelectedPatientId(pat.id); setActiveTab("Patients"); }}>
-                      <span className="patient-name-txt font-bold text-slate-800 dark:text-slate-200 hover:text-blue-600 block truncate">{pat.name}</span>
-                      <p className="patient-sub-txt text-[9px] text-slate-400 mt-0.5">{pat.id} • {pat.phone}</p>
-                    </div>
-                    {/* Action Icons */}
-                    <div className="flex gap-1.5 ml-2">
-                      <button
-                        title="Book Appointment"
-                        onClick={() => {
-                          setSlotPatientId(pat.id);
-                          setSelectedSlotData({ date: selectedCalendarDay, time: "09:00 AM" });
-                        }}
-                        className="h-6 w-6 rounded-md bg-white border dark:bg-slate-900 dark:border-slate-800 flex items-center justify-center text-blue-600 hover:bg-blue-50 transition-colors"
-                      >
-                        <CalendarDays className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        title="Dental Chart"
-                        onClick={() => {
-                          setSelectedPatientId(pat.id);
-                          setProfileSubTab("Dental Chart");
-                          setActiveTab("Patients");
-                        }}
-                        className="h-6 w-6 rounded-md bg-white border dark:bg-slate-900 dark:border-slate-800 flex items-center justify-center text-purple-600 hover:bg-purple-50"
-                      >
-                        <Activity className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        title="Generate Bill"
-                        onClick={() => handleQuickGenerateBill(pat)}
-                        className="h-6 w-6 rounded-md bg-white border dark:bg-slate-900 dark:border-slate-800 flex items-center justify-center text-emerald-600 hover:bg-emerald-50"
-                      >
-                        <Receipt className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        title="Quick Edit"
-                        onClick={() => handleQuickEditPatient(pat)}
-                        className="h-6 w-6 rounded-md bg-white border dark:bg-slate-900 dark:border-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-100"
-                      >
-                        <Settings className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+            {/* Patient List container with simulated Infinite Scroll */}
+            <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
+              {displayedPatients.map((pat) => (
+                <div key={pat.id} className="patient-row p-3 border border-slate-100 hover:border-blue-300 dark:border-slate-800 dark:hover:border-blue-900/50 rounded-xl bg-slate-50/30 flex justify-between items-center transition-all group">
+                  <div className="min-w-0 flex-1 cursor-pointer" onClick={() => { setSelectedPatientId(pat.id); setActiveTab("Patients"); }}>
+                    <span className="patient-name-txt font-bold text-slate-808 dark:text-slate-200 hover:text-blue-600 block truncate">{pat.name}</span>
+                    <p className="patient-sub-txt text-[9px] text-slate-404 mt-0.5">{pat.id} • {pat.phone}</p>
                   </div>
-                ))}
-                
-                {filteredPatients.length === 0 && (
-                  <p className="text-[10px] text-slate-400 py-6 text-center">No patients found</p>
-                )}
-              </div>
+                  {/* Action Icons */}
+                  <div className="flex gap-1.5 ml-2">
+                    <button
+                      title="Book Appointment"
+                      onClick={() => {
+                        setSlotPatientId(pat.id);
+                        setSelectedSlotData({ date: selectedCalendarDay, time: "09:00 AM" });
+                      }}
+                      className="h-6 w-6 rounded-md bg-white border dark:bg-slate-900 dark:border-slate-800 flex items-center justify-center text-blue-600 hover:bg-blue-50 transition-colors"
+                    >
+                      <CalendarDays className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      title="Dental Chart"
+                      onClick={() => {
+                        setSelectedPatientId(pat.id);
+                        setProfileSubTab("Dental Chart");
+                        setActiveTab("Patients");
+                      }}
+                      className="h-6 w-6 rounded-md bg-white border dark:bg-slate-900 dark:border-slate-800 flex items-center justify-center text-purple-600 hover:bg-purple-50"
+                    >
+                      <Activity className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      title="Generate Bill"
+                      onClick={() => handleQuickGenerateBill(pat)}
+                      className="h-6 w-6 rounded-md bg-white border dark:bg-slate-900 dark:border-slate-800 flex items-center justify-center text-emerald-600 hover:bg-emerald-50"
+                    >
+                      <Receipt className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      title="Quick Edit"
+                      onClick={() => handleQuickEditPatient(pat)}
+                      className="h-6 w-6 rounded-md bg-white border dark:bg-slate-900 dark:border-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-100"
+                    >
+                      <Settings className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              
+              {filteredPatients.length === 0 && (
+                <p className="text-[10px] text-slate-400 py-6 text-center">No patients found</p>
+              )}
             </div>
 
             {/* Load More Button */}
@@ -1475,7 +1473,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               <button
                 type="button"
                 onClick={() => setPatientVisibleCount(prev => prev + 5)}
-                className="w-full h-8 mt-3 rounded-lg border border-dashed border-slate-300 text-slate-455 hover:bg-slate-50 text-[10px] font-bold"
+                className="w-full h-8 mt-3 rounded-lg border border-dashed border-slate-300 text-slate-455 hover:bg-slate-50 text-[10px] font-bold shrink-0"
               >
                 Load More Patients
               </button>
@@ -1483,14 +1481,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
 
           {/* SECTION 4 - Today's Appointments (RIGHT) */}
-          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between h-full">
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <span className="font-semibold text-[18px] block">Appointment Queue</span>
-                <span className="text-[12px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-bold">{todayApptsList.length} Slots</span>
-              </div>
+          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col h-full">
+            <div className="flex justify-between items-center mb-4 shrink-0">
+              <span className="font-semibold text-[18px] block">Appointment Queue</span>
+              <span className="text-[12px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-bold">{todayApptsList.length} Slots</span>
+            </div>
 
-              <div className="space-y-4 max-h-[460px] overflow-y-auto pr-1">
+            <div className="space-y-4 flex-1 overflow-y-auto pr-1 scrollbar-thin">
                 {todayApptsList.map((app) => {
                   let badgeStyle = "bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30";
                   if (app.status === "Checked In" || app.status === "Waiting") badgeStyle = "bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-955/20 dark:text-emerald-450 dark:border-emerald-900/30";
@@ -1501,7 +1498,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   const isInvoicePending = invoices.find(i => i.patientId === app.patientId && i.treatment === app.treatment)?.status === "Pending";
 
                   return (
-                    <div key={app.id} className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/20 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-all shadow-2xs space-y-2 h-[115px] flex flex-col justify-between">
+                    <div key={app.id} className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/20 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-all shadow-2xs space-y-3 min-h-[110px] flex flex-col justify-between">
                       {/* Top Row: Patient Name & Status Badge */}
                       <div className="flex justify-between items-start">
                         <span className="font-semibold text-[18px] text-slate-800 dark:text-slate-200 truncate pr-2 leading-tight">{app.patientName}</span>
@@ -1701,7 +1698,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               </div>
             </div>
           </div>
-        </div>
 
         {/* BOTTOM DASHBOARD */}
         <div className="bg-slate-50/50 dark:bg-slate-900/10 border-t border-slate-200 dark:border-slate-800 pt-6">
