@@ -1308,60 +1308,64 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         {/* 3-Column Operational Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* SECTION 2 - Add Patient Panel (LEFT) */}
-          <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col h-full">
-            <span className="font-semibold text-[18px] block mb-4">Patient Registration</span>
+          <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col h-[530px]">
+            <span className="font-semibold text-[18px] block mb-4 shrink-0">Patient Registration</span>
             
-            <form onSubmit={handleSavePatientQuick} className="space-y-[18px] mt-2">
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="space-y-1">
-                  <Label htmlFor="qPatID" className="form-label-custom">Patient ID</Label>
-                  <Input id="qPatID" value={`DS-${1000 + patients.length + 1}`} disabled className="form-field-custom bg-slate-50 dark:bg-slate-900 opacity-60 cursor-not-allowed font-bold" />
+            <form onSubmit={handleSavePatientQuick} className="flex-1 flex flex-col overflow-hidden mt-2">
+              {/* Scrollable Form Fields */}
+              <div className="flex-1 overflow-y-auto pr-1 space-y-[18px] scrollbar-thin">
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="space-y-1">
+                    <Label htmlFor="qPatID" className="form-label-custom">Patient ID</Label>
+                    <Input id="qPatID" value={`DS-${1000 + patients.length + 1}`} disabled className="form-field-custom bg-slate-50 dark:bg-slate-900 opacity-60 cursor-not-allowed font-bold" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="qMobile" className="form-label-custom">Mobile Number</Label>
+                    <Input id="qMobile" placeholder="e.g. +91 99000 11000" value={quickMobile} onChange={e => setQuickMobile(e.target.value)} required className="form-field-custom" />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="qMobile" className="form-label-custom">Mobile Number</Label>
-                  <Input id="qMobile" placeholder="e.g. +91 99000 11000" value={quickMobile} onChange={e => setQuickMobile(e.target.value)} required className="form-field-custom" />
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="space-y-1">
+                    <Label htmlFor="qFirstName" className="form-label-custom">First Name</Label>
+                    <Input id="qFirstName" placeholder="e.g. Rahul" value={quickFirstName} onChange={e => setQuickFirstName(e.target.value)} required className="form-field-custom" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="qLastName" className="form-label-custom">Last Name</Label>
+                    <Input id="qLastName" placeholder="e.g. Verma" value={quickLastName} onChange={e => setQuickLastName(e.target.value)} required className="form-field-custom" />
+                  </div>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="space-y-1">
-                  <Label htmlFor="qFirstName" className="form-label-custom">First Name</Label>
-                  <Input id="qFirstName" placeholder="e.g. Rahul" value={quickFirstName} onChange={e => setQuickFirstName(e.target.value)} required className="form-field-custom" />
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="space-y-1">
+                    <Label htmlFor="qAge" className="form-label-custom">Age</Label>
+                    <Input id="qAge" type="number" min="0" value={quickAge || ""} onChange={e => setQuickAge(parseInt(e.target.value) || 30)} required className="form-field-custom" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="qGender" className="form-label-custom">Gender</Label>
+                    <select
+                      id="qGender"
+                      className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                      value={quickGender}
+                      onChange={e => setQuickGender(e.target.value as "Male" | "Female")}
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="qLastName" className="form-label-custom">Last Name</Label>
-                  <Input id="qLastName" placeholder="e.g. Verma" value={quickLastName} onChange={e => setQuickLastName(e.target.value)} required className="form-field-custom" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="space-y-1">
-                  <Label htmlFor="qAge" className="form-label-custom">Age</Label>
-                  <Input id="qAge" type="number" min="0" value={quickAge || ""} onChange={e => setQuickAge(parseInt(e.target.value) || 30)} required className="form-field-custom" />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="qGender" className="form-label-custom">Gender</Label>
-                  <select
-                    id="qGender"
-                    className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
-                    value={quickGender}
-                    onChange={e => setQuickGender(e.target.value as "Male" | "Female")}
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="space-y-1">
-                  <Label htmlFor="qDOB" className="form-label-custom">Date of Birth</Label>
-                  <Input id="qDOB" type="date" value={quickDOB} onChange={e => setQuickDOB(e.target.value)} className="form-field-custom" />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="qLocation" className="form-label-custom">Location</Label>
-                  <Input id="qLocation" placeholder="e.g. Jayanagar" value={quickLocation} onChange={e => setQuickLocation(e.target.value)} className="form-field-custom" />
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="space-y-1">
+                    <Label htmlFor="qDOB" className="form-label-custom">Date of Birth</Label>
+                    <Input id="qDOB" type="date" value={quickDOB} onChange={e => setQuickDOB(e.target.value)} className="form-field-custom" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="qLocation" className="form-label-custom">Location</Label>
+                    <Input id="qLocation" placeholder="e.g. Jayanagar" value={quickLocation} onChange={e => setQuickLocation(e.target.value)} className="form-field-custom" />
+                  </div>
                 </div>
               </div>
               
-              <div className="flex gap-2 pt-2.5">
+              {/* Fixed Bottom Action Buttons */}
+              <div className="flex gap-2 pt-4 border-t border-slate-100/60 dark:border-slate-800/60 mt-4 shrink-0">
                 <Button type="button" variant="outline" onClick={handleClearPatientForm} className="form-btn-custom flex-1 text-[14px] font-semibold h-9 rounded-lg">Clear</Button>
                 <Button type="submit" className="form-btn-custom flex-1 text-[14px] font-semibold h-9 bg-blue-600 hover:bg-blue-500 text-white shadow-xs rounded-lg">Save Patient</Button>
               </div>
@@ -1369,7 +1373,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
 
           {/* SECTION 3 - Recently Added Patients (CENTER) */}
-          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col h-full">
+          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col h-[530px]">
             <div className="flex justify-between items-center mb-4 shrink-0">
               <span className="font-semibold text-[18px] block">Recently Added Patients</span>
               <span className="text-[9px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold">{filteredPatients.length} Files</span>
@@ -1479,7 +1483,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
 
           {/* SECTION 4 - Today's Appointments (RIGHT) */}
-          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col h-full">
+          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col h-[530px]">
             <div className="flex justify-between items-center mb-4 shrink-0">
               <span className="font-semibold text-[18px] block">Appointment Queue</span>
               <span className="text-[12px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-bold">{todayApptsList.length} Slots</span>

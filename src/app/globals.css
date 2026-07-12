@@ -443,4 +443,26 @@
     padding: 20px !important;
     border-radius: 16px !important;
   }
+
+  /* Thin rounded scrollbar (6px width) with subtle colors */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent !important;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #cbd5e1 !important; /* slate-300 */
+    border-radius: 9999px !important;
+  }
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #334155 !important; /* slate-700 */
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8 !important; /* slate-400 */
+  }
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #475569 !important; /* slate-600 */
+  }
 }
