@@ -1308,11 +1308,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         {/* 3-Column Operational Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* SECTION 2 - Add Patient Panel (LEFT) */}
-          <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
-            <span className="font-bold text-sm block mb-4">Patient Registration</span>
+          <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between h-full">
+            <span className="font-semibold text-[18px] block mb-4">Patient Registration</span>
             
-            <form onSubmit={handleSavePatientQuick} className="flex-grow flex flex-col justify-between">
-              <div className="space-y-5">
+            <form onSubmit={handleSavePatientQuick} className="flex-grow flex flex-col justify-between mt-2">
+              <div className="space-y-6 flex-grow flex flex-col justify-center">
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className="space-y-1">
                     <Label htmlFor="qPatID" className="form-label-custom">Patient ID</Label>
@@ -1363,18 +1363,18 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 </div>
               </div>
               
-              <div className="flex gap-2 pt-5 mt-auto">
-                <Button type="button" variant="outline" onClick={handleClearPatientForm} className="form-btn-custom flex-1 text-[11px] font-bold h-9">Clear</Button>
-                <Button type="submit" className="form-btn-custom flex-1 text-[11px] font-bold h-9 bg-blue-600 hover:bg-blue-500 text-white shadow-xs">Save Patient</Button>
+              <div className="flex gap-2 pt-6 mt-auto">
+                <Button type="button" variant="outline" onClick={handleClearPatientForm} className="form-btn-custom flex-1 text-[14px] font-semibold h-9 rounded-lg">Clear</Button>
+                <Button type="submit" className="form-btn-custom flex-1 text-[14px] font-semibold h-9 bg-blue-600 hover:bg-blue-500 text-white shadow-xs rounded-lg">Save Patient</Button>
               </div>
             </form>
           </div>
 
           {/* SECTION 3 - Recently Added Patients (CENTER) */}
-          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between min-h-[400px]">
+          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between h-full">
             <div>
               <div className="flex justify-between items-center mb-2">
-                <span className="font-bold text-sm block">Recently Added Patients</span>
+                <span className="font-semibold text-[18px] block">Recently Added Patients</span>
                 <span className="text-[9px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold">{filteredPatients.length} Files</span>
               </div>
               
@@ -1483,35 +1483,35 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
 
           {/* SECTION 4 - Today's Appointments (RIGHT) */}
-          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between h-full">
             <div>
               <div className="flex justify-between items-center mb-4">
-                <span className="font-bold text-sm block">Appointment Queue</span>
-                <span className="text-[9px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold">{todayApptsList.length} Slots</span>
+                <span className="font-semibold text-[18px] block">Appointment Queue</span>
+                <span className="text-[12px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-bold">{todayApptsList.length} Slots</span>
               </div>
 
-              <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+              <div className="space-y-4 max-h-[460px] overflow-y-auto pr-1">
                 {todayApptsList.map((app) => {
                   let badgeStyle = "bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30";
-                  if (app.status === "Checked In" || app.status === "Waiting") badgeStyle = "bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-955/20 dark:text-emerald-400 dark:border-emerald-900/30";
-                  else if (app.status === "In Procedure") badgeStyle = "bg-orange-50 text-orange-700 border border-orange-100 dark:bg-orange-955/20 dark:text-orange-400 dark:border-orange-900/30 animate-pulse";
+                  if (app.status === "Checked In" || app.status === "Waiting") badgeStyle = "bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-955/20 dark:text-emerald-450 dark:border-emerald-900/30";
+                  else if (app.status === "In Procedure") badgeStyle = "bg-orange-50 text-orange-700 border border-orange-100 dark:bg-orange-955/20 dark:text-orange-450 dark:border-orange-900/30 animate-pulse";
                   else if (app.status === "Completed") badgeStyle = "bg-slate-100 text-slate-655 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
 
                   const isPaid = invoices.find(i => i.patientId === app.patientId && i.treatment === app.treatment)?.status === "Paid";
                   const isInvoicePending = invoices.find(i => i.patientId === app.patientId && i.treatment === app.treatment)?.status === "Pending";
 
                   return (
-                    <div key={app.id} className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/20 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-all shadow-2xs space-y-2">
+                    <div key={app.id} className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/20 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-all shadow-2xs space-y-2 h-[115px] flex flex-col justify-between">
                       {/* Top Row: Patient Name & Status Badge */}
                       <div className="flex justify-between items-start">
-                        <span className="font-bold text-[13px] text-slate-800 dark:text-slate-200 truncate pr-2">{app.patientName}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider shrink-0 ${badgeStyle}`}>
-                          {app.status === "Checked In" || app.status === "Waiting" ? `Token ${app.token || "W"}` : app.status}
+                        <span className="font-semibold text-[18px] text-slate-800 dark:text-slate-200 truncate pr-2 leading-tight">{app.patientName}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[12px] font-bold uppercase tracking-wider shrink-0 leading-none ${badgeStyle}`}>
+                          {app.status === "Checked In" || app.status === "Waiting" ? `T-${app.token || "01"}` : app.status}
                         </span>
                       </div>
 
                       {/* Second Row: Doctor Name • Procedure • Time */}
-                      <p className="text-[10px] text-slate-450 dark:text-slate-400 font-medium">
+                      <p className="text-[14px] text-slate-450 dark:text-slate-400 font-normal leading-snug">
                         {app.doctor} • {app.treatment} • {app.time}
                       </p>
 
@@ -1522,7 +1522,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => handleApptCheckIn(app.id)}
-                            className="h-[34px] px-3.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] shadow-2xs transition-colors flex items-center justify-center gap-1"
+                            className="h-[34px] px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
                           >
                             ✔ Check In
                           </button>
@@ -1531,7 +1531,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => handleApptStartProcedure(app.id)}
-                            className="h-[34px] px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] shadow-2xs transition-colors flex items-center justify-center gap-1"
+                            className="h-[34px] px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
                           >
                             ✔ Start Procedure
                           </button>
@@ -1540,7 +1540,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => handleApptCompleteProcedure(app.id)}
-                            className="h-[34px] px-3.5 rounded-lg bg-orange-500 hover:bg-orange-455 text-white font-bold text-[10px] shadow-2xs transition-colors flex items-center justify-center gap-1"
+                            className="h-[34px] px-4 rounded-lg bg-orange-500 hover:bg-orange-455 text-white font-semibold text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
                           >
                             ✔ Complete
                           </button>
@@ -1549,7 +1549,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => handleApptGenerateBill(app.id)}
-                            className="h-[34px] px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] shadow-2xs transition-colors flex items-center justify-center gap-1"
+                            className="h-[34px] px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
                           >
                             ✔ Generate Bill
                           </button>
@@ -1558,13 +1558,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => handleApptGenerateBill(app.id)}
-                            className="h-[34px] px-3.5 rounded-lg bg-amber-500 hover:bg-amber-455 text-white font-bold text-[10px] shadow-2xs transition-colors flex items-center justify-center gap-1"
+                            className="h-[34px] px-4 rounded-lg bg-amber-500 hover:bg-amber-455 text-white font-semibold text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
                           >
                             ✔ Collect Payment
                           </button>
                         )}
                         {app.status === "Completed" && isPaid && (
-                          <span className="text-[10px] text-emerald-600 dark:text-emerald-450 font-extrabold flex items-center gap-1">
+                          <span className="text-[14px] text-emerald-600 dark:text-emerald-455 font-semibold flex items-center gap-1">
                             ✓ Bill Paid
                           </span>
                         )}
@@ -1577,12 +1577,12 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                               e.stopPropagation();
                               setOpenMenuId(openMenuId === app.id ? null : app.id);
                             }}
-                            className="h-[34px] w-[34px] rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-500 dark:text-slate-455 flex items-center justify-center font-extrabold text-[12px] transition-colors"
+                            className="h-[34px] w-[34px] rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-500 dark:text-slate-455 flex items-center justify-center font-bold text-[14px] transition-colors"
                           >
                             ⋮
                           </button>
                           {openMenuId === app.id && (
-                            <div className="absolute right-0 bottom-full mb-1.5 z-50 w-44 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1.5 text-[10px] font-bold text-slate-700 dark:text-slate-200">
+                            <div className="absolute right-0 bottom-full mb-1.5 z-50 w-44 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1.5 text-[12px] font-semibold text-slate-700 dark:text-slate-200">
                               {app.status === "In Procedure" && (
                                 <button
                                   type="button"
