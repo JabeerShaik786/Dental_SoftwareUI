@@ -4355,13 +4355,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   </div>
 
                   {/* Horizontal Action Row */}
-                  <div className="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0 whitespace-nowrap">
+                  <div className="flex items-center gap-3 w-full mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
                     {/* Primary Status-based Action Button */}
                     {selectedSlotData.appointment.status === "Scheduled" && (
                       <button
                         type="button"
                         onClick={() => handleApptCheckIn(selectedSlotData.appointment!.id)}
-                        className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all flex items-center justify-center cursor-pointer flex-1"
+                        className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                       >
                         Check In
                       </button>
@@ -4370,7 +4370,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <button
                         type="button"
                         onClick={() => handleApptStartProcedure(selectedSlotData.appointment!.id)}
-                        className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all flex items-center justify-center cursor-pointer flex-1"
+                        className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                       >
                         Start Procedure
                       </button>
@@ -4379,7 +4379,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <button
                         type="button"
                         onClick={() => handleApptCompleteProcedure(selectedSlotData.appointment!.id)}
-                        className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all flex items-center justify-center cursor-pointer flex-1"
+                        className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                       >
                         Complete Procedure
                       </button>
@@ -4391,7 +4391,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => handleApptGenerateBill(selectedSlotData.appointment!.id)}
-                            className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all flex items-center justify-center cursor-pointer flex-1"
+                            className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                           >
                             {hasInvoice ? "Collect Payment" : "Generate Bill"}
                           </button>
@@ -4411,7 +4411,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setAppointments(prev => prev.map(a => a.id === selectedSlotData.appointment!.id ? { ...a, status: "Cancelled" } : a));
                         setSelectedSlotData(null);
                       }}
-                      className="h-9 px-4 rounded border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold text-xs transition-all flex items-center justify-center cursor-pointer flex-1"
+                      className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                     >
                       Block Slot
                     </button>
@@ -4422,7 +4422,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setAppointments(prev => prev.map(a => a.id === selectedSlotData.appointment!.id ? { ...a, status: "Cancelled" } : a));
                         setSelectedSlotData(null);
                       }}
-                      className="h-9 px-4 rounded border border-red-200 text-red-650 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/20 font-semibold text-xs transition-all flex items-center justify-center cursor-pointer flex-1"
+                      className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/20 transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                     >
                       Cancel Appointment
                     </button>
@@ -4430,20 +4430,20 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 </div>
               ) : blockedSlots[`${selectedSlotData.date}_${selectedSlotData.time}`] ? (
                 // Blocked Slot
-                <div className="space-y-4 text-center py-3">
+                <div className="space-y-4 text-center py-1">
                   <p className="text-slate-500 font-medium">This slot is currently blocked for clinical maintenance.</p>
-                  <div className="flex gap-2 justify-center">
+                  <div className="flex items-center gap-3 w-full mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
                     <button
                       type="button"
                       onClick={() => handleBlockSlotToggle(selectedSlotData.date, selectedSlotData.time)}
-                      className="h-9 px-4 rounded bg-emerald-650 hover:bg-emerald-500 text-white font-bold"
+                      className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-emerald-600 hover:bg-emerald-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                     >
                       Unblock Slot
                     </button>
                     <button
                       type="button"
                       onClick={() => setSelectedSlotData(null)}
-                      className="h-9 px-4 rounded border font-bold"
+                      className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                     >
                       Close
                     </button>
@@ -4495,29 +4495,27 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     </div>
                   </div>
 
-                  <div className="flex gap-2 pt-3 border-t">
+                  <div className="flex items-center gap-3 w-full mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
                     <button
                       type="button"
                       onClick={() => handleBlockSlotToggle(selectedSlotData.date, selectedSlotData.time)}
-                      className="h-9 px-3 rounded border text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800"
+                      className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                     >
                       Block Slot
                     </button>
-                    <div className="flex-1 flex gap-2 justify-end">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedSlotData(null)}
-                        className="h-9 px-3 rounded border font-bold hover:bg-slate-50 dark:hover:bg-slate-800"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold"
-                      >
-                        Save Appointment
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSlotData(null)}
+                      className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
+                    >
+                      Save Appointment
+                    </button>
                   </div>
                 </form>
               )}
