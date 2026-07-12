@@ -246,6 +246,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
   // Redesigned dashboard state variables
   const [selectedCalendarDay, setSelectedCalendarDay] = useState("12 Aug 2026");
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date(2026, 7, 10)); // Mon Aug 10, 2026
   const [blockedSlots, setBlockedSlots] = useState<Record<string, boolean>>({});
   
   // Add Patient quick panel inputs
@@ -1076,10 +1077,16 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   );
 
   const renderDashboardModule = () => {
-    const CALENDAR_DAYS = Array.from({ length: 31 }, (_, idx) => {
-      const dayNum = idx + 1;
-      const dateString = `${dayNum < 10 ? '0' + dayNum : dayNum} Aug 2026`;
-      const dateObj = new Date(2026, 7, dayNum); // Month 7 is August (0-indexed)
+    const CALENDAR_DAYS = Array.from({ length: 7 }, (_, idx) => {
+      const dateObj = new Date(currentWeekStart.getTime());
+      dateObj.setDate(currentWeekStart.getDate() + idx);
+      
+      const dayNum = dateObj.getDate();
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const monthStr = monthNames[dateObj.getMonth()];
+      const yearStr = dateObj.getFullYear();
+      
+      const dateString = `${dayNum < 10 ? '0' + dayNum : dayNum} ${monthStr} ${yearStr}`;
       const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
       const fullDayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
       const name = dayNames[dateObj.getDay()];
@@ -1088,9 +1095,40 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         name,
         fullName,
         date: dateString,
-        isToday: dayNum === 12
+        isToday: dateString === "12 Aug 2026"
       };
     });
+
+    const firstDay = new Date(currentWeekStart.getTime());
+    const lastDay = new Date(currentWeekStart.getTime());
+    lastDay.setDate(firstDay.getDate() + 6);
+    
+    const firstMonthStr = firstDay.toLocaleDateString("en-US", { month: "short" });
+    const lastMonthStr = lastDay.toLocaleDateString("en-US", { month: "short" });
+    const firstYear = firstDay.getFullYear();
+    const lastYear = lastDay.getFullYear();
+    
+    let monthYearDisplay = "";
+    if (firstMonthStr === lastMonthStr && firstYear === lastYear) {
+      const fullMonth = firstDay.toLocaleDateString("en-US", { month: "long" });
+      monthYearDisplay = `${fullMonth} ${firstYear}`;
+    } else if (firstYear === lastYear) {
+      monthYearDisplay = `${firstMonthStr} / ${lastMonthStr} ${firstYear}`;
+    } else {
+      monthYearDisplay = `${firstMonthStr} ${firstYear} / ${lastMonthStr} ${lastYear}`;
+    }
+
+    const handlePrevWeek = () => {
+      const newStart = new Date(currentWeekStart.getTime());
+      newStart.setDate(currentWeekStart.getDate() - 7);
+      setCurrentWeekStart(newStart);
+    };
+
+    const handleNextWeek = () => {
+      const newStart = new Date(currentWeekStart.getTime());
+      newStart.setDate(currentWeekStart.getDate() + 7);
+      setCurrentWeekStart(newStart);
+    };
 
     const MORNING_SLOTS = [
       "09:00 AM", "09:15 AM", "09:30 AM", "09:45 AM",
@@ -1231,34 +1269,56 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               </span>
             </div>
             <div className="text-xs font-black text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-lg">
-              August 2026
+              {monthYearDisplay}
             </div>
           </div>
-
-          {/* Day Selector */}
-          <div className="flex overflow-x-auto gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
-            {CALENDAR_DAYS.map((d) => {
-              const isActive = selectedCalendarDay === d.date;
-              const hasAppts = appointments.some(a => a.date === d.date && a.status !== "Cancelled");
-              return (
-                <button
-                  key={d.date}
-                  type="button"
-                  onClick={() => setSelectedCalendarDay(d.date)}
-                  className={`day-btn flex flex-col items-center py-2.5 px-3 rounded-xl transition-all border outline-none shrink-0 min-w-[56px] sm:min-w-[64px] ${
-                    isActive
-                      ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-105"
-                      : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
-                  }`}
-                >
-                  <span className="day-btn-name font-bold uppercase">{d.name}</span>
-                  <span className="day-btn-num font-extrabold mt-0.5">{d.date.split(" ")[0]}</span>
-                  {hasAppts && (
-                    <span className={`h-1.5 w-1.5 rounded-full mt-1.5 ${isActive ? "bg-white" : "bg-blue-600 animate-pulse"}`} />
-                  )}
-                </button>
-              );
-            })}
+ 
+          {/* Day Selector Navigation Row */}
+          <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+            <button
+              type="button"
+              onClick={handlePrevWeek}
+              className="h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-455 flex items-center justify-center transition-all cursor-pointer select-none active:scale-90 shrink-0"
+              title="Previous Week"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            
+            <div className="flex-1 grid grid-cols-7 gap-2">
+              {CALENDAR_DAYS.map((d) => {
+                const isActive = selectedCalendarDay === d.date;
+                const hasAppts = appointments.some(a => a.date === d.date && a.status !== "Cancelled");
+                return (
+                  <button
+                    key={d.date}
+                    type="button"
+                    onClick={() => setSelectedCalendarDay(d.date)}
+                    className={`day-btn flex flex-col items-center justify-center py-2.5 rounded-xl transition-all border outline-none cursor-pointer ${
+                      isActive
+                        ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-105"
+                        : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
+                    }`}
+                  >
+                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 mb-0.5">{d.name}</span>
+                    <span className="text-sm font-black flex items-center gap-1 leading-none">
+                      {parseInt(d.date.split(" ")[0])}
+                    </span>
+                    {hasAppts && (
+                      <span className={`h-1.5 w-1.5 rounded-full mt-1.5 ${isActive ? "bg-white" : "bg-blue-600"}`} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            
+            <button
+              type="button"
+              onClick={handleNextWeek}
+              className="h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-455 flex items-center justify-center transition-all cursor-pointer select-none active:scale-90 shrink-0"
+              title="Next Week"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
 
           {/* Time Slots Grid (Morning vs Evening) */}
