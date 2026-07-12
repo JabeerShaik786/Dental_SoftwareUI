@@ -4422,9 +4422,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setAppointments(prev => prev.map(a => a.id === selectedSlotData.appointment!.id ? { ...a, status: "Cancelled" } : a));
                         setSelectedSlotData(null);
                       }}
-                      className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/20 transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
+                      className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] border border-red-200 text-red-655 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/20 transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                     >
-                      Cancel Appointment
+                      Cancel
                     </button>
                   </div>
                 </div>
@@ -4514,7 +4514,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       type="submit"
                       className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                     >
-                      Save Appointment
+                      Save
                     </button>
                   </div>
                 </form>
