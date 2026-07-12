@@ -1563,224 +1563,117 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             )}
           </div>
 
-          {/* SECTION 4 - Today's Appointments (RIGHT) */}
+          {/* SECTION 4 - Today's Schedule (RIGHT) */}
           <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col h-[530px]">
             <div className="flex justify-between items-center mb-4 shrink-0">
-              <span className="font-semibold text-[18px] block">Appointment Queue</span>
-              <span className="text-[12px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-bold">{todayApptsList.length} Slots</span>
+              <span className="font-semibold text-[18px] block">Today's Schedule</span>
+              <span className="text-[12px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-bold">
+                {todayApptsList.length} {todayApptsList.length === 1 ? "Appointment" : "Appointments"}
+              </span>
             </div>
 
             <div className="space-y-3 flex-1 overflow-y-auto pr-1 scrollbar-thin">
-                {todayApptsList.map((app) => {
-                  let badgeStyle = "bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30";
-                  if (app.status === "Checked In" || app.status === "Waiting") badgeStyle = "bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-955/20 dark:text-emerald-450 dark:border-emerald-900/30";
-                  else if (app.status === "In Procedure") badgeStyle = "bg-orange-50 text-orange-700 border border-orange-100 dark:bg-orange-955/20 dark:text-orange-450 dark:border-orange-900/30 animate-pulse";
-                  else if (app.status === "Completed") badgeStyle = "bg-slate-100 text-slate-655 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
+              {todayApptsList.map((app) => {
+                const patientPhone = patients.find((p) => p.id === app.patientId)?.phone || "+91 99000 11000";
 
-                  const isPaid = invoices.find(i => i.patientId === app.patientId && i.treatment === app.treatment)?.status === "Paid";
-                  const isInvoicePending = invoices.find(i => i.patientId === app.patientId && i.treatment === app.treatment)?.status === "Pending";
-
-                  return (
-                    <div key={app.id} className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/20 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-all shadow-2xs space-y-2 flex flex-col justify-between">
-                      {/* Top Row: Patient Name & Status Badge */}
-                      <div className="flex justify-between items-center">
-                        <span className="font-semibold text-[16px] text-slate-800 dark:text-slate-200 truncate pr-2 leading-none">{app.patientName}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[12px] font-bold uppercase tracking-wider shrink-0 leading-none ${badgeStyle}`}>
-                          {app.status === "Checked In" || app.status === "Waiting" ? `T-${app.token || "01"}` : app.status}
-                        </span>
+                return (
+                  <div
+                    key={app.id}
+                    className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/20 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-all shadow-2xs space-y-2 flex flex-col justify-between"
+                  >
+                    {/* First Line: Patient Name & Appt Time */}
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center min-w-0 pr-2">
+                        {/* Status Indicator Dot */}
+                        {app.status === "Scheduled" && <span className="h-2 w-2 rounded-full bg-blue-500 mr-2 shrink-0" title="Scheduled" />}
+                        {(app.status === "Checked In" || app.status === "Waiting") && <span className="h-2 w-2 rounded-full bg-emerald-500 mr-2 shrink-0" title="Checked In" />}
+                        {app.status === "In Procedure" && <span className="h-2 w-2 rounded-full bg-orange-500 mr-2 shrink-0 animate-pulse" title="In Procedure" />}
+                        {app.status === "Completed" && <span className="h-2 w-2 rounded-full bg-slate-400 mr-2 shrink-0" title="Completed" />}
+                        <span className="font-semibold text-[16px] text-slate-800 dark:text-slate-200 truncate leading-none">{app.patientName}</span>
                       </div>
-
-                      {/* Second Row: Doctor Name • Procedure • Time */}
-                      <p className="text-[14px] text-slate-455 dark:text-slate-400 font-normal leading-none">
-                        {app.doctor} • {app.treatment} • {app.time}
-                      </p>
-
-                      {/* Bottom Row: Actions */}
-                      <div className="flex items-center gap-2 pt-2 border-t border-slate-100/50 dark:border-slate-800/50">
-                        {/* Primary Button */}
-                        {app.status === "Scheduled" && (
-                          <button
-                            type="button"
-                            onClick={() => handleApptCheckIn(app.id)}
-                            className="h-[36px] px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
-                          >
-                            ✔ Check In
-                          </button>
-                        )}
-                        {(app.status === "Checked In" || app.status === "Waiting") && (
-                          <button
-                            type="button"
-                            onClick={() => handleApptStartProcedure(app.id)}
-                            className="h-[36px] px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
-                          >
-                            ✔ Start Procedure
-                          </button>
-                        )}
-                        {app.status === "In Procedure" && (
-                          <button
-                            type="button"
-                            onClick={() => handleApptCompleteProcedure(app.id)}
-                            className="h-[36px] px-4 rounded-lg bg-orange-500 hover:bg-orange-455 text-white font-medium text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
-                          >
-                            ✔ Complete
-                          </button>
-                        )}
-                        {app.status === "Completed" && !isPaid && !isInvoicePending && (
-                          <button
-                            type="button"
-                            onClick={() => handleApptGenerateBill(app.id)}
-                            className="h-[36px] px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
-                          >
-                            ✔ Generate Bill
-                          </button>
-                        )}
-                        {app.status === "Completed" && isInvoicePending && (
-                          <button
-                            type="button"
-                            onClick={() => handleApptGenerateBill(app.id)}
-                            className="h-[36px] px-4 rounded-lg bg-amber-500 hover:bg-amber-455 text-white font-medium text-[14px] shadow-2xs transition-colors flex items-center justify-center gap-1"
-                          >
-                            ✔ Collect Payment
-                          </button>
-                        )}
-                        {app.status === "Completed" && isPaid && (
-                          <span className="text-[14px] text-emerald-600 dark:text-emerald-455 font-semibold flex items-center gap-1">
-                            ✓ Bill Paid
-                          </span>
-                        )}
-
-                        {/* Icon Button: More */}
-                        <div className="relative ml-auto">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenMenuId(openMenuId === app.id ? null : app.id);
-                            }}
-                            className="h-[36px] w-[36px] rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-500 dark:text-slate-455 flex items-center justify-center font-bold text-[14px] transition-colors"
-                          >
-                            ⋮
-                          </button>
-                          {openMenuId === app.id && (
-                            <div className="absolute right-0 bottom-full mb-1.5 z-50 w-44 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1.5 text-[12px] font-semibold text-slate-700 dark:text-slate-200">
-                              {app.status === "In Procedure" && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    handleApptCompleteProcedure(app.id);
-                                  }}
-                                  className="w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
-                                >
-                                  Check Out
-                                </button>
-                              )}
-                              {app.status !== "Completed" && app.status !== "Cancelled" && (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setOpenMenuId(null);
-                                      setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Cancelled" } : a));
-                                    }}
-                                    className="w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors text-red-650 dark:text-red-455"
-                                  >
-                                    Cancel Appointment
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setOpenMenuId(null);
-                                      setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "No Show" } : a));
-                                    }}
-                                    className="w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors text-amber-600 dark:text-amber-455"
-                                  >
-                                    Mark No Show
-                                  </button>
-                                </>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  alert(`Rescheduling options for ${app.patientName} can be configured in the main Appointments view.`);
-                                }}
-                                className="w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
-                              >
-                                Reschedule
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  alert(`SMS status reminder dispatched to ${app.patientName}.`);
-                                }}
-                                className="w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
-                              >
-                                Send SMS
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  alert(`WhatsApp template message sent to ${app.patientName}.`);
-                                }}
-                                className="w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
-                              >
-                                Send WhatsApp
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  setSelectedPatientId(app.patientId);
-                                  setActiveTab("Patients");
-                                }}
-                                className="w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
-                              >
-                                View Patient
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  setSelectedPatientId(app.patientId);
-                                  setProfileSubTab("Treatments");
-                                  setActiveTab("Patients");
-                                }}
-                                className="w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
-                              >
-                                Open Treatment
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  const matchingInvoice = invoices.find(i => i.patientId === app.patientId && i.treatment === app.treatment);
-                                  if (matchingInvoice) {
-                                    setLastGeneratedReceipt(matchingInvoice);
-                                  } else {
-                                    alert(`No invoice records found to print for this slot.`);
-                                  }
-                                }}
-                                className="w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
-                              >
-                                Print Receipt
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      <span className="text-[13px] font-semibold text-slate-650 dark:text-slate-400 shrink-0 leading-none">{app.time}</span>
                     </div>
-                  );
-                })}
 
-                {todayApptsList.length === 0 && (
-                  <p className="text-xs text-slate-400 py-8 text-center">No appointments tracked today</p>
-                )}
-              </div>
+                    {/* Second Line: Doctor Name */}
+                    <p className="text-[13.5px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
+                      {app.doctor}
+                    </p>
+
+                    {/* Third Line: Treatment */}
+                    <p className="text-[13.5px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
+                      {app.treatment}
+                    </p>
+
+                    {/* Fourth Line: Phone Number */}
+                    <p className="text-[13.5px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
+                      {patientPhone}
+                    </p>
+
+                    {/* Bottom Row: Actions */}
+                    <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100/60 dark:border-slate-800/65">
+                      {/* ✓ Check In / Action Button */}
+                      {app.status === "Scheduled" ? (
+                        <button
+                          type="button"
+                          onClick={() => handleApptCheckIn(app.id)}
+                          className="flex-1 h-[34px] rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-[13px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          ✓ Check In
+                        </button>
+                      ) : app.status === "Checked In" || app.status === "Waiting" ? (
+                        <button
+                          type="button"
+                          onClick={() => handleApptStartProcedure(app.id)}
+                          className="flex-1 h-[34px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-[13px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          ✓ Start
+                        </button>
+                      ) : app.status === "In Procedure" ? (
+                        <button
+                          type="button"
+                          onClick={() => handleApptCompleteProcedure(app.id)}
+                          className="flex-1 h-[34px] rounded-lg bg-orange-500 hover:bg-orange-455 text-white font-medium text-[13px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          ✓ Complete
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled
+                          className="flex-1 h-[34px] rounded-lg bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-slate-400 font-medium text-[13px] flex items-center justify-center gap-1 cursor-not-allowed"
+                        >
+                          ✓ Completed
+                        </button>
+                      )}
+
+                      {/* ₹ Billing Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleApptGenerateBill(app.id)}
+                        className="flex-1 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[13px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        ₹ Billing
+                      </button>
+
+                      {/* 💬 SMS Button */}
+                      <button
+                        type="button"
+                        onClick={() => alert(`SMS appointment reminder dispatched to ${app.patientName} (${patientPhone}).`)}
+                        className="h-[34px] w-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 flex items-center justify-center text-[13px] transition-colors shrink-0 cursor-pointer"
+                      >
+                        💬
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {todayApptsList.length === 0 && (
+                <p className="text-xs text-slate-400 py-8 text-center">No appointments scheduled for today</p>
+              )}
             </div>
           </div>
+        </div>
 
         {/* BOTTOM DASHBOARD */}
         <div className="bg-slate-50/50 dark:bg-slate-900/10 border-t border-slate-200 dark:border-slate-800 pt-6">
