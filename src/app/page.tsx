@@ -1247,16 +1247,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     return (
       <div className="dashboard-container space-y-4 animate-fadeIn text-slate-700">
         {/* Notification Strip */}
-        <div className="alerts-strip bg-blue-600/5 dark:bg-blue-955/20 border border-blue-500/15 rounded-xl px-4 py-2.5 flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-blue-800 dark:text-blue-350 items-center">
-          <span className="font-bold flex items-center gap-1.5">
-            <Bell className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-            Clinic Alerts Strip:
+        <div className="alerts-strip bg-[#FEF2F2] border border-[#FECACA] dark:bg-red-955/10 dark:border-red-900/25 rounded-lg px-4 py-2 flex items-center gap-2 text-xs text-[#DC2626] dark:text-red-400">
+          <span className="font-bold flex items-center gap-1.5 shrink-0">
+            <Bell className="h-3.5 w-3.5 text-[#DC2626] dark:text-red-400 shrink-0" />
+            Clinic Alerts:
           </span>
-          <span className="font-medium">
-            • {nextScheduled ? `Next appointment (${nextScheduled.patientName} - ${nextScheduled.treatment}) at ${nextScheduled.time}` : "Next appointment: none scheduled"}
+          <span className="font-semibold truncate">
+            {nextScheduled ? `Next appointment (${nextScheduled.patientName} - ${nextScheduled.treatment}) at ${nextScheduled.time}` : "Next appointment: none scheduled"}
           </span>
-          <span className="font-medium">• 2 pending follow-ups due tomorrow</span>
-          <span className="font-medium">• {invoices.filter(i => i.status !== "Paid").length} unpaid invoices pending checkout</span>
         </div>
 
         {/* SECTION 1 - Weekly Appointment Calendar (TOP CENTER) */}
@@ -1451,9 +1449,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
             <span className="font-semibold text-[18px] block mb-3 shrink-0">Patient Registration</span>
             
-            <form onSubmit={handleSavePatientQuick} className="flex-1 flex flex-col overflow-hidden mt-2">
+            <form onSubmit={handleSavePatientQuick} className="flex-1 flex flex-col justify-center mt-1">
               {/* Scrollable Form Fields */}
-              <div className="flex-1 overflow-y-auto pr-1 space-y-[18px] scrollbar-thin">
+              <div className="space-y-3.5">
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className="space-y-1">
                     <Label htmlFor="qPatID" className="form-label-custom">Patient ID</Label>
@@ -1505,7 +1503,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               </div>
               
               {/* Fixed Bottom Action Buttons */}
-              <div className="flex gap-2 pt-4 border-t border-slate-100/60 dark:border-slate-800/60 mt-4 shrink-0">
+              <div className="flex gap-2 pt-3 border-t border-slate-100/60 dark:border-slate-800/60 mt-3.5 shrink-0">
                 <Button type="button" variant="outline" onClick={handleClearPatientForm} className="form-btn-custom flex-1 text-[14px] font-semibold h-9 rounded-lg">Clear</Button>
                 <Button type="submit" className="form-btn-custom flex-1 text-[14px] font-semibold h-9 bg-blue-600 hover:bg-blue-500 text-white shadow-xs rounded-lg">Save Patient</Button>
               </div>
@@ -1536,9 +1534,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   onChange={e => setPatientFilterGender(e.target.value)}
                   className="h-8 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-2.5 pr-8 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800"
                 >
-                  <option value="All">All Genders</option>
+                  <option value="All">Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
+                  <option value="Other">Other</option>
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none text-slate-450 dark:text-slate-400" />
               </div>
@@ -1616,7 +1615,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               <button
                 type="button"
                 onClick={() => setPatientVisibleCount(prev => prev + 5)}
-                className="w-full h-8 mt-3 rounded-lg border border-dashed border-slate-300 text-slate-455 hover:bg-slate-50 text-[10px] font-bold shrink-0"
+                className="w-full h-8 mt-3 rounded-lg border border-dashed border-slate-300 text-slate-455 hover:bg-slate-50 text-[14px] font-bold shrink-0"
               >
                 Load More Patients
               </button>
@@ -1655,17 +1654,17 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     </div>
 
                     {/* Second Line: Doctor Name */}
-                    <p className="text-[13.5px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
+                    <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
                       {app.doctor}
                     </p>
 
                     {/* Third Line: Treatment */}
-                    <p className="text-[13.5px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
+                    <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
                       {app.treatment}
                     </p>
 
                     {/* Fourth Line: Phone Number */}
-                    <p className="text-[13.5px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
+                    <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
                       {patientPhone}
                     </p>
 
@@ -1676,7 +1675,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         <button
                           type="button"
                           onClick={() => handleApptCheckIn(app.id)}
-                          className="flex-1 h-[34px] rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-[13px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          className="flex-1 h-[34px] rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
                         >
                           ✓ Check In
                         </button>
@@ -1684,7 +1683,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         <button
                           type="button"
                           onClick={() => handleApptStartProcedure(app.id)}
-                          className="flex-1 h-[34px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-[13px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          className="flex-1 h-[34px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
                         >
                           ✓ Start
                         </button>
@@ -1692,7 +1691,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         <button
                           type="button"
                           onClick={() => handleApptCompleteProcedure(app.id)}
-                          className="flex-1 h-[34px] rounded-lg bg-orange-500 hover:bg-orange-455 text-white font-medium text-[13px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          className="flex-1 h-[34px] rounded-lg bg-orange-500 hover:bg-orange-455 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
                         >
                           ✓ Complete
                         </button>
@@ -1700,7 +1699,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         <button
                           type="button"
                           disabled
-                          className="flex-1 h-[34px] rounded-lg bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-slate-400 font-medium text-[13px] flex items-center justify-center gap-1 cursor-not-allowed"
+                          className="flex-1 h-[34px] rounded-lg bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-slate-400 font-medium text-[11.5px] flex items-center justify-center gap-1 cursor-not-allowed"
                         >
                           ✓ Completed
                         </button>
@@ -1710,7 +1709,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <button
                         type="button"
                         onClick={() => handleApptGenerateBill(app.id)}
-                        className="flex-1 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[13px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                        className="flex-1 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
                       >
                         ₹ Billing
                       </button>
@@ -1719,7 +1718,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <button
                         type="button"
                         onClick={() => alert(`SMS appointment reminder dispatched to ${app.patientName} (${patientPhone}).`)}
-                        className="h-[34px] w-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 flex items-center justify-center text-[13px] transition-colors shrink-0 cursor-pointer"
+                        className="h-[34px] w-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 flex items-center justify-center text-[11.5px] transition-colors shrink-0 cursor-pointer"
                       >
                         💬
                       </button>
@@ -4311,37 +4310,51 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-md bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden text-xs font-semibold"
+            className="w-full max-w-md bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl overflow-hidden text-xs font-semibold"
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b">
-              <span className="font-bold text-sm text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+              <span className="font-bold text-[13px] text-slate-900 dark:text-white">
                 Slot Management: {selectedSlotData.date} at {selectedSlotData.time}
               </span>
-              <button onClick={() => setSelectedSlotData(null)} className="text-slate-405 hover:text-slate-650">
-                <X className="h-4 w-4" />
+              <button onClick={() => setSelectedSlotData(null)} className="text-slate-400 hover:text-slate-650">
+                <X className="h-3.5 w-3.5" />
               </button>
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="p-4 space-y-3.5">
               {selectedSlotData.appointment ? (
                 // Booked Slot
-                <div className="space-y-4">
-                  <div className="p-3 bg-blue-50/50 border border-blue-100 dark:bg-blue-950/20 dark:border-blue-900/30 rounded-xl space-y-2">
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Appointment Details</span>
-                    <div className="grid grid-cols-2 gap-2 text-[11px]">
-                      <p>Patient: <strong className="text-slate-800 dark:text-slate-200">{selectedSlotData.appointment.patientName}</strong></p>
-                      <p>Doctor: <strong className="text-slate-800 dark:text-slate-200">{selectedSlotData.appointment.doctor}</strong></p>
-                      <p>Treatment: <strong className="text-slate-800 dark:text-slate-200">{selectedSlotData.appointment.treatment}</strong></p>
-                      <p>Status: <strong className="text-blue-600 dark:text-blue-400 uppercase">{selectedSlotData.appointment.status}</strong></p>
+                <div className="space-y-3.5">
+                  <div className="p-3 bg-blue-50/40 border border-blue-100/60 dark:bg-blue-955/20 dark:border-blue-900/30 rounded-lg space-y-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Appointment Details</span>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[11px]">
+                      <div>
+                        <span className="text-slate-400 block mb-0.5">Patient</span>
+                        <strong className="text-slate-800 dark:text-slate-200 font-bold block">{selectedSlotData.appointment.patientName}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block mb-0.5">Doctor</span>
+                        <strong className="text-slate-800 dark:text-slate-200 font-bold block">{selectedSlotData.appointment.doctor}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block mb-0.5">Treatment</span>
+                        <strong className="text-slate-800 dark:text-slate-200 font-bold block">{selectedSlotData.appointment.treatment}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block mb-0.5">Status</span>
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-400">
+                          {selectedSlotData.appointment.status}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 justify-end">
+                  <div className="grid grid-cols-2 gap-2 pt-2">
                     {selectedSlotData.appointment.status === "Scheduled" && (
                       <button
                         type="button"
                         onClick={() => handleApptCheckIn(selectedSlotData.appointment!.id)}
-                        className="h-8 px-3 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold"
+                        className="h-[30px] rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[11px] transition-all flex items-center justify-center cursor-pointer"
                       >
                         Check In
                       </button>
@@ -4350,7 +4363,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <button
                         type="button"
                         onClick={() => handleApptStartProcedure(selectedSlotData.appointment!.id)}
-                        className="h-8 px-3 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold"
+                        className="h-[30px] rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] transition-all flex items-center justify-center cursor-pointer"
                       >
                         Start Procedure
                       </button>
@@ -4359,7 +4372,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <button
                         type="button"
                         onClick={() => handleApptCompleteProcedure(selectedSlotData.appointment!.id)}
-                        className="h-8 px-3 rounded bg-orange-500 hover:bg-orange-450 text-white font-bold"
+                        className="h-[30px] rounded bg-orange-500 hover:bg-orange-455 text-white font-bold text-[11px] transition-all flex items-center justify-center cursor-pointer"
                       >
                         Complete Procedure
                       </button>
@@ -4368,7 +4381,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <button
                         type="button"
                         onClick={() => handleApptGenerateBill(selectedSlotData.appointment!.id)}
-                        className="h-8 px-3 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                        className="h-[30px] rounded bg-emerald-650 hover:bg-emerald-500 text-white font-bold text-[11px] transition-all flex items-center justify-center cursor-pointer col-span-2"
                       >
                         Generate Bill / Collect Payment
                       </button>
@@ -4386,7 +4399,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setAppointments(prev => prev.map(a => a.id === selectedSlotData.appointment!.id ? { ...a, status: "Cancelled" } : a));
                         setSelectedSlotData(null);
                       }}
-                      className="h-8 px-3 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 font-bold"
+                      className="h-[30px] rounded bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 font-bold text-[11px] transition-all flex items-center justify-center cursor-pointer"
                     >
                       Block Slot
                     </button>
@@ -4397,7 +4410,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setAppointments(prev => prev.map(a => a.id === selectedSlotData.appointment!.id ? { ...a, status: "Cancelled" } : a));
                         setSelectedSlotData(null);
                       }}
-                      className="h-8 px-3 rounded bg-red-50 hover:bg-red-100 text-red-650 font-bold"
+                      className="h-[30px] rounded bg-red-50 hover:bg-red-100 text-red-650 font-bold text-[11px] transition-all flex items-center justify-center cursor-pointer"
                     >
                       Cancel Appointment
                     </button>
