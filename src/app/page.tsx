@@ -1019,11 +1019,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     ];
 
     const EVENING_SLOTS = [
-      "04:00 PM", "04:15 PM", "04:30 PM", "04:45 PM",
+      "04:30 PM", "04:45 PM",
       "05:00 PM", "05:15 PM", "05:30 PM", "05:45 PM",
       "06:00 PM", "06:15 PM", "06:30 PM", "06:45 PM",
       "07:00 PM", "07:15 PM", "07:30 PM", "07:45 PM",
-      "08:00 PM"
+      "08:00 PM", "08:15 PM"
     ];
 
     // Slot matcher helper
@@ -1246,7 +1246,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             <div className="space-y-3">
               <div className="flex items-center gap-1.5 text-indigo-650 font-extrabold uppercase text-[10px] tracking-wider border-b pb-1.5">
                 <Clock className="h-3.5 w-3.5" />
-                <span>Evening Sessions (04:00 PM - 08:00 PM)</span>
+                <span>Evening Sessions (04:30 PM - 08:15 PM)</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {EVENING_SLOTS.map((time) => {
@@ -1414,7 +1414,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               </div>
 
               {/* Patient List container with simulated Infinite Scroll */}
-              <div className="space-y-2.5 max-h-[250px] overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-[330px] overflow-y-auto pr-1">
                 {displayedPatients.map((pat) => (
                   <div key={pat.id} className="patient-row p-3 border border-slate-100 hover:border-blue-300 dark:border-slate-800 dark:hover:border-blue-900/50 rounded-xl bg-slate-50/30 flex justify-between items-center transition-all group">
                     <div className="min-w-0 flex-1 cursor-pointer" onClick={() => { setSelectedPatientId(pat.id); setActiveTab("Patients"); }}>
