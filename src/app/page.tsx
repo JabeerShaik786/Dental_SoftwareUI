@@ -16,6 +16,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Menu,
   Search,
   Plus,
@@ -1455,7 +1456,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col h-[530px]">
             <div className="flex justify-between items-center mb-4 shrink-0">
               <span className="font-semibold text-[18px] block">Recently Added Patients</span>
-              <span className="text-[9px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold">{filteredPatients.length} Files</span>
             </div>
             
             {/* Search, Filter, Sort Inputs */}
@@ -1467,31 +1467,33 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   placeholder="Search name, ID..."
                   value={patientSearchQuery}
                   onChange={e => setPatientSearchQuery(e.target.value)}
-                  className="h-8 pl-8 pr-2 w-full rounded-lg bg-slate-50 border border-slate-200 text-[10px] font-bold outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 dark:bg-slate-900 dark:border-slate-800"
+                  className="h-8 pl-8 pr-2 w-full rounded-lg bg-slate-50 border border-slate-200 text-[14px] font-medium outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 dark:bg-slate-900 dark:border-slate-800"
                 />
               </div>
-              <div>
+              <div className="relative col-span-1">
                 <select
                   value={patientFilterGender}
                   onChange={e => setPatientFilterGender(e.target.value)}
-                  className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[9px] font-bold focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                  className="h-8 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-2.5 pr-8 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800"
                 >
                   <option value="All">All Genders</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                 </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none text-slate-450 dark:text-slate-400" />
               </div>
-              <div className="col-span-2">
+              <div className="relative col-span-2">
                 <select
                   value={patientSortBy}
                   onChange={e => setPatientSortBy(e.target.value)}
-                  className="h-8 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[9px] font-bold focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                  className="h-8 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-2.5 pr-8 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800"
                 >
                   <option value="Name-ASC">Sort: Name (A-Z)</option>
                   <option value="Name-DESC">Sort: Name (Z-A)</option>
                   <option value="ID-ASC">Sort: ID (Asc)</option>
                   <option value="ID-DESC">Sort: ID (Desc)</option>
                 </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none text-slate-450 dark:text-slate-400" />
               </div>
             </div>
 
