@@ -1261,7 +1261,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
         {/* SECTION 1 - Weekly Appointment Calendar (TOP CENTER) */}
         <div className="calendar-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-4 gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3 gap-3">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="font-bold text-sm text-slate-900 dark:text-white">Weekly Appointment Calendar</span>
               <span className="bg-blue-50 text-blue-750 dark:bg-blue-950/40 dark:text-blue-400 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
@@ -1449,7 +1449,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* SECTION 2 - Add Patient Panel (LEFT) */}
           <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
-            <span className="font-semibold text-[18px] block mb-4 shrink-0">Patient Registration</span>
+            <span className="font-semibold text-[18px] block mb-3 shrink-0">Patient Registration</span>
             
             <form onSubmit={handleSavePatientQuick} className="flex-1 flex flex-col overflow-hidden mt-2">
               {/* Scrollable Form Fields */}
@@ -1514,7 +1514,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
           {/* SECTION 3 - Recently Added Patients (CENTER) */}
           <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
-            <div className="flex justify-between items-center mb-4 shrink-0">
+            <div className="flex justify-between items-center mb-3 shrink-0">
               <span className="font-semibold text-[18px] block">Recently Added Patients</span>
             </div>
             
@@ -1625,7 +1625,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
           {/* SECTION 4 - Today's Schedule (RIGHT) */}
           <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
-            <div className="flex justify-between items-center mb-4 shrink-0">
+            <div className="flex justify-between items-center mb-3 shrink-0">
               <span className="font-semibold text-[18px] block">Today's Schedule</span>
               <span className="text-[12px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-bold">
                 {todayApptsList.length} {todayApptsList.length === 1 ? "Appointment" : "Appointments"}
@@ -3790,7 +3790,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         )}
 
         {/* Dashboard inner panels switcher */}
-        <main className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl w-full mx-auto flex-grow">
+        <main className="p-4 sm:p-5 lg:p-5 space-y-4 max-w-7xl w-full mx-auto flex-grow">
           {activeConsultationApptId ? (
             renderActiveConsultationWorkspace()
           ) : (

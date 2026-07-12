@@ -291,9 +291,9 @@
 
   /* Calendar Card */
   .dashboard-container .calendar-card {
-    padding: 24px !important;
-    border-radius: 18px !important;
-    margin-bottom: 24px !important;
+    padding: 18px !important;
+    border-radius: 8px !important;
+    margin-bottom: 16px !important;
   }
 
   /* Day Selector Buttons */
@@ -301,7 +301,7 @@
     padding: 10px 12px !important;
     min-width: 58px !important;
     height: 60px !important;
-    border-radius: 12px !important;
+    border-radius: 8px !important;
     font-size: 13px !important;
   }
   .dashboard-container .day-btn-name {
@@ -319,7 +319,7 @@
   .dashboard-container .slot-btn {
     padding: 10px 12px !important;
     height: 76px !important;
-    border-radius: 12px !important;
+    border-radius: 8px !important;
     font-size: 12px !important;
     display: flex !important;
     flex-direction: column !important;
@@ -356,8 +356,8 @@
 
   /* Forms & Inputs */
   .dashboard-container .form-card {
-    padding: 24px !important;
-    border-radius: 18px !important;
+    padding: 16px !important;
+    border-radius: 8px !important;
   }
   .dashboard-container .form-label-custom {
     font-size: 12.5px !important;
@@ -388,8 +388,8 @@
 
   /* List Cards */
   .dashboard-container .list-card {
-    padding: 24px !important;
-    border-radius: 18px !important;
+    padding: 16px !important;
+    border-radius: 8px !important;
   }
 
   /* Patient & Queue Rows */
@@ -440,8 +440,8 @@
 
   /* Bottom Widget Cards */
   .dashboard-container .widget-card {
-    padding: 20px !important;
-    border-radius: 16px !important;
+    padding: 14px !important;
+    border-radius: 8px !important;
   }
 
   /* Thin rounded scrollbar (6px width) with subtle colors */
@@ -464,5 +464,20 @@
   }
   .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: #475569 !important; /* slate-600 */
+  }
+
+  /* Subtly Integrated Card Shadow & Border Color */
+  .dashboard-container .calendar-card,
+  .dashboard-container .form-card,
+  .dashboard-container .list-card,
+  .dashboard-container .widget-card {
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+    border: 1px solid #e5e7eb !important;
+  }
+  .dark .dashboard-container .calendar-card,
+  .dark .dashboard-container .form-card,
+  .dark .dashboard-container .list-card,
+  .dark .dashboard-container .widget-card {
+    border: 1px solid #1e293b !important;
   }
 }
