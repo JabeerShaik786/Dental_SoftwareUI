@@ -267,6 +267,17 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [slotDoctor, setSlotDoctor] = useState("Dr. Deepa Kodali");
   const [slotTreatment, setSlotTreatment] = useState("Consultation");
 
+  // Custom toast notifications and directory queries
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [patientsDirectoryQuery, setPatientsDirectoryQuery] = useState("");
+
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
+
   // --- MOCK DATABASE DATABASE STATES ---
 
   const [patients, setPatients] = useState<Patient[]>([
@@ -706,21 +717,53 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setQuickLocation("Bengaluru");
   };
 
-  const handleSavePatientQuick = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!quickFirstName.trim() || !quickLastName.trim()) return;
+  const registerPatient = (patientData: {
+    name: string;
+    phone: string;
+    age: number;
+    gender: "Male" | "Female";
+    address: string;
+    medicalNotes: string;
+  }) => {
+    const trimmedName = patientData.name.trim();
+    const trimmedPhone = patientData.phone.trim();
 
+    // 1. Validation
+    if (!trimmedName) {
+      showToast("Patient name is required.", "error");
+      return false;
+    }
+    if (!trimmedPhone) {
+      showToast("Mobile number is required.", "error");
+      return false;
+    }
+
+    // Generate unique Patient ID automatically
     const patientId = `DS-${1000 + patients.length + 1}`;
-    const fullName = `${quickFirstName.trim()} ${quickLastName.trim()}`;
+
+    // 2. Check for duplicate mobile number
+    const duplicatePhone = patients.some(p => p.phone.trim() === trimmedPhone);
+    if (duplicatePhone) {
+      showToast(`A patient with mobile number ${trimmedPhone} is already registered.`, "error");
+      return false;
+    }
+
+    // 3. Check for duplicate Patient ID
+    const duplicateId = patients.some(p => p.id === patientId);
+    if (duplicateId) {
+      showToast(`Patient ID ${patientId} already exists.`, "error");
+      return false;
+    }
+
     const newPat: Patient = {
       id: patientId,
-      name: fullName,
-      phone: quickMobile || "+91 99000 11000",
-      age: quickAge,
-      gender: quickGender,
-      address: quickLocation || "Bengaluru",
+      name: trimmedName,
+      phone: trimmedPhone,
+      age: patientData.age,
+      gender: patientData.gender,
+      address: patientData.address || "Bengaluru",
       visit: "12 Aug 2026",
-      medicalNotes: "None",
+      medicalNotes: patientData.medicalNotes || "None",
       balance: "₹0",
       status: "Active",
       dentalChart: {},
@@ -730,19 +773,41 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     };
 
     setPatients(prev => [newPat, ...prev]);
-    pushActivity("Register", `Quick registered patient ${fullName} (${patientId}).`);
+    pushActivity("Register", `Registered patient ${trimmedName} (${patientId}).`);
 
     // Add notification
     setNotifications(prev => [
       {
         id: Date.now() + Math.floor(Math.random() * 100000),
-        msg: `New Patient ${fullName} registered successfully.`,
+        msg: `New Patient ${trimmedName} registered successfully.`,
         unread: true
       },
       ...prev
     ]);
 
-    handleClearPatientForm();
+    showToast("Patient registered successfully.", "success");
+    return true;
+  };
+
+  const handleSavePatientQuick = (e: React.FormEvent) => {
+    e.preventDefault();
+    const fullName = `${quickFirstName.trim()} ${quickLastName.trim()}`;
+    const saved = registerPatient({
+      name: fullName,
+      phone: quickMobile,
+      age: quickAge,
+      gender: quickGender,
+      address: quickLocation,
+      medicalNotes: "None"
+    });
+    if (saved) {
+      handleClearPatientForm();
+      // Keep focus on first field for next registration
+      setTimeout(() => {
+        const firstField = document.getElementById("qMobile");
+        if (firstField) firstField.focus();
+      }, 50);
+    }
   };
 
   const handleSlotBookingSubmit = (e: React.FormEvent) => {
@@ -2685,7 +2750,12 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2 max-w-xs w-full">
             <Search className="h-4 w-4 text-slate-400 shrink-0" />
-            <input placeholder="Filter directory by patient name..." className="w-full text-xs font-semibold outline-none bg-transparent" />
+            <input 
+              placeholder="Filter directory by name, ID, or mobile number..." 
+              value={patientsDirectoryQuery}
+              onChange={(e) => setPatientsDirectoryQuery(e.target.value)}
+              className="w-full text-xs font-semibold outline-none bg-transparent dark:text-slate-200" 
+            />
           </div>
           <div className="flex gap-3 shrink-0">
             <Button onClick={() => setActiveModal("addPatient")} className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-9 rounded-lg px-4">
@@ -2709,7 +2779,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-705">
-                {patients.map((pat) => (
+                {patients
+                  .filter(pat => {
+                    if (!patientsDirectoryQuery.trim()) return true;
+                    const q = patientsDirectoryQuery.toLowerCase();
+                    return pat.name.toLowerCase().includes(q) || pat.id.toLowerCase().includes(q) || pat.phone.includes(q);
+                  })
+                  .map((pat) => (
                   <tr key={pat.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
                     <td className="py-3 font-bold text-slate-900 dark:text-white">
                       <button onClick={() => setSelectedPatientId(pat.id)} className="hover:underline text-left font-bold">
@@ -2742,31 +2818,21 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             <span className="font-bold text-sm block mb-4">Patient Intake File Registration</span>
             <form onSubmit={(e) => {
               e.preventDefault();
-              if (!newPatName) return;
-              const newPatId = `DS-${1000 + patients.length + 1}`;
-              const newRecord: Patient = {
-                id: newPatId,
+              const saved = registerPatient({
                 name: newPatName,
-                phone: newPatPhone || "+91 99000 11000",
+                phone: newPatPhone,
                 age: newPatAge,
                 gender: newPatGender,
-                address: newPatAddress || "Bengaluru",
-                visit: "12 Aug 2026",
-                medicalNotes: newPatAllergies,
-                balance: "₹0",
-                status: "Active",
-                dentalChart: {},
-                prescriptions: [],
-                files: [],
-                notes: []
-              };
-              setPatients(prev => [newRecord, ...prev]);
-              pushActivity("Register", `Patient ${newPatName} (${newPatId}) registered.`);
-              setNewPatName("");
-              setNewPatPhone("");
-              setNewPatAddress("");
-              setNewPatAllergies("None");
-              setActiveSubTab("All Patients");
+                address: newPatAddress,
+                medicalNotes: newPatAllergies
+              });
+              if (saved) {
+                setNewPatName("");
+                setNewPatPhone("");
+                setNewPatAddress("");
+                setNewPatAllergies("None");
+                setActiveSubTab("All Patients");
+              }
             }} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="newPatName">Patient Full Name</Label>
@@ -3350,7 +3416,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const q = globalSearchQuery.toLowerCase();
     
     return {
-      patients: patients.filter(p => p.name.toLowerCase().includes(q) || p.phone.includes(q)),
+      patients: patients.filter(p => p.name.toLowerCase().includes(q) || p.phone.includes(q) || p.id.toLowerCase().includes(q)),
       appointments: appointments.filter(a => a.patientName.toLowerCase().includes(q) || a.treatment.toLowerCase().includes(q)),
       treatments: treatments.filter(t => t.name.toLowerCase().includes(q) || t.patient.toLowerCase().includes(q)),
       invoices: invoices.filter(i => i.id.toLowerCase().includes(q) || i.patientName.toLowerCase().includes(q))
@@ -3887,31 +3953,21 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               {activeModal === "addPatient" && (
                 <form onSubmit={(e) => {
                   e.preventDefault();
-                  if (!newPatName) return;
-                  const newPatId = `DS-${1000 + patients.length + 1}`;
-                  const newRecord: Patient = {
-                    id: newPatId,
+                  const saved = registerPatient({
                     name: newPatName,
-                    phone: newPatPhone || "+91 99000 11000",
+                    phone: newPatPhone,
                     age: newPatAge,
                     gender: newPatGender,
-                    address: newPatAddress || "Bengaluru",
-                    visit: "12 Aug 2026",
-                    medicalNotes: newPatAllergies,
-                    balance: "₹0",
-                    status: "Active",
-                    dentalChart: {},
-                    prescriptions: [],
-                    files: [],
-                    notes: []
-                  };
-                  setPatients(prev => [newRecord, ...prev]);
-                  pushActivity("Register", `Patient ${newPatName} (${newPatId}) registered.`);
-                  setNewPatName("");
-                  setNewPatPhone("");
-                  setNewPatAddress("");
-                  setNewPatAllergies("None");
-                  setActiveModal(null);
+                    address: newPatAddress,
+                    medicalNotes: newPatAllergies
+                  });
+                  if (saved) {
+                    setNewPatName("");
+                    setNewPatPhone("");
+                    setNewPatAddress("");
+                    setNewPatAllergies("None");
+                    setActiveModal(null);
+                  }
                 }} className="space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="newPatName">Patient Full Name</Label>
@@ -4470,6 +4526,19 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               )}
             </div>
           </motion.div>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-55 animate-slideLeft">
+          <div className={`px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 border text-xs font-bold transition-all ${
+            toast.type === "success" 
+              ? "bg-emerald-50 border-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-900/30 dark:text-emerald-300"
+              : "bg-red-50 border-red-100 text-red-800 dark:bg-red-950/40 dark:border-red-900/30 dark:text-red-300"
+          }`}>
+            <div className={`h-2 w-2 rounded-full ${toast.type === "success" ? "bg-emerald-500" : "bg-red-500"}`} />
+            <span>{toast.message}</span>
+          </div>
         </div>
       )}
     </div>
