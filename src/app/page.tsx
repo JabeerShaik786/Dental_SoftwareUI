@@ -265,6 +265,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [quickBloodGroup, setQuickBloodGroup] = useState("A+");
   const [quickPatientType, setQuickPatientType] = useState<"New" | "Returning">("New");
   const [quickNotes, setQuickNotes] = useState("");
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   // Recently Added Patient list states
   const [patientSearchQuery, setPatientSearchQuery] = useState("");
@@ -1226,6 +1227,48 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     // Today's appointments filtered list
     const todayApptsList = appointments.filter(a => a.date === "12 Aug 2026" && a.status !== "Cancelled");
 
+    // 15-Day Performance Tracker Data
+    const performanceData = [
+      { date: "29 Jul", fullDate: "Jul 29, 2026", consultations: 12, appointments: 8, newPatients: 2 },
+      { date: "30 Jul", fullDate: "Jul 30, 2026", consultations: 15, appointments: 10, newPatients: 3 },
+      { date: "31 Jul", fullDate: "Jul 31, 2026", consultations: 18, appointments: 12, newPatients: 4 },
+      { date: "1 Aug", fullDate: "Aug 1, 2026", consultations: 14, appointments: 11, newPatients: 3 },
+      { date: "2 Aug", fullDate: "Aug 2, 2026", consultations: 8, appointments: 6, newPatients: 1 },
+      { date: "3 Aug", fullDate: "Aug 3, 2026", consultations: 10, appointments: 8, newPatients: 2 },
+      { date: "4 Aug", fullDate: "Aug 4, 2026", consultations: 16, appointments: 11, newPatients: 4 },
+      { date: "5 Aug", fullDate: "Aug 5, 2026", consultations: 20, appointments: 14, newPatients: 5 },
+      { date: "6 Aug", fullDate: "Aug 6, 2026", consultations: 15, appointments: 12, newPatients: 3 },
+      { date: "7 Aug", fullDate: "Aug 7, 2026", consultations: 12, appointments: 9, newPatients: 2 },
+      { date: "8 Aug", fullDate: "Aug 8, 2026", consultations: 9, appointments: 7, newPatients: 1 },
+      { date: "9 Aug", fullDate: "Aug 9, 2026", consultations: 14, appointments: 10, newPatients: 3 },
+      { date: "10 Aug", fullDate: "Aug 10, 2026", consultations: 18, appointments: 13, newPatients: 4 },
+      { date: "11 Aug", fullDate: "Aug 11, 2026", consultations: 22, appointments: 16, newPatients: 6 },
+      { date: "12 Aug", fullDate: "Aug 12, 2026", consultations: 19, appointments: 14, newPatients: 5 }
+    ];
+
+    const consultationsPoints = performanceData.map((d, i) => ({ x: 40 + i * 67.14, y: 210 - d.consultations * 7.6 }));
+    const appointmentsPoints = performanceData.map((d, i) => ({ x: 40 + i * 67.14, y: 210 - d.appointments * 7.6 }));
+    const newPatientsPoints = performanceData.map((d, i) => ({ x: 40 + i * 67.14, y: 210 - d.newPatients * 7.6 }));
+
+    const getBezierPath = (pts: { x: number; y: number }[]) => {
+      if (pts.length === 0) return "";
+      let d = `M ${pts[0].x} ${pts[0].y}`;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[i];
+        const p1 = pts[i + 1];
+        const cpX1 = p0.x + (p1.x - p0.x) / 3;
+        const cpY1 = p0.y;
+        const cpX2 = p0.x + 2 * (p1.x - p0.x) / 3;
+        const cpY2 = p1.y;
+        d += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${p1.x} ${p1.y}`;
+      }
+      return d;
+    };
+
+    const bezierConsultations = getBezierPath(consultationsPoints);
+    const bezierAppointments = getBezierPath(appointmentsPoints);
+    const bezierNewPatients = getBezierPath(newPatientsPoints);
+
     // Dynamic Chair Status Helper
     const activeProcedures = appointments.filter(a => a.date === "12 Aug 2026" && a.status === "In Procedure");
     const chairMap = [
@@ -1828,98 +1871,231 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
         </div>
 
-        {/* BOTTOM DASHBOARD */}
-        <div className="bg-slate-50/50 dark:bg-slate-900/10 border-t border-slate-200 dark:border-slate-800 pt-4 mt-2">
-          <span className="font-bold text-xs text-slate-400 uppercase tracking-wider block mb-3">Clinic Operational Widgets</span>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Widget 1 - Walk-In Queue */}
-            <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs flex flex-col h-[240px]">
-              <span className="font-semibold text-[18px] text-slate-900 dark:text-white block mb-2 shrink-0">Walk-In Queue</span>
-              <div className="flex-1 overflow-y-auto pr-1 flex flex-col scrollbar-thin">
-                {appointments.filter(a => a.date === "12 Aug 2026" && (a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in")) && (a.status === "Waiting" || a.status === "Checked In")).length > 0 ? (
-                  <div className="space-y-1.5 flex-grow">
-                    {appointments
-                      .filter(a => a.date === "12 Aug 2026" && (a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in")) && (a.status === "Waiting" || a.status === "Checked In"))
-                      .map((item) => (
-                        <div key={item.id} className="py-2.5 flex items-center justify-between border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
-                          <div>
-                            <span className="text-[16px] font-semibold text-slate-808 dark:text-slate-200 block">{item.patientName}</span>
-                            <p className="text-[14px] font-normal text-slate-500">Token: <span className="text-[12px] font-normal text-slate-400">{item.token || "NEW"}</span> • {item.treatment}</p>
-                          </div>
-                          <button
-                            onClick={() => handleApptStartProcedure(item.id)}
-                            className="h-5 px-2 rounded bg-amber-500 hover:bg-amber-400 text-white font-bold text-[8px]"
-                          >
-                            Call In
-                          </button>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <div className="flex-grow flex items-center justify-center">
-                    <p className="text-xs text-slate-400 text-center">No walk-ins waiting</p>
-                  </div>
-                )}
+        {/* 15-DAY PERFORMANCE TRACKER */}
+        <div className="mt-4">
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[340px] relative">
+            {/* Header */}
+            <div className="flex justify-between items-start mb-3 shrink-0">
+              <div>
+                <span className="font-semibold text-[18px] block">15-Day Performance Tracker</span>
+                <span className="text-[12px] text-slate-400 dark:text-slate-550 mt-0.5 block">Clinic activity over the last 15 days</span>
+              </div>
+              <span className="text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-300 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                Last 15 Days
+              </span>
+            </div>
+
+            {/* Statistics Row */}
+            <div className="flex flex-wrap gap-2.5 mb-3.5 shrink-0">
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-850 px-3 py-1 rounded-full text-xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                <span className="text-slate-455">Total Consultations:</span>
+                <span className="font-bold text-slate-808 dark:text-slate-200">228</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-850 px-3 py-1 rounded-full text-xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span className="text-slate-455">Total Appointments:</span>
+                <span className="font-bold text-slate-808 dark:text-slate-200">169</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-850 px-3 py-1 rounded-full text-xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                <span className="text-slate-455">New Patients:</span>
+                <span className="font-bold text-slate-808 dark:text-slate-200">57</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 px-3 py-1 rounded-full text-xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span className="text-emerald-700 dark:text-emerald-400 font-bold">Appointment Growth:</span>
+                <span className="font-extrabold text-emerald-600 dark:text-emerald-400">+14.8%</span>
               </div>
             </div>
 
-            {/* Widget 2 - Pending Bills */}
-            <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs flex flex-col h-[240px]">
-              <span className="font-semibold text-[18px] text-slate-900 dark:text-white block mb-2 shrink-0">Pending Bills</span>
-              <div className="flex-1 overflow-y-auto pr-1 flex flex-col scrollbar-thin">
-                {invoices.filter(i => i.status !== "Paid").length > 0 ? (
-                  <div className="space-y-1.5 flex-grow">
-                    {invoices.filter(i => i.status !== "Paid").map((inv) => (
-                      <div key={inv.id} className="py-2.5 flex items-center justify-between border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
-                        <div>
-                          <span className="text-[16px] font-semibold text-slate-808 dark:text-slate-200 block">{inv.patientName}</span>
-                          <p className="text-[14px] font-normal text-red-600">Unpaid: <span className="font-medium">₹{(inv.total - inv.paidAmount).toLocaleString()}</span></p>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setSelectedInvoiceForPayment(inv);
-                            setPayCash(0);
-                            setPayUpi(0);
-                            setPayCard(0);
-                            setPayDiscountPercent(inv.discount);
-                            setPayTaxPercent(inv.tax);
-                            setPayCustomItems([]);
-                          }}
-                          className="h-5 px-2 rounded bg-red-650 hover:bg-red-500 text-white font-bold text-[8px]"
-                        >
-                          Pay
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex-grow flex items-center justify-center">
-                    <p className="text-xs text-slate-400 text-center">No bills outstanding</p>
-                  </div>
-                )}
+            {/* Chart Container */}
+            <div className="flex-1 min-h-0 flex flex-col justify-between relative">
+              {/* Inline Legend */}
+              <div className="flex justify-end gap-4 text-[11px] mb-2 shrink-0 pr-2">
+                <div className="flex items-center gap-1">
+                  <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+                  <span className="text-slate-455 dark:text-slate-350 font-medium">Consultations</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                  <span className="text-slate-455 dark:text-slate-350 font-medium">Appointments</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="h-2.5 w-2.5 rounded-full bg-indigo-500" />
+                  <span className="text-slate-455 dark:text-slate-350 font-medium">New Patients</span>
+                </div>
               </div>
-            </div>
 
-            {/* Widget 3 - Recent Activity */}
-            <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs flex flex-col h-[240px]">
-              <span className="font-semibold text-[18px] text-slate-900 dark:text-white block mb-2 shrink-0">Recent Activity</span>
-              <div className="flex-1 overflow-y-auto pr-1 flex flex-col scrollbar-thin">
-                {activities.length > 0 ? (
-                  <div className="space-y-1.5 flex-grow">
-                    {activities.slice(0, 5).map((act) => (
-                      <div key={act.id} className="py-2.5 flex gap-2 border-b border-slate-100/30 dark:border-slate-900/30 last:border-0">
-                        <div className="h-2 w-2 rounded-full mt-1.5 shrink-0 bg-blue-500" />
-                        <div>
-                          <p className="text-[14px] font-normal text-slate-700 dark:text-slate-300 leading-normal">{act.msg}</p>
-                          <span className="text-[12px] font-normal text-slate-400 mt-0.5 block">{act.time}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex-grow flex items-center justify-center">
-                    <p className="text-xs text-slate-400 text-center">No recent activity</p>
+              {/* Chart SVG wrapper */}
+              <div className="flex-1 min-h-0 relative">
+                <svg className="w-full h-full" viewBox="0 0 1000 240" preserveAspectRatio="none">
+                  {/* Style for animation */}
+                  <style>{`
+                    @keyframes lineDraw {
+                      to { stroke-dashoffset: 0; }
+                    }
+                    .chart-path-anim {
+                      stroke-dasharray: 1500;
+                      stroke-dashoffset: 1500;
+                      animation: lineDraw 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+                    }
+                  `}</style>
+
+                  {/* Horizontal grid lines */}
+                  {[0, 5, 10, 15, 20, 25].map((yVal, idx) => {
+                    const y = 210 - yVal * 7.6;
+                    return (
+                      <g key={idx}>
+                        <line x1="40" y1={y} x2="980" y2={y} stroke="rgba(148, 163, 184, 0.08)" strokeWidth="1" />
+                        <text x="30" y={y + 3} textAnchor="end" className="text-[9px] font-medium fill-slate-400 dark:fill-slate-500">{yVal}</text>
+                      </g>
+                    );
+                  })}
+
+                  {/* Bezier paths for metrics */}
+                  <path
+                    d={bezierConsultations}
+                    fill="none"
+                    stroke="#3B82F6"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    className="chart-path-anim"
+                  />
+                  <path
+                    d={bezierAppointments}
+                    fill="none"
+                    stroke="#10B981"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    className="chart-path-anim"
+                  />
+                  <path
+                    d={bezierNewPatients}
+                    fill="none"
+                    stroke="#6366F1"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    className="chart-path-anim"
+                  />
+
+                  {/* Data Point Circles */}
+                  {performanceData.map((d, i) => {
+                    const x = 40 + i * 67.14;
+                    const yC = 210 - d.consultations * 7.6;
+                    const yA = 210 - d.appointments * 7.6;
+                    const yN = 210 - d.newPatients * 7.6;
+                    const isHovered = hoveredIndex === i;
+
+                    return (
+                      <g key={i}>
+                        {/* Consultation Circle */}
+                        <circle
+                          cx={x}
+                          cy={yC}
+                          r={isHovered ? 5.5 : 3.5}
+                          fill={isHovered ? "#3B82F6" : "#ffffff"}
+                          stroke="#3B82F6"
+                          strokeWidth={isHovered ? 2.5 : 1.5}
+                          className="transition-all duration-100"
+                        />
+                        {/* Appointment Circle */}
+                        <circle
+                          cx={x}
+                          cy={yA}
+                          r={isHovered ? 5.5 : 3.5}
+                          fill={isHovered ? "#10B981" : "#ffffff"}
+                          stroke="#10B981"
+                          strokeWidth={isHovered ? 2.5 : 1.5}
+                          className="transition-all duration-100"
+                        />
+                        {/* New Patient Circle */}
+                        <circle
+                          cx={x}
+                          cy={yN}
+                          r={isHovered ? 5.5 : 3.5}
+                          fill={isHovered ? "#6366F1" : "#ffffff"}
+                          stroke="#6366F1"
+                          strokeWidth={isHovered ? 2.5 : 1.5}
+                          className="transition-all duration-100"
+                        />
+                      </g>
+                    );
+                  })}
+
+                  {/* X Axis Day ticks and labels */}
+                  {performanceData.map((d, i) => {
+                    const x = 40 + i * 67.14;
+                    // Render alternate labels to prevent overlap
+                    const showLabel = i % 2 === 0;
+
+                    return (
+                      <g key={i}>
+                        <line x1={x} y1="210" x2={x} y2="214" stroke="rgba(148, 163, 184, 0.2)" strokeWidth="1" />
+                        {showLabel && (
+                          <text x={x} y="228" textAnchor="middle" className="text-[9.5px] font-medium fill-slate-400 dark:fill-slate-500">
+                            {d.date}
+                          </text>
+                        )}
+                      </g>
+                    );
+                  })}
+
+                  {/* Vertical Hover Line Guide */}
+                  {hoveredIndex !== null && (
+                    <line
+                      x1={40 + hoveredIndex * 67.14}
+                      y1="20"
+                      x2={40 + hoveredIndex * 67.14}
+                      y2="210"
+                      stroke="rgba(99, 102, 241, 0.2)"
+                      strokeWidth="1.5"
+                      strokeDasharray="4 2"
+                    />
+                  )}
+
+                  {/* Interactive Transparent Hover rect areas */}
+                  {performanceData.map((d, i) => {
+                    const x = 40 + i * 67.14;
+                    return (
+                      <rect
+                        key={i}
+                        x={x - 33.5}
+                        y={0}
+                        width={67}
+                        height={240}
+                        fill="transparent"
+                        className="cursor-crosshair"
+                        onMouseEnter={() => setHoveredIndex(i)}
+                        onMouseLeave={() => setHoveredIndex(null)}
+                      />
+                    );
+                  })}
+                </svg>
+
+                {/* Floating Interactive Tooltip */}
+                {hoveredIndex !== null && (
+                  <div
+                    className="absolute bg-slate-900/95 dark:bg-slate-955/95 text-white p-3 rounded-lg shadow-xl border border-slate-800 dark:border-slate-800 text-[11px] pointer-events-none z-10 space-y-1 transition-all duration-100"
+                    style={{
+                      left: `${((40 + hoveredIndex * 67.14) / 1000) * 100}%`,
+                      transform: 'translateX(-50%)',
+                      top: '20px'
+                    }}
+                  >
+                    <p className="font-bold text-slate-300 dark:text-slate-300 border-b border-slate-800 pb-0.5 mb-1">{performanceData[hoveredIndex].fullDate}</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-blue-500" />
+                      <span>Consultations: <span className="font-bold">{performanceData[hoveredIndex].consultations}</span></span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                      <span>Appointments: <span className="font-bold">{performanceData[hoveredIndex].appointments}</span></span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-indigo-500" />
+                      <span>New Patients: <span className="font-bold">{performanceData[hoveredIndex].newPatients}</span></span>
+                    </div>
                   </div>
                 )}
               </div>
