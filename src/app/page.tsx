@@ -1325,14 +1325,21 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     return (
       <div className="dashboard-container space-y-4 animate-fadeIn text-slate-700">
         {/* Notification Strip */}
-        <div className="alerts-strip bg-[#FEF2F2] border border-[#FECACA] dark:bg-red-955/10 dark:border-red-900/25 rounded-lg px-4 py-2 flex items-center gap-2 text-xs text-[#DC2626] dark:text-red-400">
-          <span className="font-bold flex items-center gap-1.5 shrink-0">
-            <Bell className="h-3.5 w-3.5 text-[#DC2626] dark:text-red-400 shrink-0" />
-            Clinic Alerts:
+        <div className="alerts-strip bg-[#FEF2F2] border border-[#FECACA] dark:bg-red-955/10 dark:border-red-900/25 rounded-lg px-4 flex flex-wrap md:flex-nowrap items-center h-auto md:h-10 py-2.5 md:py-0 w-full text-[13px] text-[#DC2626] dark:text-red-400 overflow-hidden shrink-0 gap-y-1">
+          <span className="font-semibold flex items-center gap-1.5 shrink-0 mr-2">
+            <Bell className="h-4 w-4 text-[#DC2626] dark:text-red-400 shrink-0" />
+            Clinic Alerts
           </span>
-          <span className="font-semibold truncate">
-            {nextScheduled ? `Next appointment (${nextScheduled.patientName} - ${nextScheduled.treatment}) at ${nextScheduled.time}` : "Next appointment: none scheduled"}
-          </span>
+          <div className="text-[13.5px] font-normal truncate flex flex-wrap md:flex-nowrap items-center gap-1.5 flex-1 min-w-0">
+            <span className="opacity-60">•</span>
+            <span className="truncate">
+              Next appointment: {nextScheduled ? `${nextScheduled.patientName} – ${nextScheduled.treatment} at ${nextScheduled.time}` : "none scheduled"}
+            </span>
+            <span className="opacity-60">•</span>
+            <span className="shrink-0">2 pending follow-ups</span>
+            <span className="opacity-60">•</span>
+            <span className="shrink-0">1 unpaid invoice</span>
+          </div>
         </div>
 
         {/* SECTION 1 - Weekly Appointment Calendar (TOP CENTER) */}
