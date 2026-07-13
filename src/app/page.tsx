@@ -998,10 +998,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   // --- RENDER MODULE SCREENS ---
 
   const renderScheduleTimeline = () => (
-    <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+    <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
       <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
-        <span className="font-bold text-sm text-slate-800 dark:text-white">Today's Timeline Schedule</span>
-        <span className="text-[10px] bg-slate-100 text-slate-655 px-2 py-0.5 rounded-full font-bold">12 Aug 2026</span>
+        <span className="font-semibold text-[18px] text-slate-800 dark:text-white">Today's Schedule</span>
+        <span className="text-[12px] bg-slate-100 text-slate-655 px-2 py-0.5 rounded-full font-normal">12 Aug 2026</span>
       </div>
 
       <div className="space-y-4 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
@@ -1019,14 +1019,25 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             <div className="flex-grow py-3.5 flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-100/50 dark:border-slate-900/40 last:border-0 hover:bg-slate-50/10 transition-all duration-200">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm text-slate-900 dark:text-white">{app.patientName}</span>
-                  <span className="text-[10px] text-slate-405">• {app.treatment}</span>
+                  <span className="text-[16px] font-semibold text-slate-900 dark:text-white">{app.patientName}</span>
+                  <span className="text-[14px] font-normal text-slate-450">• {app.treatment}</span>
                 </div>
-                <div className="text-xs text-slate-500">
-                  <span>Doctor: <strong className="font-bold text-slate-700 dark:text-slate-300">{app.doctor}</strong></span>
-                  <span className="mx-2">•</span>
-                  <span>Time Slot: <strong className="font-semibold text-slate-700">{app.time}</strong></span>
-                </div>
+                {(() => {
+                  const patPhone = patients.find(p => p.id === app.patientId)?.phone || "";
+                  return (
+                    <div className="text-[14px] font-normal text-slate-500 dark:text-slate-400">
+                      <span>Doctor: <span className="font-normal text-slate-700 dark:text-slate-350">{app.doctor}</span></span>
+                      <span className="mx-2">•</span>
+                      <span>Time: <span className="text-[16px] font-medium text-slate-700 dark:text-slate-305">{app.time}</span></span>
+                      {patPhone && (
+                        <>
+                          <span className="mx-2">•</span>
+                          <span>Phone: <span className="font-normal text-slate-655">{patPhone}</span></span>
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="flex gap-2 shrink-0">
@@ -1261,8 +1272,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         <div className="calendar-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3 gap-3">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="font-bold text-sm text-slate-900 dark:text-white">Weekly Appointment Calendar</span>
-              <span className="bg-blue-50 text-blue-750 dark:bg-blue-950/40 dark:text-blue-400 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+              <span className="font-semibold text-[18px] text-slate-900 dark:text-white">Weekly Appointment Calendar</span>
+              <span className="bg-blue-50 text-blue-755 dark:bg-blue-955/40 dark:text-blue-400 px-2.5 py-0.5 rounded-full text-[13px] font-semibold">
                 Total Appointments Today: {kpiCounts.todayAppointments}
               </span>
             </div>
@@ -1297,8 +1308,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
                     }`}
                   >
-                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 mb-0.5">{d.name}</span>
-                    <span className="text-sm font-black flex items-center gap-1 leading-none">
+                    <span className="text-[12px] font-normal uppercase tracking-wider opacity-70 mb-0.5">{d.name}</span>
+                    <span className="text-[14px] font-medium flex items-center gap-1 leading-none">
                       {parseInt(d.date.split(" ")[0])}
                     </span>
                     {hasAppts && (
@@ -1323,7 +1334,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
             {/* Morning Column */}
             <div className="space-y-3">
-              <div className="flex items-center gap-1.5 text-blue-650 font-extrabold uppercase text-[10px] tracking-wider border-b pb-1.5">
+              <div className="flex items-center gap-1.5 text-blue-650 font-medium text-[13px] border-b pb-1.5">
                 <Clock className="h-3.5 w-3.5" />
                 <span>Morning Sessions (09:00 AM - 12:45 PM)</span>
               </div>
@@ -1387,7 +1398,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
             {/* Evening Column */}
             <div className="space-y-3">
-              <div className="flex items-center gap-1.5 text-indigo-650 font-extrabold uppercase text-[10px] tracking-wider border-b pb-1.5">
+              <div className="flex items-center gap-1.5 text-indigo-650 font-medium text-[13px] border-b pb-1.5">
                 <Clock className="h-3.5 w-3.5" />
                 <span>Evening Sessions (04:30 PM - 08:15 PM)</span>
               </div>
@@ -1749,15 +1760,15 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Widget 1 - Walk-In Queue */}
             <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
-              <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-3">Walk-In Queue</span>
+              <span className="font-semibold text-[18px] text-slate-900 dark:text-white block mb-2">Walk-In Queue</span>
               <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
                 {appointments
                   .filter(a => a.date === "12 Aug 2026" && (a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in")) && (a.status === "Waiting" || a.status === "Checked In"))
                   .map((item) => (
-                    <div key={item.id} className="py-2.5 flex items-center justify-between text-[10px] border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
+                    <div key={item.id} className="py-2.5 flex items-center justify-between border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
                       <div>
-                        <span className="font-bold text-slate-800 dark:text-slate-200 block">{item.patientName}</span>
-                        <p className="text-[8px] text-slate-400">Token: {item.token || "NEW"} • {item.treatment}</p>
+                        <span className="text-[16px] font-semibold text-slate-808 dark:text-slate-200 block">{item.patientName}</span>
+                        <p className="text-[14px] font-normal text-slate-500">Token: <span className="text-[12px] font-normal text-slate-400">{item.token || "NEW"}</span> • {item.treatment}</p>
                       </div>
                       <button
                         onClick={() => handleApptStartProcedure(item.id)}
@@ -1768,20 +1779,20 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     </div>
                   ))}
                 {appointments.filter(a => a.date === "12 Aug 2026" && (a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in")) && (a.status === "Waiting" || a.status === "Checked In")).length === 0 && (
-                  <p className="text-[9px] text-slate-400 py-6 text-center">No walk-ins waiting</p>
+                  <p className="text-xs text-slate-400 py-6 text-center">No walk-ins waiting</p>
                 )}
               </div>
             </div>
 
             {/* Widget 2 - Pending Bills */}
             <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
-              <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-3">Pending Bills</span>
+              <span className="font-semibold text-[18px] text-slate-900 dark:text-white block mb-2">Pending Bills</span>
               <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
                 {invoices.filter(i => i.status !== "Paid").map((inv) => (
-                  <div key={inv.id} className="py-2.5 flex items-center justify-between text-[10px] border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
+                  <div key={inv.id} className="py-2.5 flex items-center justify-between border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
                     <div>
-                      <span className="font-bold text-slate-800 dark:text-slate-200 block">{inv.patientName}</span>
-                      <p className="text-[8px] text-red-505 font-bold">Unpaid: ₹{(inv.total - inv.paidAmount).toLocaleString()}</p>
+                      <span className="text-[16px] font-semibold text-slate-808 dark:text-slate-200 block">{inv.patientName}</span>
+                      <p className="text-[14px] font-normal text-red-600">Unpaid: <span className="font-medium">₹{(inv.total - inv.paidAmount).toLocaleString()}</span></p>
                     </div>
                     <button
                       onClick={() => {
@@ -1800,21 +1811,21 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   </div>
                 ))}
                 {invoices.filter(i => i.status !== "Paid").length === 0 && (
-                  <p className="text-[9px] text-slate-400 py-6 text-center">No bills outstanding</p>
+                  <p className="text-xs text-slate-400 py-6 text-center">No bills outstanding</p>
                 )}
               </div>
             </div>
 
             {/* Widget 3 - Recent Activity */}
             <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
-              <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-3">Recent Activity</span>
+              <span className="font-semibold text-[18px] text-slate-900 dark:text-white block mb-2">Recent Activity</span>
               <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
                 {activities.slice(0, 5).map((act) => (
-                  <div key={act.id} className="py-2.5 flex gap-2 text-[9px] relative border-b border-slate-100/30 dark:border-slate-900/30 last:border-0">
+                  <div key={act.id} className="py-2.5 flex gap-2 border-b border-slate-100/30 dark:border-slate-900/30 last:border-0">
                     <div className="h-2 w-2 rounded-full mt-1.5 shrink-0 bg-blue-500" />
                     <div>
-                      <p className="text-slate-700 dark:text-slate-350 font-bold leading-normal">{act.msg}</p>
-                      <span className="text-[8px] text-slate-400 font-semibold">{act.time}</span>
+                      <p className="text-[14px] font-normal text-slate-700 dark:text-slate-300 leading-normal">{act.msg}</p>
+                      <span className="text-[12px] font-normal text-slate-400 mt-0.5 block">{act.time}</span>
                     </div>
                   </div>
                 ))}
@@ -2762,28 +2773,28 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     return pat.name.toLowerCase().includes(q) || pat.id.toLowerCase().includes(q) || pat.phone.includes(q);
                   })
                   .map((pat) => (
-                  <tr key={pat.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
-                    <td className="py-3 font-bold text-slate-900 dark:text-white">
-                      <button onClick={() => setSelectedPatientId(pat.id)} className="hover:underline text-left font-bold">
-                        {pat.name}
-                      </button>
-                    </td>
-                    <td className="py-3 text-slate-500">{pat.phone}</td>
-                    <td className="py-3">{pat.age} Years ({pat.gender[0]})</td>
-                    <td className="py-3 text-slate-450">{pat.visit}</td>
-                    <td className="py-3 font-bold text-red-600">{pat.balance}</td>
-                    <td className="py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                        pat.status === "Active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
-                      }`}>{pat.status}</span>
-                    </td>
-                    <td className="py-3 text-center">
-                      <button onClick={() => setSelectedPatientId(pat.id)} className="text-blue-600 hover:underline font-bold text-[11px]">
-                        Open Profile
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                    <tr key={pat.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
+                      <td className="py-3 font-semibold text-slate-900 dark:text-white">
+                        <button onClick={() => setSelectedPatientId(pat.id)} className="hover:underline text-left text-[16px] font-semibold">
+                          {pat.name}
+                        </button>
+                      </td>
+                      <td className="py-3 text-[14px] font-normal text-slate-500">{pat.phone}</td>
+                      <td className="py-3 text-[14px] font-normal">{pat.age} Years ({pat.gender[0]})</td>
+                      <td className="py-3 text-[12px] font-normal text-slate-455">{pat.visit}</td>
+                      <td className="py-3 text-[14px] font-semibold text-red-600">{pat.balance}</td>
+                      <td className="py-3">
+                        <span className={`px-2 py-0.5 rounded-full text-[12px] font-normal ${
+                          pat.status === "Active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
+                        }`}>{pat.status}</span>
+                      </td>
+                      <td className="py-3 text-center">
+                        <button onClick={() => setSelectedPatientId(pat.id)} className="text-blue-605 hover:underline text-[14px] font-semibold">
+                          Open Profile
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
@@ -3454,12 +3465,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       setHoveredItemTop(rect.top + rect.height / 2);
                     }}
                     onMouseLeave={() => setHoveredItem(null)}
-                    className={`h-[48px] flex items-center rounded-[12px] text-[15px] font-medium transition-all duration-300 ease-in-out group ${
-                      sidebarCollapsed ? "w-12 justify-center px-0 mx-auto" : "w-full justify-between px-4"
+                    className={`h-[48px] flex items-center rounded-[12px] text-[15px] transition-all duration-300 ease-in-out group ${
+                      active ? "font-semibold bg-blue-600 text-white shadow-sm" : "font-medium text-[#334155] hover:bg-blue-50/50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white"
                     } ${
-                      active
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-[#334155] hover:bg-blue-50/50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white"
+                      sidebarCollapsed ? "w-12 justify-center px-0 mx-auto" : "w-full justify-between px-4"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -3468,7 +3477,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           {React.cloneElement(item.icon, { className: "h-[22px] w-[22px]" })}
                         </span>
                         {item.badge && sidebarCollapsed && (
-                          <span className="absolute -top-1.5 -right-1.5 text-[8px] font-bold h-4 min-w-4 px-1 rounded-full bg-red-600 text-white border-2 border-white dark:border-slate-950 flex items-center justify-center shadow-xs">
+                          <span className="absolute -top-1.5 -right-1.5 text-[11px] font-medium h-4 min-w-4 px-1 rounded-full bg-red-600 text-white border-2 border-white dark:border-slate-955 flex items-center justify-center shadow-xs">
                             {item.badge}
                           </span>
                         )}
@@ -3483,7 +3492,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
                     {item.badge && !sidebarCollapsed && (
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-all duration-300 ${
+                        className={`text-[13px] font-medium px-2 py-0.5 rounded-full transition-all duration-300 ${
                           active ? "bg-white/20 text-white" : "bg-red-100 text-red-600 dark:bg-red-955/40 dark:text-red-400"
                         }`}
                       >
@@ -3565,15 +3574,19 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         {/* Top Navbar */}
         <header className="h-20 bg-white dark:bg-slate-955 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 flex items-center justify-between px-6 shrink-0">
           
-          <div className="flex items-center gap-3 flex-grow max-w-sm sm:max-w-md relative">
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="md:hidden p-1.5 text-slate-500 hover:text-slate-808 dark:text-slate-400 dark:hover:text-white"
-            >
-              <Menu className="h-6 w-6" />
-            </button>
+          <div className="flex items-center gap-4 flex-grow">
+            <span className="text-[22px] font-bold text-slate-900 dark:text-white shrink-0 hidden md:inline-block">
+              {activeTab}
+            </span>
+            <div className="flex items-center gap-3 flex-grow max-w-sm sm:max-w-md relative">
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="md:hidden p-1.5 text-slate-500 hover:text-slate-808 dark:text-slate-400 dark:hover:text-white"
+              >
+                <Menu className="h-6 w-6" />
+              </button>
 
-            {/* Global Search input */}
+              {/* Global Search input */}
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
@@ -3661,6 +3674,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               )}
             </div>
           </div>
+        </div>
 
           <div className="flex items-center gap-2 sm:gap-3.5">
             {/* + Quick Add Dropdown */}
