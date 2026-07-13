@@ -160,7 +160,7 @@ const menuItems = [
 
 const moduleSubTabs: Record<string, string[]> = {
   Dashboard: ["Overview"],
-  Appointments: ["Today", "Calendar", "Queue", "History"],
+  Appointments: ["Today", "Queue", "History"],
   Patients: ["All Patients", "Add Patient", "Dental Chart"],
   Treatments: ["Active Treatments", "Completed", "Treatment Plans"],
   Billing: ["Invoices", "Payments", "Insurance"],
@@ -2170,7 +2170,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       return `${day < 10 ? '0' + day : day} ${month} ${year}`;
     };
 
-    // Filter appointments dynamically
+    // Filter appointments dynamically (removed location filter check)
     const filteredAppts = appointments.filter(a => {
       if (apptSearchQuery.trim()) {
         const q = apptSearchQuery.toLowerCase();
@@ -2183,10 +2183,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       if (apptSelectedDoctor !== "All" && a.doctor !== apptSelectedDoctor) return false;
       if (apptSelectedStatus !== "All" && a.status !== apptSelectedStatus) return false;
       if (apptSelectedTreatment !== "All" && a.treatment !== apptSelectedTreatment) return false;
-      if (apptSelectedLocation !== "All") {
-        const pat = patients.find(p => p.id === a.patientId);
-        if (pat && !pat.address?.toLowerCase().includes(apptSelectedLocation.toLowerCase())) return false;
-      }
       if (apptSelectedType !== "All") {
         const isWalkin = a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in");
         if (apptSelectedType === "Walk-In" && !isWalkin) return false;
@@ -2195,153 +2191,61 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       return true;
     });
 
-    // ── Queue sub-tab ──────────────────────────────────────────────────────
-    if (activeSubTab === "Queue") {
-      const queueAppts = appointments.filter(a => a.status === "Waiting" || a.status === "Checked In");
-      return (
-        <div className="animate-fadeIn grid grid-cols-1 lg:grid-cols-12 gap-4 text-[13px] font-medium text-slate-700">
-          {/* sidebar */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs space-y-3">
-              <Button onClick={() => setActiveModal("addAppointment")} className="w-full h-10 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs">
-                <CalendarPlus className="h-4 w-4" /> Book Appointment
-              </Button>
-              <hr className="border-slate-100 dark:border-slate-800" />
-              <span className="font-semibold text-[11px] text-slate-400 uppercase tracking-wider block">All Doctors</span>
-              <div className="space-y-1.5">
-                <div onClick={() => setApptSelectedDoctor("All")} className={`px-2.5 py-2 rounded-lg border cursor-pointer transition-all flex items-center gap-2 ${apptSelectedDoctor === "All" ? "bg-blue-50/50 border-blue-500 dark:bg-blue-950/20" : "border-slate-100 hover:bg-slate-50 dark:border-slate-800"}` }>
-                  <div className="h-7 w-7 rounded-full bg-blue-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">ALL</div>
-                  <span className="font-semibold text-[12px] text-slate-800 dark:text-slate-200 truncate">All Doctors</span>
-                </div>
-                {doctors.map((doc, idx) => {
-                  const isActive = apptSelectedDoctor === doc.name;
-                  const initials = doc.name.replace("Dr. ", "").split(" ").map(n => n[0]).join("").toUpperCase();
-                  const colors = ["bg-blue-100 text-blue-700","bg-purple-100 text-purple-700","bg-emerald-100 text-emerald-700","bg-indigo-100 text-indigo-700","bg-pink-100 text-pink-700"];
-                  return (
-                    <div key={doc.name} onClick={() => setApptSelectedDoctor(isActive ? "All" : doc.name)} className={`px-2.5 py-2 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${isActive ? "bg-blue-50/50 border-blue-500 dark:bg-blue-955/20" : "border-slate-100 hover:bg-slate-50 dark:border-slate-800"}`}>
-                      <div className="flex items-center gap-2">
-                        <div className={`h-7 w-7 rounded-full font-bold text-[10px] flex items-center justify-center shrink-0 ${colors[idx % colors.length]}`}>{initials}</div>
-                        <span className="font-semibold text-[12px] text-slate-800 dark:text-slate-200 truncate">{doc.name}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-          {/* main */}
-          <div className="lg:col-span-10 space-y-4">
-            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <span className="font-bold text-[15px] text-slate-800 dark:text-white block">Walk-in & Waiting Queue</span>
-                  <p className="text-[12px] text-slate-400 mt-0.5">Patients currently checked in or waiting</p>
-                </div>
-                <span className="text-[12px] font-bold bg-amber-50 text-amber-700 border border-amber-100 px-3 py-1 rounded-full">{queueAppts.length} Waiting</span>
-              </div>
-              {queueAppts.length > 0 ? (
-                <div className="divide-y divide-slate-100 dark:divide-slate-900">
-                  {queueAppts.map((item) => (
-                    <div key={item.id} className="py-3 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-amber-100 text-amber-700 font-bold text-[11px] flex items-center justify-center shrink-0">{item.token || "—"}</div>
-                        <div>
-                          <span className="font-semibold text-[14px] text-slate-800 dark:text-slate-200 block">{item.patientName}</span>
-                          <p className="text-[12px] text-slate-450 mt-0.5">{item.doctor} · {item.treatment} · {item.time}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${ item.status === "Waiting" ? "bg-amber-50 text-amber-700" : "bg-cyan-50 text-cyan-700" }`}>{item.status}</span>
-                        <button onClick={() => handleApptStartProcedure(item.id)} className="h-8 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px]">Start</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-12 text-center">
-                  <p className="text-[13px] text-slate-400 font-medium">No patients currently in the queue.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      );
-    }
+    const handlePrevDate = () => {
+      const prev = new Date(apptCalendarDate);
+      if (activeSubTab === "Queue") {
+        prev.setDate(prev.getDate() - 1);
+      } else if (activeSubTab === "History") {
+        prev.setMonth(prev.getMonth() - 1);
+      } else { // activeSubTab === "Today"
+        if (apptView === "Month") {
+          prev.setMonth(prev.getMonth() - 1);
+        } else if (apptView === "Week") {
+          prev.setDate(prev.getDate() - 7);
+        } else if (apptView === "Day") {
+          prev.setDate(prev.getDate() - 1);
+        }
+      }
+      setApptCalendarDate(prev);
+    };
 
-    // ── History sub-tab ───────────────────────────────────────────────────────
-    if (activeSubTab === "History") {
-      const historyAppts = filteredAppts.filter(a => a.status === "Completed" || a.status === "Cancelled").slice().reverse();
-      return (
-        <div className="animate-fadeIn grid grid-cols-1 lg:grid-cols-12 gap-4 text-[13px] font-medium text-slate-700">
-          {/* sidebar */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs space-y-3">
-              <Button onClick={() => setActiveModal("addAppointment")} className="w-full h-10 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs">
-                <CalendarPlus className="h-4 w-4" /> Book Appointment
-              </Button>
-              <hr className="border-slate-100 dark:border-slate-800" />
-              <span className="font-semibold text-[11px] text-slate-400 uppercase tracking-wider block">Filters</span>
-              <select value={apptSelectedDoctor} onChange={(e) => setApptSelectedDoctor(e.target.value)} className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-[12px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700">
-                <option value="All">All Doctors</option>
-                {doctors.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
-              </select>
-              <select value={apptSelectedTreatment} onChange={(e) => setApptSelectedTreatment(e.target.value)} className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-[12px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700">
-                <option value="All">All Treatments</option>
-                <option value="Root Canal">Root Canal</option>
-                <option value="Scaling">Scaling</option>
-                <option value="Implant">Implant</option>
-                <option value="Crown">Crown</option>
-                <option value="Consultation">Consultation</option>
-              </select>
-            </div>
-          </div>
-          {/* main */}
-          <div className="lg:col-span-10 space-y-4">
-            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <span className="font-bold text-[15px] text-slate-800 dark:text-white block">Appointment History</span>
-                  <p className="text-[12px] text-slate-400 mt-0.5">Completed and cancelled appointments</p>
-                </div>
-                <span className="text-[12px] font-bold bg-slate-100 text-slate-700 border border-slate-200 px-3 py-1 rounded-full">{historyAppts.length} Records</span>
-              </div>
-              {historyAppts.length > 0 ? (
-                <div className="divide-y divide-slate-100 dark:divide-slate-900">
-                  {historyAppts.map((item) => (
-                    <div key={item.id} onClick={() => setSelectedApptDetail(item)} className="py-3 flex items-center justify-between gap-4 cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-900/20 rounded-lg px-2 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className={`h-8 w-8 rounded-full font-bold text-[11px] flex items-center justify-center shrink-0 ${ item.status === "Completed" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600" }`}>
-                          {item.patientName.charAt(0)}
-                        </div>
-                        <div>
-                          <span className="font-semibold text-[14px] text-slate-800 dark:text-slate-200 block">{item.patientName}</span>
-                          <p className="text-[12px] text-slate-450 mt-0.5">{item.date} · {item.time} · {item.doctor}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-slate-500 font-medium">{item.treatment}</span>
-                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${ item.status === "Completed" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600" }`}>{item.status}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-12 text-center">
-                  <p className="text-[13px] text-slate-400 font-medium">No completed or cancelled appointments found.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      );
-    }
+    const handleNextDate = () => {
+      const next = new Date(apptCalendarDate);
+      if (activeSubTab === "Queue") {
+        next.setDate(next.getDate() + 1);
+      } else if (activeSubTab === "History") {
+        next.setMonth(next.getMonth() + 1);
+      } else { // activeSubTab === "Today"
+        if (apptView === "Month") {
+          next.setMonth(next.getMonth() + 1);
+        } else if (apptView === "Week") {
+          next.setDate(next.getDate() + 7);
+        } else if (apptView === "Day") {
+          next.setDate(next.getDate() + 1);
+        }
+      }
+      setApptCalendarDate(next);
+    };
+
+    const dateStr = formatDateString(apptCalendarDate);
+
+    // Queue Filtered List (for selected date)
+    const queueAppts = filteredAppts.filter(a => a.date === dateStr && a.status !== "Completed" && a.status !== "Cancelled");
+
+    // History Filtered List (by selected month/year of apptCalendarDate)
+    const historyAppts = filteredAppts.filter(a => {
+      const apptDateObj = new Date(a.date);
+      return apptDateObj.getMonth() === apptCalendarDate.getMonth() && 
+             apptDateObj.getFullYear() === apptCalendarDate.getFullYear() &&
+             (a.status === "Completed" || a.status === "Cancelled");
+    });
 
     return (
-      <div className="animate-fadeIn grid grid-cols-1 lg:grid-cols-12 gap-4 text-[13px] font-medium text-slate-700">
+      <div className="animate-fadeIn grid grid-cols-1 lg:grid-cols-12 gap-4 text-xs font-semibold text-slate-700">
         
-        {/* LEFT SIDEBAR PANEL (col-span-2 ~17%) */}
+        {/* LEFT SIDEBAR PANEL (col-span-2 ~16.6%) */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs space-y-3">
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs space-y-3">
             <Button 
               onClick={() => setActiveModal("addAppointment")} 
               className="w-full h-10 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs"
@@ -2353,9 +2257,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               variant="outline"
               className="w-full h-10 border-slate-200 hover:bg-slate-50 dark:border-slate-800 text-blue-600 font-semibold text-xs rounded-xl flex items-center justify-center gap-2"
               onClick={() => {
-                const dateStr = prompt("Enter target date (YYYY-MM-DD):", "2026-08-12");
-                if (dateStr) {
-                  const parts = dateStr.split("-");
+                const dateStrInput = prompt("Enter target date (YYYY-MM-DD):", "2026-08-12");
+                if (dateStrInput) {
+                  const parts = dateStrInput.split("-");
                   if (parts.length === 3) {
                     const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
                     setApptCalendarDate(d);
@@ -2368,53 +2272,41 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
             <hr className="border-slate-100 dark:border-slate-800" />
 
-            {/* All Doctors */}
-            <span className="font-semibold text-[11px] text-slate-400 uppercase tracking-wider block">All Doctors</span>
-            <div className="space-y-1.5">
+            {/* Doctors Initials/Avatar Selector Grid */}
+            <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-1">All Doctors</span>
+            <div className="flex flex-wrap gap-2.5 pt-1">
               <div 
                 onClick={() => setApptSelectedDoctor("All")}
-                className={`px-2.5 py-2 rounded-lg border cursor-pointer transition-all flex items-center gap-2 ${
-                  apptSelectedDoctor === "All" 
-                    ? "bg-blue-50/50 border-blue-500 dark:bg-blue-950/20" 
-                    : "border-slate-100 hover:bg-slate-50 dark:border-slate-800"
+                title="Show All Doctors"
+                className={`h-8 w-8 rounded-full font-bold text-[10px] flex items-center justify-center cursor-pointer transition-all border ${
+                  apptSelectedDoctor === "All"
+                    ? "bg-blue-600 border-blue-700 text-white shadow-sm ring-1 ring-blue-500 ring-offset-2 dark:ring-offset-slate-955 scale-105"
+                    : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
                 }`}
               >
-                <div className="h-7 w-7 rounded-full bg-blue-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">ALL</div>
-                <span className="font-semibold text-[12px] text-slate-800 dark:text-slate-200 truncate">All Doctors</span>
+                ALL
               </div>
-
               {doctors.map((doc, idx) => {
                 const isActive = apptSelectedDoctor === doc.name;
                 const initials = doc.name.replace("Dr. ", "").split(" ").map(n => n[0]).join("").toUpperCase();
                 const colors = [
-                  "bg-blue-100 text-blue-700",
-                  "bg-purple-100 text-purple-700",
-                  "bg-emerald-100 text-emerald-700",
-                  "bg-indigo-100 text-indigo-700",
-                  "bg-pink-100 text-pink-700"
+                  "bg-blue-100 border-blue-200 text-blue-700",
+                  "bg-purple-100 border-purple-200 text-purple-700",
+                  "bg-emerald-100 border-emerald-200 text-emerald-700",
+                  "bg-indigo-100 border-indigo-200 text-indigo-700",
+                  "bg-pink-100 border-pink-200 text-pink-700"
                 ];
                 const avatarColor = colors[idx % colors.length];
-                const todayCount = appointments.filter(a => a.doctor === doc.name && a.date === "12 Aug 2026" && a.status !== "Cancelled").length;
-
                 return (
-                  <div 
+                  <div
                     key={doc.name}
                     onClick={() => setApptSelectedDoctor(isActive ? "All" : doc.name)}
-                    className={`px-2.5 py-2 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
-                      isActive 
-                        ? "bg-blue-50/50 border-blue-500 dark:bg-blue-955/20" 
-                        : "border-slate-100 hover:bg-slate-50 dark:border-slate-800"
+                    title={doc.name}
+                    className={`h-8 w-8 rounded-full font-bold text-[10px] flex items-center justify-center cursor-pointer transition-all border ${avatarColor} ${
+                      isActive ? "ring-1 ring-blue-500 ring-offset-2 dark:ring-offset-slate-955 scale-105" : "hover:opacity-90"
                     }`}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className={`h-7 w-7 rounded-full font-bold text-[10px] flex items-center justify-center shrink-0 ${avatarColor}`}>
-                        {initials}
-                      </div>
-                      <span className="font-semibold text-[12px] text-slate-800 dark:text-slate-200 truncate">{doc.name.replace("Dr. ", "")}</span>
-                    </div>
-                    {todayCount > 0 && (
-                      <span className="text-[10px] bg-slate-100 dark:bg-slate-850 px-1.5 py-0.5 rounded-full font-bold text-slate-600 dark:text-slate-300 shrink-0">{todayCount}</span>
-                    )}
+                    {initials}
                   </div>
                 );
               })}
@@ -2422,62 +2314,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
         </div>
 
-        {/* RIGHT PANEL (col-span-10 ~83%) */}
+        {/* RIGHT PANEL (col-span-10 ~83.3%) */}
         <div className="lg:col-span-10 space-y-4">
           
-          {/* Top Toolbar */}
-          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3">
-            
-            {/* Month Navigator */}
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => {
-                  const prev = new Date(apptCalendarDate);
-                  prev.setMonth(prev.getMonth() - 1);
-                  setApptCalendarDate(prev);
-                }}
-                className="h-8 w-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 dark:border-slate-800 dark:text-slate-400"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="font-bold text-[14px] text-slate-800 dark:text-slate-200 min-w-[130px] text-center">
-                {apptCalendarDate.toLocaleString("default", { month: "long", year: "numeric" })}
-              </span>
-              <button 
-                onClick={() => {
-                  const next = new Date(apptCalendarDate);
-                  next.setMonth(next.getMonth() + 1);
-                  setApptCalendarDate(next);
-                }}
-                className="h-8 w-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 dark:border-slate-800 dark:text-slate-400"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* View Toggle */}
-            <div className="bg-slate-100 dark:bg-slate-900 p-0.5 rounded-lg flex items-center">
-              {(["Month", "Week", "Day"] as const).map((view) => (
-                <button
-                  key={view}
-                  onClick={() => setApptView(view)}
-                  className={`px-3.5 py-1.5 rounded-md text-[12px] font-bold transition-all ${
-                    apptView === view 
-                      ? "bg-white text-blue-600 shadow-sm dark:bg-slate-950" 
-                      : "text-slate-550 hover:text-slate-800 dark:text-slate-400"
-                  }`}
-                >
-                  {view}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Filters Row */}
-          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-xs flex flex-wrap items-center gap-3 text-[12px] font-medium text-slate-600">
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-xs flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-605">
             <div className="flex items-center gap-1.5">
               <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400" />
-              <span className="font-semibold">Filters:</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">Filters:</span>
             </div>
 
             <select 
@@ -2517,268 +2361,446 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             </select>
           </div>
 
-          {/* MONTH VIEW */}
-          {apptView === "Month" && (
-            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
-              <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-400 mb-3 border-b pb-2">
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
-                  <div key={d} className="py-1">{d}</div>
-                ))}
+          {/* Unified Calendar/Queue/History Card */}
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
+            
+            {/* Redesigned 3-Column Top Navigation Layout */}
+            <div className="flex items-center justify-between border-b border-slate-105 dark:border-slate-800 pb-3 mb-1">
+              
+              {/* Left Section: Compact Arrows together */}
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={handlePrevDate}
+                  className="h-8 w-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-900 transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button 
+                  onClick={handleNextDate}
+                  className="h-8 w-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-900 transition-colors"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
-              <div className="grid grid-cols-7 gap-2">
-                {getDaysInMonth(apptCalendarDate).map((dayObj, index) => {
-                  const dateStr = formatDateString(dayObj.date);
-                  const dayAppts = filteredAppts.filter(a => a.date === dateStr);
-                  const isToday = dayObj.date.toDateString() === new Date().toDateString();
-                  
-                  return (
-                    <div 
-                      key={index} 
-                      className={`min-h-[110px] p-2 border rounded-xl flex flex-col justify-between transition-colors ${
-                        dayObj.isCurrentMonth 
-                          ? "bg-white border-slate-200 dark:bg-slate-955 dark:border-slate-800" 
-                          : "bg-slate-50/50 border-slate-100 text-slate-400 dark:bg-slate-900/10 dark:border-slate-900"
-                      }`}
-                    >
-                      <div className="flex justify-between items-center mb-1">
-                        <span className={`text-[10px] font-extrabold h-5 w-5 rounded-full flex items-center justify-center ${
-                          isToday ? "bg-blue-600 text-white shadow-xs" : "text-slate-800 dark:text-slate-200"
-                        }`}>
-                          {dayObj.date.getDate()}
-                        </span>
-                      </div>
-                      <div className="space-y-1.5 flex-1 overflow-y-auto pr-0.5 max-h-[80px]">
-                        {dayAppts.slice(0, 2).map(appt => {
-                          let docBorderColor = "border-l-blue-500 bg-blue-50/20";
-                          if (appt.doctor.includes("Raghuram")) docBorderColor = "border-l-cyan-500 bg-cyan-50/20";
-                          else if (appt.doctor.includes("Srinivasa")) docBorderColor = "border-l-purple-500 bg-purple-50/20";
-                          else if (appt.doctor.includes("Priyanka")) docBorderColor = "border-l-emerald-500 bg-emerald-50/20";
-                          else if (appt.doctor.includes("Krishna")) docBorderColor = "border-l-indigo-500 bg-indigo-50/20";
 
-                          return (
-                            <div 
-                              key={appt.id}
-                              onClick={() => setSelectedApptDetail(appt)}
-                              className={`p-1.5 border-l-2 rounded-md text-[9.5px] cursor-pointer hover:shadow-xs transition-shadow block leading-snug ${docBorderColor}`}
-                            >
-                              <p className="font-extrabold text-slate-900 dark:text-white truncate">{appt.patientName}</p>
-                              <p className="text-slate-500 text-[8px] truncate">{appt.patientId}</p>
-                              <p className="text-slate-450 text-[8px] truncate">{appt.doctor}</p>
-                            </div>
-                          );
-                        })}
-                        
-                        {dayAppts.length > 2 && (
-                          <button 
-                            onClick={() => {
-                              setSelectedSlotData({ date: dateStr, time: "Multiple" });
-                            }}
-                            className="w-full text-center py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 text-[9px] font-extrabold text-blue-600"
-                          >
-                            +{dayAppts.length - 2} More
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+              {/* Center Section: Month/Year title */}
+              <span className="font-semibold text-[18px] text-slate-800 dark:text-white text-center">
+                {activeSubTab === "Queue" 
+                  ? `Queue for ${dateStr}`
+                  : activeSubTab === "History"
+                  ? `History for ${apptCalendarDate.toLocaleString("default", { month: "long", year: "numeric" })}`
+                  : apptCalendarDate.toLocaleString("default", { month: "long", year: "numeric" })}
+              </span>
+
+              {/* Right Section: View Switcher (Only visible in Today view) */}
+              <div>
+                {activeSubTab === "Today" ? (
+                  <div className="bg-slate-100 dark:bg-slate-900 p-0.5 rounded-lg flex items-center">
+                    {(["Month", "Week", "Day"] as const).map((view) => (
+                      <button
+                        key={view}
+                        onClick={() => setApptView(view)}
+                        className={`px-3 py-1.5 rounded-md text-[12px] font-bold transition-all ${
+                          apptView === view 
+                            ? "bg-white text-blue-600 shadow-sm dark:bg-slate-955" 
+                            : "text-slate-550 hover:text-slate-888 dark:text-slate-400"
+                        }`}
+                      >
+                        {view}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-350 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                    {activeSubTab}
+                  </div>
+                )}
               </div>
             </div>
-          )}
 
-          {/* WEEK VIEW */}
-          {apptView === "Week" && (
-            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs overflow-x-auto">
-              <div className="min-w-[800px]">
-                {/* Month label for week view */}
-                <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <div>
-                    <span className="font-bold text-[15px] text-slate-800 dark:text-white">
-                      {(() => {
-                        const weekDays = getWeekDays(apptCalendarDate);
-                        const first = weekDays[0];
-                        const last = weekDays[6];
-                        const firstMonth = first.toLocaleString("default", { month: "long" });
-                        const lastMonth = last.toLocaleString("default", { month: "long" });
-                        const year = first.getFullYear();
-                        return firstMonth === lastMonth ? `${firstMonth} ${year}` : `${firstMonth} / ${lastMonth} ${year}`;
-                      })()}
-                    </span>
-                    <p className="text-[12px] text-slate-400 mt-0.5">
-                      {(() => {
-                        const weekDays = getWeekDays(apptCalendarDate);
-                        return `${weekDays[0].getDate()} – ${weekDays[6].getDate()} ${weekDays[6].toLocaleString("default", { month: "short" })}`;
-                      })()}
-                    </p>
-                  </div>
+            {/* TODAY - MONTH VIEW */}
+            {activeSubTab === "Today" && apptView === "Month" && (
+              <div>
+                <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-400 mb-3 border-b pb-2">
+                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
+                    <div key={d} className="py-1">{d}</div>
+                  ))}
                 </div>
-                <div className="grid grid-cols-8 gap-2 text-center text-[12px] font-semibold text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2 mb-2">
-                  <div className="text-left py-1">Time</div>
-                  {getWeekDays(apptCalendarDate).map((day, idx) => {
-                    const daysName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-                    const isToday = day.toDateString() === new Date().toDateString();
+                <div className="grid grid-cols-7 gap-2">
+                  {getDaysInMonth(apptCalendarDate).map((dayObj, index) => {
+                    const dayDateStr = formatDateString(dayObj.date);
+                    const dayAppts = filteredAppts.filter(a => a.date === dayDateStr);
+                    const isToday = dayObj.date.toDateString() === new Date().toDateString();
+                    
                     return (
-                      <div key={idx} className="py-1">
-                        <span className="block text-[10px] uppercase">{daysName[day.getDay()]}</span>
-                        <span className={`block text-[13px] font-bold mt-0.5 ${isToday ? "text-blue-600" : "text-slate-800 dark:text-slate-200"}`}>{day.getDate()}</span>
+                      <div 
+                        key={index} 
+                        className={`min-h-[110px] p-2 border rounded-xl flex flex-col justify-between transition-colors overflow-hidden ${
+                          dayObj.isCurrentMonth 
+                            ? "bg-white border-slate-200 dark:bg-slate-955 dark:border-slate-800" 
+                            : "bg-slate-50/50 border-slate-100 text-slate-400 dark:bg-slate-900/10 dark:border-slate-900"
+                        }`}
+                      >
+                        <div className="flex justify-between items-center mb-1">
+                          <span className={`text-[10px] font-extrabold h-5 w-5 rounded-full flex items-center justify-center ${
+                            isToday ? "bg-blue-600 text-white shadow-xs" : "text-slate-808 dark:text-slate-202"
+                          }`}>
+                            {dayObj.date.getDate()}
+                          </span>
+                        </div>
+                        
+                        {/* Time, Patient Name, Patient ID in Column-wise format, Scrollbar removed */}
+                        <div className="space-y-1.5 flex-1 pr-0.5 overflow-hidden">
+                          {dayAppts.slice(0, 2).map(appt => {
+                            let docBorderColor = "border-l-blue-500 bg-blue-50/20";
+                            if (appt.doctor.includes("Raghuram")) docBorderColor = "border-l-cyan-500 bg-cyan-50/20";
+                            else if (appt.doctor.includes("Srinivasa")) docBorderColor = "border-l-purple-500 bg-purple-50/20";
+                            else if (appt.doctor.includes("Priyanka")) docBorderColor = "border-l-emerald-505 bg-emerald-55/20";
+                            else if (appt.doctor.includes("Krishna")) docBorderColor = "border-l-indigo-500 bg-indigo-50/20";
+
+                            return (
+                              <div 
+                                key={appt.id}
+                                onClick={() => setSelectedApptDetail(appt)}
+                                className={`p-1 border-l-2 rounded text-[9px] cursor-pointer hover:shadow-xs transition-shadow flex flex-col gap-0.5 leading-tight ${docBorderColor}`}
+                              >
+                                <span className="font-bold text-slate-550 dark:text-slate-400 text-[7.5px]">{appt.time}</span>
+                                <span className="font-extrabold text-slate-900 dark:text-white truncate">{appt.patientName}</span>
+                                <span className="text-slate-500 text-[8px] truncate">{appt.patientId}</span>
+                              </div>
+                            );
+                          })}
+                          
+                          {dayAppts.length > 2 && (
+                            <button 
+                              onClick={() => {
+                                setSelectedSlotData({ date: dayDateStr, time: "Multiple" });
+                              }}
+                              className="w-full text-center py-0.5 rounded bg-slate-100 hover:bg-slate-202 dark:bg-slate-900 text-[9px] font-extrabold text-blue-600"
+                            >
+                              +{dayAppts.length - 2} More
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
                 </div>
-
-                <div className="divide-y divide-slate-100 dark:divide-slate-900">
-                  {["09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM", "08:00 PM"].map((hourSlot) => (
-                    <div key={hourSlot} className="grid grid-cols-8 gap-2 py-3 items-stretch min-h-[70px]">
-                      <div className="text-[10px] text-slate-400 font-bold self-start mt-1">{hourSlot}</div>
-                      
-                      {getWeekDays(apptCalendarDate).map((day, idx) => {
-                        const dateStr = formatDateString(day);
-                        const slotAppts = filteredAppts.filter(a => {
-                          if (a.date !== dateStr) return false;
-                          const matchHour = a.time.split(":")[0];
-                          const matchAmPm = a.time.split(" ")[1];
-                          const slotHour = hourSlot.split(":")[0];
-                          const slotAmPm = hourSlot.split(" ")[1];
-                          return parseInt(matchHour) === parseInt(slotHour) && matchAmPm === slotAmPm;
-                        });
-
-                        return (
-                          <div key={idx} className="rounded-lg bg-slate-50/20 border border-dashed border-slate-100 dark:border-slate-850 p-1.5 flex flex-col gap-1.5">
-                            {slotAppts.map(appt => {
-                              let docBorderColor = "border-l-blue-500 bg-blue-50/25";
-                              if (appt.doctor.includes("Raghuram")) docBorderColor = "border-l-cyan-500 bg-cyan-50/25";
-                              else if (appt.doctor.includes("Srinivasa")) docBorderColor = "border-l-purple-500 bg-purple-50/25";
-                              else if (appt.doctor.includes("Priyanka")) docBorderColor = "border-l-emerald-500 bg-emerald-50/25";
-                              else if (appt.doctor.includes("Krishna")) docBorderColor = "border-l-indigo-500 bg-indigo-50/25";
-
-                              return (
-                                <div 
-                                  key={appt.id}
-                                  onClick={() => setSelectedApptDetail(appt)}
-                                  className={`p-2 border-l-2 rounded-lg text-[9.5px] cursor-pointer hover:shadow-xs transition-shadow block ${docBorderColor}`}
-                                >
-                                  <p className="font-extrabold text-slate-900 dark:text-white truncate">{appt.patientName}</p>
-                                  <p className="text-[8px] text-slate-450 truncate">{appt.patientId}</p>
-                                  <p className="text-[8px] text-slate-550 truncate">{appt.doctor}</p>
-                                  <p className="text-[8px] font-bold text-slate-600 mt-1">{appt.time}</p>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* DAY VIEW */}
-          {apptView === "Day" && (
-            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs space-y-4">
-              {/* Day view header with month label + day nav */}
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <div>
-                  <span className="font-bold text-[15px] text-slate-800 dark:text-white block">
-                    {apptCalendarDate.toLocaleString("default", { month: "long", year: "numeric" })}
-                  </span>
-                  <p className="text-[12px] text-slate-400 mt-0.5">Timeline: {formatDateString(apptCalendarDate)} · 15-min slots</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      const prev = new Date(apptCalendarDate);
-                      prev.setDate(prev.getDate() - 1);
-                      setApptCalendarDate(prev);
-                    }}
-                    className="h-8 w-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 dark:border-slate-800"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200 min-w-[90px] text-center">
-                    {apptCalendarDate.toLocaleString("default", { weekday: "short", day: "numeric", month: "short" })}
-                  </span>
-                  <button
-                    onClick={() => {
-                      const next = new Date(apptCalendarDate);
-                      next.setDate(next.getDate() + 1);
-                      setApptCalendarDate(next);
-                    }}
-                    className="h-8 w-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 dark:border-slate-800"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="divide-y divide-slate-100 dark:divide-slate-900 max-h-[600px] overflow-y-auto pr-2">
-                {Array.from({ length: 45 }, (_, idx) => {
-                  const totalMinutes = 9 * 60 + idx * 15;
-                  const hours = Math.floor(totalMinutes / 60);
-                  const minutes = totalMinutes % 60;
-                  const ampm = hours >= 12 ? "PM" : "AM";
-                  const displayHours = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
-                  const slotTimeStr = `${displayHours < 10 ? '0' + displayHours : displayHours}:${minutes < 10 ? '0' + minutes : minutes} ${ampm}`;
-                  
-                  const slotAppt = filteredAppts.find(a => {
-                    if (a.date !== formatDateString(apptCalendarDate)) return false;
-                    const cleanT = (t: string) => t.trim().toLowerCase().replace(/^0/, "");
-                    return cleanT(a.time) === cleanT(slotTimeStr);
-                  });
+            {/* TODAY - WEEK VIEW */}
+            {activeSubTab === "Today" && apptView === "Week" && (
+              <div className="overflow-x-auto">
+                <div className="min-w-[800px]">
+                  <div className="grid grid-cols-8 gap-2 text-center text-[12px] font-semibold text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2 mb-2">
+                    <div className="text-left py-1">Time</div>
+                    {getWeekDays(apptCalendarDate).map((day, idx) => {
+                      const daysName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                      const isToday = day.toDateString() === new Date().toDateString();
+                      return (
+                        <div key={idx} className="py-1">
+                          <span className="block text-[10px] uppercase">{daysName[day.getDay()]}</span>
+                          <span className={`block text-[13px] font-bold mt-0.5 ${isToday ? "text-blue-600" : "text-slate-808 dark:text-slate-202"}`}>{day.getDate()}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
 
-                  return (
-                    <div key={idx} className="py-2.5 flex items-center justify-between gap-4 text-xs font-semibold">
-                      <span className="text-[10px] font-bold text-slate-400 w-16">{slotTimeStr}</span>
-                      
-                      {slotAppt ? (
-                        (() => {
-                          let docColor = "border-l-blue-500 bg-blue-50/15";
-                          if (slotAppt.doctor.includes("Raghuram")) docColor = "border-l-cyan-500 bg-cyan-50/15";
-                          else if (slotAppt.doctor.includes("Srinivasa")) docColor = "border-l-purple-500 bg-purple-50/15";
-                          else if (slotAppt.doctor.includes("Priyanka")) docColor = "border-l-emerald-500 bg-emerald-50/15";
-                          else if (slotAppt.doctor.includes("Krishna")) docColor = "border-l-indigo-500 bg-indigo-50/15";
+                  <div className="divide-y divide-slate-100 dark:divide-slate-900">
+                    {["09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM", "08:00 PM"].map((hourSlot) => (
+                      <div key={hourSlot} className="grid grid-cols-8 gap-2 py-3 items-stretch min-h-[70px]">
+                        <div className="text-[10px] text-slate-400 font-bold self-start mt-1">{hourSlot}</div>
+                        
+                        {getWeekDays(apptCalendarDate).map((day, idx) => {
+                          const dayDateStr = formatDateString(day);
+                          const slotAppts = filteredAppts.filter(a => {
+                            if (a.date !== dayDateStr) return false;
+                            const matchHour = a.time.split(":")[0];
+                            const matchAmPm = a.time.split(" ")[1];
+                            const slotHour = hourSlot.split(":")[0];
+                            const slotAmPm = hourSlot.split(" ")[1];
+                            return parseInt(matchHour) === parseInt(slotHour) && matchAmPm === slotAmPm;
+                          });
 
                           return (
-                            <div 
-                              onClick={() => setSelectedApptDetail(slotAppt)}
-                              className={`flex-1 p-3 border-l-3 rounded-xl flex items-center justify-between cursor-pointer hover:shadow-xs transition-shadow ${docColor}`}
-                            >
-                              <div>
-                                <span className="font-bold text-slate-800 dark:text-slate-200 block">{slotAppt.patientName}</span>
-                                <p className="text-[10px] text-slate-450 mt-0.5">{slotAppt.patientId} • Doctor: {slotAppt.doctor}</p>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold uppercase">{slotAppt.treatment}</span>
-                                <p className="text-[9px] text-slate-400 mt-1">{slotAppt.status}</p>
-                              </div>
+                            <div key={idx} className="rounded-lg bg-slate-50/20 border border-dashed border-slate-105 dark:border-slate-850 p-1.5 flex flex-col gap-1.5 overflow-hidden">
+                              {slotAppts.map(appt => {
+                                let docBorderColor = "border-l-blue-500 bg-blue-50/25";
+                                if (appt.doctor.includes("Raghuram")) docBorderColor = "border-l-cyan-500 bg-cyan-50/25";
+                                else if (appt.doctor.includes("Srinivasa")) docBorderColor = "border-l-purple-500 bg-purple-50/25";
+                                else if (appt.doctor.includes("Priyanka")) docBorderColor = "border-l-emerald-505 bg-emerald-55/25";
+                                else if (appt.doctor.includes("Krishna")) docBorderColor = "border-l-indigo-500 bg-indigo-55/25";
+
+                                return (
+                                  <div 
+                                    key={appt.id}
+                                    onClick={() => setSelectedApptDetail(appt)}
+                                    className={`p-1 border-l-2 rounded text-[9px] cursor-pointer hover:shadow-xs transition-shadow flex flex-col gap-0.5 leading-tight ${docBorderColor}`}
+                                  >
+                                    <span className="font-bold text-slate-550 dark:text-slate-400 text-[7.5px]">{appt.time}</span>
+                                    <span className="font-extrabold text-slate-900 dark:text-white truncate">{appt.patientName}</span>
+                                    <span className="text-slate-505 text-[8px] truncate">{appt.patientId}</span>
+                                  </div>
+                                );
+                              })}
                             </div>
                           );
-                        })()
-                      ) : (
-                        <button 
-                          onClick={() => {
-                            setSelectedSlotData({ date: formatDateString(apptCalendarDate), time: slotTimeStr });
-                          }}
-                          className="flex-1 py-3 border border-dashed border-slate-100 hover:border-blue-300 rounded-xl text-[10px] text-slate-400 font-bold text-left px-4 hover:bg-slate-50/20"
-                        >
-                          + Block / Open Appointment Slot
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* TODAY - DAY VIEW */}
+            {activeSubTab === "Today" && apptView === "Day" && (
+              <div className="space-y-4">
+                <div className="divide-y divide-slate-100 dark:divide-slate-900 max-h-[600px] overflow-y-auto pr-2">
+                  {Array.from({ length: 45 }, (_, idx) => {
+                    const totalMinutes = 9 * 60 + idx * 15;
+                    const hours = Math.floor(totalMinutes / 60);
+                    const minutes = totalMinutes % 60;
+                    const ampm = hours >= 12 ? "PM" : "AM";
+                    const displayHours = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
+                    const slotTimeStr = `${displayHours < 10 ? '0' + displayHours : displayHours}:${minutes < 10 ? '0' + minutes : minutes} ${ampm}`;
+                    
+                    const slotAppt = filteredAppts.find(a => {
+                      if (a.date !== dateStr) return false;
+                      const cleanT = (t: string) => t.trim().toLowerCase().replace(/^0/, "");
+                      return cleanT(a.time) === cleanT(slotTimeStr);
+                    });
+
+                    return (
+                      <div key={idx} className="py-2.5 flex items-center justify-between gap-4 text-xs font-semibold">
+                        <span className="text-[10px] font-bold text-slate-400 w-16">{slotTimeStr}</span>
+                        
+                        {slotAppt ? (
+                          (() => {
+                            let docColor = "border-l-blue-500 bg-blue-50/15";
+                            if (slotAppt.doctor.includes("Raghuram")) docColor = "border-l-cyan-500 bg-cyan-50/15";
+                            else if (slotAppt.doctor.includes("Srinivasa")) docColor = "border-l-purple-500 bg-purple-50/15";
+                            else if (slotAppt.doctor.includes("Priyanka")) docColor = "border-l-emerald-500 bg-emerald-50/15";
+                            else if (slotAppt.doctor.includes("Krishna")) docColor = "border-l-indigo-500 bg-indigo-50/15";
+
+                            return (
+                              <div 
+                                onClick={() => setSelectedApptDetail(slotAppt)}
+                                className={`flex-1 p-3 border-l-3 rounded-xl flex items-center justify-between cursor-pointer hover:shadow-xs transition-shadow ${docColor}`}
+                              >
+                                <div>
+                                  <span className="font-bold text-slate-850 dark:text-slate-202 block">{slotAppt.patientName}</span>
+                                  <p className="text-[10px] text-slate-450 mt-0.5">{slotAppt.patientId} • Doctor: {slotAppt.doctor}</p>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold uppercase">{slotAppt.treatment}</span>
+                                  <p className="text-[9px] text-slate-400 mt-1">{slotAppt.status}</p>
+                                </div>
+                              </div>
+                            );
+                          })()
+                        ) : (
+                          <button 
+                            onClick={() => {
+                              setSelectedSlotData({ date: dateStr, time: slotTimeStr });
+                            }}
+                            className="flex-1 py-3 border border-dashed border-slate-100 hover:border-blue-300 rounded-xl text-[10px] text-slate-400 font-bold text-left px-4 hover:bg-slate-50/20"
+                          >
+                            + Block / Open Appointment Slot
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* QUEUE MODULE VIEW */}
+            {activeSubTab === "Queue" && (
+              <div className="space-y-4">
+                {queueAppts.length > 0 ? (
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+                    <table className="w-full text-left border-collapse text-xs font-semibold">
+                      <thead>
+                        <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-400">
+                          <th className="p-3">Time</th>
+                          <th className="p-3">Patient</th>
+                          <th className="p-3">Doctor</th>
+                          <th className="p-3">Treatment</th>
+                          <th className="p-3">Status</th>
+                          <th className="p-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-700 dark:text-slate-300">
+                        {queueAppts.map(appt => {
+                          const docInitials = appt.doctor.replace("Dr. ", "").split(" ").map(n => n[0]).join("").toUpperCase();
+                          return (
+                            <tr key={appt.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
+                              <td className="p-3 font-bold text-slate-808 dark:text-white">{appt.time}</td>
+                              <td className="p-3">
+                                <div>
+                                  <span className="font-bold text-slate-900 dark:text-white block">{appt.patientName}</span>
+                                  <span className="text-[10px] text-slate-400 block">{appt.patientId}</span>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="h-6 w-6 rounded-full bg-blue-100 text-blue-755 font-bold text-[10px] flex items-center justify-center shrink-0">
+                                    {docInitials}
+                                  </div>
+                                  <span className="font-semibold text-slate-755 dark:text-slate-250">{appt.doctor}</span>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <span className="bg-blue-50 text-blue-700 dark:bg-blue-955/20 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase">
+                                  {appt.treatment}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                  appt.status === "Waiting" || appt.status === "Checked In"
+                                    ? "bg-amber-50 text-amber-700 dark:bg-amber-955/20"
+                                    : appt.status === "In Procedure"
+                                    ? "bg-blue-50 text-blue-700 dark:bg-blue-955/20"
+                                    : "bg-slate-50 text-slate-500"
+                                }`}>
+                                  {appt.status}
+                                </span>
+                              </td>
+                              <td className="p-3 text-right">
+                                <div className="flex justify-end gap-1.5">
+                                  {appt.status === "Scheduled" && (
+                                    <button 
+                                      onClick={() => handleApptCheckIn(appt.id)}
+                                      className="px-2.5 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[10px]"
+                                    >
+                                      Check In
+                                    </button>
+                                  )}
+                                  {(appt.status === "Waiting" || appt.status === "Checked In") && (
+                                    <button 
+                                      onClick={() => handleApptStartProcedure(appt.id)}
+                                      className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px]"
+                                    >
+                                      Start
+                                    </button>
+                                  )}
+                                  {appt.status === "In Procedure" && (
+                                    <button 
+                                      onClick={() => {
+                                        setAppointments(prev => prev.map(a => a.id === appt.id ? { ...a, status: "Completed" } : a));
+                                        pushActivity("Treatment", `Completed ${appt.treatment} for ${appt.patientName}.`);
+                                      }}
+                                      className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px]"
+                                    >
+                                      Complete
+                                    </button>
+                                  )}
+                                  <button 
+                                    onClick={() => setSelectedApptDetail(appt)}
+                                    className="px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-500 text-[10px]"
+                                  >
+                                    Details
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="py-12 text-center bg-slate-50/20 border border-dashed rounded-xl border-slate-200">
+                    <p className="text-slate-400 text-xs">No active queue patients for this date.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* HISTORY MODULE VIEW */}
+            {activeSubTab === "History" && (
+              <div className="space-y-4">
+                {historyAppts.length > 0 ? (
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+                    <table className="w-full text-left border-collapse text-xs font-semibold">
+                      <thead>
+                        <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-400">
+                          <th className="p-3">Date & Time</th>
+                          <th className="p-3">Patient</th>
+                          <th className="p-3">Doctor</th>
+                          <th className="p-3">Treatment</th>
+                          <th className="p-3">Status</th>
+                          <th className="p-3">Clinical Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-700 dark:text-slate-300">
+                        {historyAppts.map(appt => {
+                          const docInitials = appt.doctor.replace("Dr. ", "").split(" ").map(n => n[0]).join("").toUpperCase();
+                          return (
+                            <tr key={appt.id} onClick={() => setSelectedApptDetail(appt)} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10 cursor-pointer">
+                              <td className="p-3">
+                                <div>
+                                  <span className="font-bold text-slate-808 dark:text-white block">{appt.date}</span>
+                                  <span className="text-[10px] text-slate-400 block">{appt.time}</span>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <div>
+                                  <span className="font-bold text-slate-900 dark:text-white block">{appt.patientName}</span>
+                                  <span className="text-[10px] text-slate-405 block">{appt.patientId}</span>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="h-6 w-6 rounded-full bg-blue-105 text-blue-700 font-bold text-[10px] flex items-center justify-center shrink-0">
+                                    {docInitials}
+                                  </div>
+                                  <span className="font-semibold text-slate-750 dark:text-slate-250">{appt.doctor}</span>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <span className="bg-blue-50 text-blue-700 dark:bg-blue-955/20 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase">
+                                  {appt.treatment}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                  appt.status === "Completed"
+                                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/20"
+                                    : "bg-red-50 text-red-700 dark:bg-red-955/20"
+                                }`}>
+                                  {appt.status}
+                                </span>
+                              </td>
+                              <td className="p-3 text-slate-500 font-medium max-w-[200px] truncate">
+                                {appt.notes || "—"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="py-12 text-center bg-slate-50/20 border border-dashed rounded-xl border-slate-200">
+                    <p className="text-slate-400 text-xs">No completed or cancelled appointments for this month.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+          </div>
         </div>
 
         {/* SIDE DRAWER FOR DETAILS */}
         {selectedApptDetail && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex justify-end">
-            <div className="w-full max-w-md bg-white dark:bg-slate-950 h-full shadow-2xl p-6 overflow-y-auto space-y-6 flex flex-col justify-between animate-slideLeft">
+            <div className="w-full max-w-md bg-white dark:bg-slate-955 h-full shadow-2xl p-6 overflow-y-auto space-y-6 flex flex-col justify-between animate-slideLeft">
               <div className="space-y-6">
-                <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-900">
+                <div className="flex justify-between items-center pb-4 border-b border-slate-105 dark:border-slate-900">
                   <div>
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Appointment Details</span>
                     <span className="text-lg font-bold text-slate-900 dark:text-white mt-0.5 block">{selectedApptDetail.patientName}</span>
@@ -2795,11 +2817,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase block">Patient ID</span>
-                      <strong className="text-slate-800 dark:text-slate-200 font-bold">{selectedApptDetail.patientId}</strong>
+                      <strong className="text-slate-808 dark:text-slate-202 font-bold">{selectedApptDetail.patientId}</strong>
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase block">Phone Number</span>
-                      <strong className="text-slate-800 dark:text-slate-200 font-bold">
+                      <strong className="text-slate-808 dark:text-slate-202 font-bold">
                         {patients.find(p => p.id === selectedApptDetail.patientId)?.phone || "+91 99000 11000"}
                       </strong>
                     </div>
@@ -2808,24 +2830,24 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase block">Assigned Doctor</span>
-                      <strong className="text-slate-800 dark:text-slate-200 font-bold">{selectedApptDetail.doctor}</strong>
+                      <strong className="text-slate-808 dark:text-slate-202 font-bold">{selectedApptDetail.doctor}</strong>
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase block">Date & Time</span>
-                      <strong className="text-slate-800 dark:text-slate-200 font-bold">{selectedApptDetail.date} at {selectedApptDetail.time}</strong>
+                      <strong className="text-slate-888 dark:text-slate-202 font-bold">{selectedApptDetail.date} at {selectedApptDetail.time}</strong>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase block">Treatment</span>
-                      <span className="bg-blue-50 text-blue-700 dark:bg-blue-950/20 px-2.5 py-0.5 rounded-full font-bold uppercase text-[9px] inline-block mt-1">
+                      <span className="bg-blue-50 text-blue-700 dark:bg-blue-955/20 px-2.5 py-0.5 rounded-full font-bold uppercase text-[9px] inline-block mt-1">
                         {selectedApptDetail.treatment}
                       </span>
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase block">Status</span>
-                      <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 px-2.5 py-0.5 rounded-full font-bold uppercase text-[9px] inline-block mt-1">
+                      <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-955/20 px-2.5 py-0.5 rounded-full font-bold uppercase text-[9px] inline-block mt-1">
                         {selectedApptDetail.status}
                       </span>
                     </div>
@@ -2841,7 +2863,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               </div>
 
               {/* Action Buttons Grid */}
-              <div className="space-y-3 pt-6 border-t border-slate-100 dark:border-slate-900">
+              <div className="space-y-3 pt-6 border-t border-slate-105 dark:border-slate-900">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Workflow Actions</span>
                 <div className="grid grid-cols-2 gap-2">
                   <Button 
@@ -2917,7 +2939,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   </button>
                   <button 
                     onClick={() => alert(`WhatsApp notification sent to ${selectedApptDetail.patientName}.`)}
-                    className="py-2 text-[10px] font-bold border rounded-lg bg-slate-50 hover:bg-slate-100 flex flex-col items-center justify-center gap-1 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-350"
+                    className="py-2 text-[10px] font-bold border rounded-lg bg-slate-50 hover:bg-slate-100 flex flex-col items-center justify-center gap-1 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-355"
                   >
                     <MessageCircle className="h-3.5 w-3.5 text-emerald-600" /> WhatsApp
                   </button>
@@ -3861,13 +3883,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       {/* 1. Sidebar Left Navigation */}
       <aside
         className={`sticky top-0 left-0 h-screen bg-white dark:bg-slate-955 border-r border-slate-200 dark:border-slate-800 hidden md:flex flex-col justify-between z-40 shrink-0 overflow-x-hidden transition-all duration-300 ease-in-out ${
-          sidebarCollapsed ? "w-[72px]" : "w-[250px]"
+          sidebarCollapsed ? "w-[68px]" : "w-[200px]"
         }`}
       >
         <div className={`border-b border-slate-200 dark:border-slate-800 flex items-center shrink-0 transition-all duration-300 ease-in-out overflow-hidden h-20 ${
           sidebarCollapsed
             ? "px-2 justify-center gap-1.5"
-            : "px-6 py-5 justify-between"
+            : "px-4 py-5 justify-between"
         }`}>
           <div className={`flex items-center transition-all duration-300 ease-in-out overflow-hidden ${
             sidebarCollapsed ? "justify-center" : "justify-start min-w-0"
@@ -3878,17 +3900,17 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className={`rounded-full flex items-center justify-center hover:bg-[#EFF6FF] hover:text-blue-600 text-slate-500 transition-all duration-250 ease-in-out shrink-0 active:scale-[0.97] ${
-              sidebarCollapsed ? "h-6 w-6" : "h-9 w-9 ml-2"
+              sidebarCollapsed ? "h-6 w-6" : "h-8 w-8 ml-1"
             }`}
             title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
-            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-5 w-5" />}
+            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>
         </div>
 
         <div className="flex flex-col flex-grow overflow-y-auto overflow-x-hidden">
-          <nav className={`p-4.5 space-y-3 flex-grow mt-3 transition-all duration-300 ease-in-out ${
-            sidebarCollapsed ? "px-2.5" : "px-4.5"
+          <nav className={`space-y-2 flex-grow mt-3 transition-all duration-300 ease-in-out ${
+            sidebarCollapsed ? "p-2" : "p-3"
           }`}>
             {menuItems.map((item) => {
               const active = activeTab === item.name && !activeConsultationApptId;
@@ -3902,19 +3924,19 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       setHoveredItemTop(rect.top + rect.height / 2);
                     }}
                     onMouseLeave={() => setHoveredItem(null)}
-                    className={`h-[48px] flex items-center rounded-[12px] text-[15px] transition-all duration-300 ease-in-out group ${
+                    className={`h-[42px] flex items-center rounded-[10px] text-[14px] transition-all duration-300 ease-in-out group ${
                       active ? "font-semibold bg-blue-600 text-white shadow-sm" : "font-medium text-[#334155] hover:bg-blue-50/50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white"
                     } ${
-                      sidebarCollapsed ? "w-12 justify-center px-0 mx-auto" : "w-full justify-between px-4"
+                      sidebarCollapsed ? "w-10 justify-center px-0 mx-auto" : "w-full justify-between px-3"
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="relative flex items-center justify-center h-[22px] w-[22px] shrink-0">
+                    <div className="flex items-center gap-2.5">
+                      <div className="relative flex items-center justify-center h-[20px] w-[20px] shrink-0">
                         <span className={active ? "text-white" : "text-slate-400 group-hover:text-blue-600 dark:group-hover:text-slate-205"}>
-                          {React.cloneElement(item.icon, { className: "h-[22px] w-[22px]" })}
+                          {React.cloneElement(item.icon, { className: "h-[20px] w-[20px]" })}
                         </span>
                         {item.badge && sidebarCollapsed && (
-                          <span className="absolute -top-1.5 -right-1.5 text-[11px] font-medium h-4 min-w-4 px-1 rounded-full bg-red-600 text-white border-2 border-white dark:border-slate-955 flex items-center justify-center shadow-xs">
+                          <span className="absolute -top-1.5 -right-1.5 text-[10px] font-medium h-4 min-w-4 px-1 rounded-full bg-red-650 text-white border-2 border-white dark:border-slate-955 flex items-center justify-center shadow-xs">
                             {item.badge}
                           </span>
                         )}
@@ -3929,7 +3951,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
                     {item.badge && !sidebarCollapsed && (
                       <span
-                        className={`text-[13px] font-medium px-2 py-0.5 rounded-full transition-all duration-300 ${
+                        className={`text-[12px] font-medium px-2 py-0.5 rounded-full transition-all duration-300 ${
                           active ? "bg-white/20 text-white" : "bg-red-100 text-red-600 dark:bg-red-955/40 dark:text-red-400"
                         }`}
                       >
@@ -3944,7 +3966,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         </div>
 
         <div className={`border-t border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-955 shrink-0 transition-all duration-300 ease-in-out ${
-          sidebarCollapsed ? "px-2 py-6 flex flex-col items-center justify-center gap-4" : "p-5"
+          sidebarCollapsed ? "px-2 py-4 flex flex-col items-center justify-center gap-3" : "p-4"
         }`}>
           {sidebarCollapsed ? (
             <div className="flex flex-col items-center gap-4 w-full">
