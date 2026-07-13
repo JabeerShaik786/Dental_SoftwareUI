@@ -75,6 +75,9 @@ interface Patient {
   prescriptions: string[];
   files: FileAttachment[];
   notes: string[];
+  email?: string;
+  bloodGroup?: string;
+  patientType?: "New" | "Returning";
 }
 
 interface Appointment {
@@ -257,6 +260,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [quickAge, setQuickAge] = useState(30);
   const [quickDOB, setQuickDOB] = useState("");
   const [quickLocation, setQuickLocation] = useState("Bengaluru");
+  const [quickEmail, setQuickEmail] = useState("");
+  const [quickAddress, setQuickAddress] = useState("");
+  const [quickBloodGroup, setQuickBloodGroup] = useState("A+");
+  const [quickPatientType, setQuickPatientType] = useState<"New" | "Returning">("New");
+  const [quickNotes, setQuickNotes] = useState("");
 
   // Recently Added Patient list states
   const [patientSearchQuery, setPatientSearchQuery] = useState("");
@@ -731,6 +739,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setQuickAge(30);
     setQuickDOB("");
     setQuickLocation("Bengaluru");
+    setQuickEmail("");
+    setQuickAddress("");
+    setQuickBloodGroup("A+");
+    setQuickPatientType("New");
+    setQuickNotes("");
   };
 
   const registerPatient = (patientData: {
@@ -740,6 +753,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     gender: "Male" | "Female";
     address: string;
     medicalNotes: string;
+    email?: string;
+    bloodGroup?: string;
+    patientType?: "New" | "Returning";
+    notes?: string[];
   }) => {
     const trimmedName = patientData.name.trim();
     const trimmedPhone = patientData.phone.trim();
@@ -785,7 +802,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       dentalChart: {},
       prescriptions: [],
       files: [],
-      notes: []
+      notes: patientData.notes || [],
+      email: patientData.email,
+      bloodGroup: patientData.bloodGroup,
+      patientType: patientData.patientType
     };
 
     setPatients(prev => [newPat, ...prev]);
@@ -813,8 +833,12 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       phone: quickMobile,
       age: quickAge,
       gender: quickGender,
-      address: quickLocation,
-      medicalNotes: "None"
+      address: quickAddress.trim() || quickLocation,
+      medicalNotes: "None",
+      email: quickEmail.trim() || undefined,
+      bloodGroup: quickBloodGroup,
+      patientType: quickPatientType,
+      notes: quickNotes.trim() ? [quickNotes.trim()] : []
     });
     if (saved) {
       handleClearPatientForm();
@@ -1468,56 +1492,125 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
             <span className="font-semibold text-[18px] block mb-2 shrink-0">Patient Registration</span>
             
-            <form onSubmit={handleSavePatientQuick} className="flex-1 flex flex-col justify-between mt-2">
-              {/* Scrollable Form Fields with 22px spacing */}
-              <div className="space-y-[22px]">
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-1">
-                    <Label htmlFor="qPatID" className="form-label-custom">Patient ID</Label>
-                    <Input id="qPatID" value={`DS-${1000 + patients.length + 1}`} disabled className="form-field-custom bg-slate-50 dark:bg-slate-900 opacity-60 cursor-not-allowed font-bold" />
+            <form onSubmit={handleSavePatientQuick} className="flex-grow flex flex-col justify-between overflow-hidden">
+              {/* Form Content Wrapper */}
+              <div className="flex-1 overflow-y-auto pr-1.5 scrollbar-thin space-y-4 pb-2.5">
+                {/* Section 1 — Basic Information */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Section 1 — Basic Information</span>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="qPatID" className="form-label-custom">Patient ID</Label>
+                      <Input id="qPatID" value={`DS-${1000 + patients.length + 1}`} disabled className="form-field-custom bg-slate-50 dark:bg-slate-900 opacity-60 cursor-not-allowed font-bold" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label htmlFor="qMobile" className="form-label-custom">Mobile Number</Label>
+                      <Input id="qMobile" placeholder="e.g. +91 99000 11000" value={quickMobile} onChange={e => setQuickMobile(e.target.value)} required className="form-field-custom" />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="qMobile" className="form-label-custom">Mobile Number</Label>
-                    <Input id="qMobile" placeholder="e.g. +91 99000 11000" value={quickMobile} onChange={e => setQuickMobile(e.target.value)} required className="form-field-custom" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-1">
-                    <Label htmlFor="qFirstName" className="form-label-custom">First Name</Label>
-                    <Input id="qFirstName" placeholder="e.g. Rahul" value={quickFirstName} onChange={e => setQuickFirstName(e.target.value)} required className="form-field-custom" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="qLastName" className="form-label-custom">Last Name</Label>
-                    <Input id="qLastName" placeholder="e.g. Verma" value={quickLastName} onChange={e => setQuickLastName(e.target.value)} required className="form-field-custom" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-1">
-                    <Label htmlFor="qAge" className="form-label-custom">Age</Label>
-                    <Input id="qAge" type="number" min="0" value={quickAge || ""} onChange={e => setQuickAge(parseInt(e.target.value) || 30)} required className="form-field-custom" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="qGender" className="form-label-custom">Gender</Label>
-                    <select
-                      id="qGender"
-                      className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
-                      value={quickGender}
-                      onChange={e => setQuickGender(e.target.value as "Male" | "Female")}
-                    >
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                    </select>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="qFirstName" className="form-label-custom">First Name</Label>
+                      <Input id="qFirstName" placeholder="e.g. Rahul" value={quickFirstName} onChange={e => setQuickFirstName(e.target.value)} required className="form-field-custom" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label htmlFor="qLastName" className="form-label-custom">Last Name</Label>
+                      <Input id="qLastName" placeholder="e.g. Verma" value={quickLastName} onChange={e => setQuickLastName(e.target.value)} required className="form-field-custom" />
+                    </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-1">
-                    <Label htmlFor="qDOB" className="form-label-custom">Date of Birth</Label>
-                    <Input id="qDOB" type="date" value={quickDOB} onChange={e => setQuickDOB(e.target.value)} className="form-field-custom" />
+
+                {/* Section 2 — Personal Information */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Section 2 — Personal Information</span>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="qAge" className="form-label-custom">Age</Label>
+                      <Input id="qAge" type="number" min="0" value={quickAge || ""} onChange={e => setQuickAge(parseInt(e.target.value) || 30)} required className="form-field-custom" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label htmlFor="qGender" className="form-label-custom">Gender</Label>
+                      <select
+                        id="qGender"
+                        className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                        value={quickGender}
+                        onChange={e => setQuickGender(e.target.value as "Male" | "Female")}
+                      >
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                      </select>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="qLocation" className="form-label-custom">Location</Label>
-                    <Input id="qLocation" placeholder="e.g. Jayanagar" value={quickLocation} onChange={e => setQuickLocation(e.target.value)} className="form-field-custom" />
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="qDOB" className="form-label-custom">Date of Birth</Label>
+                      <Input id="qDOB" type="date" value={quickDOB} onChange={e => setQuickDOB(e.target.value)} className="form-field-custom" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label htmlFor="qLocation" className="form-label-custom">Location</Label>
+                      <Input id="qLocation" placeholder="e.g. Jayanagar" value={quickLocation} onChange={e => setQuickLocation(e.target.value)} className="form-field-custom" />
+                    </div>
                   </div>
+                </div>
+
+                {/* Section 3 — Additional Information */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Section 3 — Additional Information</span>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="qEmail" className="form-label-custom">Email (Optional)</Label>
+                      <Input id="qEmail" type="email" placeholder="e.g. email@domain.com" value={quickEmail} onChange={e => setQuickEmail(e.target.value)} className="form-field-custom" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label htmlFor="qBloodGroup" className="form-label-custom">Blood Group</Label>
+                      <select
+                        id="qBloodGroup"
+                        className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                        value={quickBloodGroup}
+                        onChange={e => setQuickBloodGroup(e.target.value)}
+                      >
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="qAddress" className="form-label-custom">Address</Label>
+                      <Input id="qAddress" placeholder="e.g. MG Road, Bengaluru" value={quickAddress} onChange={e => setQuickAddress(e.target.value)} className="form-field-custom" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <Label htmlFor="qPatientType" className="form-label-custom">Patient Type</Label>
+                      <select
+                        id="qPatientType"
+                        className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                        value={quickPatientType}
+                        onChange={e => setQuickPatientType(e.target.value as "New" | "Returning")}
+                      >
+                        <option value="New">New Patient</option>
+                        <option value="Returning">Returning Patient</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 4 — Notes */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="qNotes" className="form-label-custom font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Section 4 — Notes / Remarks</Label>
+                  <textarea
+                    id="qNotes"
+                    placeholder="Enter special clinical alerts, allergies, or registration remarks..."
+                    value={quickNotes}
+                    onChange={e => setQuickNotes(e.target.value)}
+                    rows={2}
+                    className="form-field-custom py-2 h-16 resize-none block w-full outline-none focus:ring-1 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+                  />
                 </div>
               </div>
               
