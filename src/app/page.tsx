@@ -1490,7 +1490,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* SECTION 2 - Add Patient Panel (LEFT) */}
           <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
-            <span className="font-semibold text-[18px] block mb-2 shrink-0">Patient Registration</span>
+            <span className="font-semibold text-[18px] block mb-[22px] shrink-0">Patient Registration</span>
             
             <form onSubmit={handleSavePatientQuick} className="flex-grow flex flex-col justify-between overflow-hidden">
               {/* Form Content Wrapper */}
