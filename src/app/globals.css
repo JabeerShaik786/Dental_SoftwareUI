@@ -372,7 +372,12 @@
     padding: 0 12px !important;
     border-radius: 8px !important;
     width: 100% !important;
-    border: 1px solid #cbd5e1 !important;
+    border: 1px solid #f1f5f9 !important;
+    background-color: #f8fafc !important;
+  }
+  .dark .dashboard-container .form-field-custom {
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    background-color: #0f172a !important;
   }
   .dashboard-container .form-btn-custom {
     height: 40px !important;
@@ -394,9 +399,8 @@
 
   /* Patient & Queue Rows */
   .dashboard-container .patient-row {
-    padding: 10px 12px !important;
-    border-radius: 10px !important;
-    margin-bottom: 8px !important;
+    padding: 10px 0 !important;
+    margin-bottom: 0 !important;
   }
   .dashboard-container .patient-name-txt {
     font-size: 13.5px !important;
@@ -413,9 +417,8 @@
   }
 
   .dashboard-container .queue-row {
-    padding: 12px 14px !important;
-    border-radius: 12px !important;
-    margin-bottom: 10px !important;
+    padding: 10px 0 !important;
+    margin-bottom: 0 !important;
   }
   .dashboard-container .queue-name-txt {
     font-size: 13.5px !important;
@@ -471,13 +474,13 @@
   .dashboard-container .form-card,
   .dashboard-container .list-card,
   .dashboard-container .widget-card {
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
-    border: 1px solid #e5e7eb !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03) !important;
+    border: 1px solid #e8edf5 !important;
   }
   .dark .dashboard-container .calendar-card,
   .dark .dashboard-container .form-card,
   .dark .dashboard-container .list-card,
   .dark .dashboard-container .widget-card {
-    border: 1px solid #1e293b !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
   }
 }

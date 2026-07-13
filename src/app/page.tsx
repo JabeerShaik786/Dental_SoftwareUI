@@ -1016,7 +1016,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               {app.token ? app.token : "S"}
             </div>
 
-            <div className="flex-grow rounded-xl border border-slate-100 bg-slate-50/40 p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-3 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900/20 transition-all duration-200">
+            <div className="flex-grow py-3.5 flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-100/50 dark:border-slate-900/40 last:border-0 hover:bg-slate-50/10 transition-all duration-200">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-sm text-slate-900 dark:text-white">{app.patientName}</span>
@@ -1056,7 +1056,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       <div className="space-y-3">
         {appointments.filter(a => a.status === "Waiting").length > 0 ? (
           appointments.filter(a => a.status === "Waiting").map((item) => (
-            <div key={item.id} className="p-3 border rounded-xl bg-amber-50/20 border-amber-100 flex items-center justify-between text-xs font-semibold">
+            <div key={item.id} className="py-2.5 flex items-center justify-between text-xs font-semibold border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
               <div>
                 <span className="font-bold block">{item.patientName} ({item.token})</span>
                 <p className="text-[10px] text-slate-500 mt-1">Doctor: {item.doctor} • {item.treatment}</p>
@@ -1332,12 +1332,12 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   const appt = getApptForSlot(selectedCalendarDay, time);
                   const isBlocked = blockedSlots[`${selectedCalendarDay}_${time}`];
                   
-                  let btnStyle = "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900";
+                  let btnStyle = "border-slate-100/70 hover:bg-slate-50/50 dark:border-slate-900/60 dark:hover:bg-slate-900/40";
                   let statusText = "Available";
                   let statusBadge = null;
 
                   if (isBlocked) {
-                    btnStyle = "bg-slate-100 border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800";
+                    btnStyle = "bg-slate-100/50 border-slate-100 text-slate-400 dark:bg-slate-900/40 dark:border-slate-900";
                     statusText = "Blocked";
                   } else if (appt) {
                     statusText = appt.patientName;
@@ -1359,7 +1359,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
                       }}
                       className={`slot-btn p-2.5 rounded-xl border text-[10px] flex flex-col justify-between items-start text-left h-20 transition-all ${
-                        appt ? "bg-white shadow-xs dark:bg-slate-955" : "bg-slate-50/50 border-dashed"
+                        appt 
+                          ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800" 
+                          : isBlocked
+                            ? "bg-slate-100/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-900"
+                            : "bg-slate-50/20 border-dashed border-slate-200/60 dark:bg-slate-900/10 dark:border-slate-800/40 opacity-75"
                       } ${btnStyle}`}
                     >
                       <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
@@ -1392,12 +1396,12 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   const appt = getApptForSlot(selectedCalendarDay, time);
                   const isBlocked = blockedSlots[`${selectedCalendarDay}_${time}`];
                   
-                  let btnStyle = "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900";
+                  let btnStyle = "border-slate-100/70 hover:bg-slate-50/50 dark:border-slate-900/60 dark:hover:bg-slate-900/40";
                   let statusText = "Available";
                   let statusBadge = null;
 
                   if (isBlocked) {
-                    btnStyle = "bg-slate-100 border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800";
+                    btnStyle = "bg-slate-100/50 border-slate-100 text-slate-400 dark:bg-slate-900/40 dark:border-slate-900";
                     statusText = "Blocked";
                   } else if (appt) {
                     statusText = appt.patientName;
@@ -1419,7 +1423,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
                       }}
                       className={`slot-btn p-2.5 rounded-xl border text-[10px] flex flex-col justify-between items-start text-left h-20 transition-all ${
-                        appt ? "bg-white shadow-xs dark:bg-slate-955" : "bg-slate-50/50 border-dashed"
+                        appt 
+                          ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800" 
+                          : isBlocked
+                            ? "bg-slate-100/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-900"
+                            : "bg-slate-50/20 border-dashed border-slate-200/60 dark:bg-slate-900/10 dark:border-slate-800/40 opacity-75"
                       } ${btnStyle}`}
                     >
                       <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
@@ -1525,14 +1533,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   placeholder="Search name, ID..."
                   value={patientSearchQuery}
                   onChange={e => setPatientSearchQuery(e.target.value)}
-                  className="h-8 pl-8 pr-2 w-full rounded-lg bg-slate-50 border border-slate-200 text-[14px] font-medium outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 dark:bg-slate-900 dark:border-slate-800"
+                  className="h-8 pl-8 pr-2 w-full rounded-lg bg-slate-50 border border-slate-100 text-[14px] font-medium outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 dark:bg-slate-900 dark:border-slate-900/60"
                 />
               </div>
               <div className="relative col-span-1">
                 <select
                   value={patientFilterGender}
                   onChange={e => setPatientFilterGender(e.target.value)}
-                  className="h-8 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-2.5 pr-8 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                  className="h-8 w-full appearance-none rounded-lg border border-slate-100 bg-white pl-2.5 pr-8 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-900/60"
                 >
                   <option value="All">Gender</option>
                   <option value="Male">Male</option>
@@ -1545,7 +1553,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 <select
                   value={patientSortBy}
                   onChange={e => setPatientSortBy(e.target.value)}
-                  className="h-8 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-2.5 pr-8 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                  className="h-8 w-full appearance-none rounded-lg border border-slate-100 bg-white pl-2.5 pr-8 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-900/60"
                 >
                   <option value="Name-ASC">Sort: Name (A-Z)</option>
                   <option value="Name-DESC">Sort: Name (Z-A)</option>
@@ -1557,9 +1565,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             </div>
 
             {/* Patient List container with simulated Infinite Scroll */}
-            <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
+             <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
               {displayedPatients.map((pat) => (
-                <div key={pat.id} className="patient-row p-3 border border-slate-100 hover:border-blue-300 dark:border-slate-800 dark:hover:border-blue-900/50 rounded-xl bg-slate-50/30 flex justify-between items-center transition-all group">
+                <div key={pat.id} className="patient-row py-2.5 flex justify-between items-center transition-all group border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
                   <div className="min-w-0 flex-1 cursor-pointer" onClick={() => { setSelectedPatientId(pat.id); setActiveTab("Patients"); }}>
                     <span className="patient-name-txt font-bold text-slate-808 dark:text-slate-200 hover:text-blue-600 block truncate">{pat.name}</span>
                     <p className="patient-sub-txt text-[9px] text-slate-404 mt-0.5">{pat.id} • {pat.phone}</p>
@@ -1572,7 +1580,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setSlotPatientId(pat.id);
                         setSelectedSlotData({ date: selectedCalendarDay, time: "09:00 AM" });
                       }}
-                      className="h-6 w-6 rounded-md bg-white border dark:bg-slate-900 dark:border-slate-800 flex items-center justify-center text-blue-600 hover:bg-blue-50 transition-colors"
+                      className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-blue-650 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 transition-colors"
                     >
                       <CalendarDays className="h-3.5 w-3.5" />
                     </button>
@@ -1583,21 +1591,21 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setProfileSubTab("Dental Chart");
                         setActiveTab("Patients");
                       }}
-                      className="h-6 w-6 rounded-md bg-white border dark:bg-slate-900 dark:border-slate-800 flex items-center justify-center text-purple-600 hover:bg-purple-50"
+                      className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-purple-605 hover:bg-purple-50/50 dark:hover:bg-purple-950/30"
                     >
                       <Activity className="h-3.5 w-3.5" />
                     </button>
                     <button
                       title="Generate Bill"
                       onClick={() => handleQuickGenerateBill(pat)}
-                      className="h-6 w-6 rounded-md bg-white border dark:bg-slate-900 dark:border-slate-800 flex items-center justify-center text-emerald-600 hover:bg-emerald-50"
+                      className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-emerald-605 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30"
                     >
                       <Receipt className="h-3.5 w-3.5" />
                     </button>
                     <button
                       title="Quick Edit"
                       onClick={() => handleQuickEditPatient(pat)}
-                      className="h-6 w-6 rounded-md bg-white border dark:bg-slate-900 dark:border-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-100"
+                      className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-505 hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
                       <Settings className="h-3.5 w-3.5" />
                     </button>
@@ -1742,11 +1750,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             {/* Widget 1 - Walk-In Queue */}
             <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
               <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-3">Walk-In Queue</span>
-              <div className="space-y-2.5 max-h-[160px] overflow-y-auto pr-1">
+              <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
                 {appointments
                   .filter(a => a.date === "12 Aug 2026" && (a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in")) && (a.status === "Waiting" || a.status === "Checked In"))
                   .map((item) => (
-                    <div key={item.id} className="p-2 border rounded-lg bg-amber-50/15 border-amber-100 dark:border-amber-900/20 flex items-center justify-between text-[10px]">
+                    <div key={item.id} className="py-2.5 flex items-center justify-between text-[10px] border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
                       <div>
                         <span className="font-bold text-slate-800 dark:text-slate-200 block">{item.patientName}</span>
                         <p className="text-[8px] text-slate-400">Token: {item.token || "NEW"} • {item.treatment}</p>
@@ -1768,9 +1776,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             {/* Widget 2 - Pending Bills */}
             <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
               <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-3">Pending Bills</span>
-              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+              <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
                 {invoices.filter(i => i.status !== "Paid").map((inv) => (
-                  <div key={inv.id} className="p-2 border rounded-lg bg-red-50/15 border-red-100 dark:border-red-900/20 flex items-center justify-between text-[10px]">
+                  <div key={inv.id} className="py-2.5 flex items-center justify-between text-[10px] border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
                     <div>
                       <span className="font-bold text-slate-800 dark:text-slate-200 block">{inv.patientName}</span>
                       <p className="text-[8px] text-red-505 font-bold">Unpaid: ₹{(inv.total - inv.paidAmount).toLocaleString()}</p>
@@ -1800,9 +1808,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             {/* Widget 3 - Recent Activity */}
             <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
               <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-3">Recent Activity</span>
-              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+              <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
                 {activities.slice(0, 5).map((act) => (
-                  <div key={act.id} className="flex gap-2 text-[9px] relative">
+                  <div key={act.id} className="py-2.5 flex gap-2 text-[9px] relative border-b border-slate-100/30 dark:border-slate-900/30 last:border-0">
                     <div className="h-2 w-2 rounded-full mt-1.5 shrink-0 bg-blue-500" />
                     <div>
                       <p className="text-slate-700 dark:text-slate-350 font-bold leading-normal">{act.msg}</p>
@@ -3573,12 +3581,12 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 placeholder="Search patient, appointments, invoice files..."
                 value={globalSearchQuery}
                 onChange={(e) => setGlobalSearchQuery(e.target.value)}
-                className="h-9 w-full pl-9 pr-4 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all dark:bg-slate-900 dark:border-slate-800"
+                className="h-9 w-full pl-9 pr-4 rounded-lg bg-slate-50 border border-slate-100 text-xs font-semibold outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all dark:bg-slate-900 dark:border-slate-900/60"
               />
               
               {/* Global search dropdown */}
               {globalSearchQuery && (
-                <div className="absolute top-10 left-0 w-full rounded-2xl border border-slate-200 bg-white shadow-xl dark:bg-slate-950 dark:border-slate-800 p-3 z-50 text-xs font-semibold max-h-80 overflow-y-auto">
+                <div className="absolute top-10 left-0 w-full rounded-2xl border border-slate-100 bg-white shadow-xl dark:bg-slate-950 dark:border-slate-900/60 p-3 z-50 text-xs font-semibold max-h-80 overflow-y-auto">
                   <div className="flex justify-between items-center border-b pb-2 mb-2">
                     <span className="text-[10px] text-slate-405 uppercase">Grouped Search Results</span>
                     <button onClick={() => setGlobalSearchQuery("")} className="text-slate-400 hover:text-slate-600 text-[10px]">Clear</button>
