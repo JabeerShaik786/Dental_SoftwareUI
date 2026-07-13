@@ -3856,19 +3856,23 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               </button>
 
               {/* Global Search input */}
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <div className="relative w-full flex items-center">
+              <Search className="absolute left-4 h-4.5 w-4.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search patient, appointments, invoice files..."
+                placeholder="Search patients, appointments, invoices..."
                 value={globalSearchQuery}
                 onChange={(e) => setGlobalSearchQuery(e.target.value)}
-                className="h-9 w-full pl-9 pr-4 rounded-lg bg-slate-50 border border-slate-100 text-xs font-semibold outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all dark:bg-slate-900 dark:border-slate-900/60"
+                className="h-11 w-full pl-11 pr-16 rounded-[11px] bg-slate-50/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 text-[14px] font-medium text-slate-808 dark:text-slate-200 outline-none hover:border-slate-300 dark:hover:border-slate-700 focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 transition-all duration-150 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-[14px] placeholder:font-medium"
               />
+              {/* Keyboard Shortcut Badge */}
+              <div className="absolute right-3.5 hidden sm:flex items-center justify-center px-1.5 py-0.5 rounded-[5px] bg-slate-100 dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700/50 text-[11px] font-medium text-slate-455 dark:text-slate-400 pointer-events-none select-none">
+                ⌘ K
+              </div>
               
               {/* Global search dropdown */}
               {globalSearchQuery && (
-                <div className="absolute top-10 left-0 w-full rounded-2xl border border-slate-100 bg-white shadow-xl dark:bg-slate-950 dark:border-slate-900/60 p-3 z-50 text-xs font-semibold max-h-80 overflow-y-auto">
+                <div className="absolute top-12 left-0 w-full rounded-2xl border border-slate-100 bg-white shadow-xl dark:bg-slate-950 dark:border-slate-900/60 p-3 z-50 text-xs font-semibold max-h-80 overflow-y-auto">
                   <div className="flex justify-between items-center border-b pb-2 mb-2">
                     <span className="text-[10px] text-slate-405 uppercase">Grouped Search Results</span>
                     <button onClick={() => setGlobalSearchQuery("")} className="text-slate-400 hover:text-slate-600 text-[10px]">Clear</button>
