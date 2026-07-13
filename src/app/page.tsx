@@ -1466,11 +1466,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* SECTION 2 - Add Patient Panel (LEFT) */}
           <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
-            <span className="font-semibold text-[18px] block mb-3 shrink-0">Patient Registration</span>
+            <span className="font-semibold text-[18px] block mb-2 shrink-0">Patient Registration</span>
             
-            <form onSubmit={handleSavePatientQuick} className="flex-1 flex flex-col justify-center mt-1">
-              {/* Scrollable Form Fields */}
-              <div className="space-y-3.5">
+            <form onSubmit={handleSavePatientQuick} className="flex-1 flex flex-col justify-between mt-2">
+              {/* Scrollable Form Fields with 22px spacing */}
+              <div className="space-y-[22px]">
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className="space-y-1">
                     <Label htmlFor="qPatID" className="form-label-custom">Patient ID</Label>
@@ -1521,8 +1521,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 </div>
               </div>
               
-              {/* Fixed Bottom Action Buttons */}
-              <div className="flex gap-2 pt-3 border-t border-slate-100/60 dark:border-slate-800/60 mt-3.5 shrink-0">
+              {/* Fixed Bottom Action Buttons docked to bottom */}
+              <div className="flex gap-2 pt-3 border-t border-slate-100/60 dark:border-slate-800/60 mt-auto shrink-0">
                 <Button type="button" variant="outline" onClick={handleClearPatientForm} className="form-btn-custom flex-1 text-[14px] font-semibold h-9 rounded-lg">Clear</Button>
                 <Button type="submit" className="form-btn-custom flex-1 text-[14px] font-semibold h-9 bg-blue-600 hover:bg-blue-500 text-white shadow-xs rounded-lg">Save Patient</Button>
               </div>
@@ -1568,64 +1568,71 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 >
                   <option value="Name-ASC">Sort: Name (A-Z)</option>
                   <option value="Name-DESC">Sort: Name (Z-A)</option>
-                  <option value="ID-ASC">Sort: ID (Asc)</option>
-                  <option value="ID-DESC">Sort: ID (Desc)</option>
+                          <option value="ID-DESC">Sort: ID (Desc)</option>
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none text-slate-450 dark:text-slate-400" />
               </div>
             </div>
 
             {/* Patient List container with simulated Infinite Scroll */}
-             <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
-              {displayedPatients.map((pat) => (
-                <div key={pat.id} className="patient-row py-2.5 flex justify-between items-center transition-all group border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
-                  <div className="min-w-0 flex-1 cursor-pointer" onClick={() => { setSelectedPatientId(pat.id); setActiveTab("Patients"); }}>
-                    <span className="patient-name-txt font-bold text-slate-808 dark:text-slate-200 hover:text-blue-600 block truncate">{pat.name}</span>
-                    <p className="patient-sub-txt text-[9px] text-slate-404 mt-0.5">{pat.id} • {pat.phone}</p>
-                  </div>
-                  {/* Action Icons */}
-                  <div className="flex gap-1.5 ml-2">
-                    <button
-                      title="Book Appointment"
-                      onClick={() => {
-                        setSlotPatientId(pat.id);
-                        setSelectedSlotData({ date: selectedCalendarDay, time: "09:00 AM" });
-                      }}
-                      className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-blue-650 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 transition-colors"
-                    >
-                      <CalendarDays className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      title="Dental Chart"
-                      onClick={() => {
-                        setSelectedPatientId(pat.id);
-                        setProfileSubTab("Dental Chart");
-                        setActiveTab("Patients");
-                      }}
-                      className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-purple-605 hover:bg-purple-50/50 dark:hover:bg-purple-950/30"
-                    >
-                      <Activity className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      title="Generate Bill"
-                      onClick={() => handleQuickGenerateBill(pat)}
-                      className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-emerald-605 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30"
-                    >
-                      <Receipt className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      title="Quick Edit"
-                      onClick={() => handleQuickEditPatient(pat)}
-                      className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-505 hover:bg-slate-100 dark:hover:bg-slate-800"
-                    >
-                      <Settings className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+            <div className="flex-1 overflow-y-auto pr-1 flex flex-col">
+              {displayedPatients.length > 0 ? (
+                <div className="space-y-2.5 flex-1">
+                  {displayedPatients.map((pat) => (
+                    <div key={pat.id} className="patient-row py-2.5 flex justify-between items-center transition-all group border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
+                      <div className="min-w-0 flex-1 cursor-pointer" onClick={() => { setSelectedPatientId(pat.id); setActiveTab("Patients"); }}>
+                        <span className="patient-name-txt text-[16px] font-semibold text-slate-808 dark:text-slate-200 hover:text-blue-600 block truncate">{pat.name}</span>
+                        <p className="patient-sub-txt text-[12px] font-normal text-slate-455 mt-0.5">{pat.id} • {pat.phone}</p>
+                      </div>
+                      {/* Action Icons */}
+                      <div className="flex gap-1.5 ml-2">
+                        <button
+                          type="button"
+                          title="Book Appointment"
+                          onClick={() => {
+                            setSlotPatientId(pat.id);
+                            setSelectedSlotData({ date: selectedCalendarDay, time: "09:00 AM" });
+                          }}
+                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-blue-650 hover:bg-blue-50/50 dark:hover:bg-blue-955/30 transition-colors"
+                        >
+                          <CalendarDays className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Dental Chart"
+                          onClick={() => {
+                            setSelectedPatientId(pat.id);
+                            setProfileSubTab("Dental Chart");
+                            setActiveTab("Patients");
+                          }}
+                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-purple-605 hover:bg-purple-50/50 dark:hover:bg-purple-955/30"
+                        >
+                          <Activity className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Generate Bill"
+                          onClick={() => handleQuickGenerateBill(pat)}
+                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-emerald-605 hover:bg-emerald-50/50 dark:hover:bg-emerald-955/30"
+                        >
+                          <Receipt className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Quick Edit"
+                          onClick={() => handleQuickEditPatient(pat)}
+                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-505 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        >
+                          <Settings className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-              
-              {filteredPatients.length === 0 && (
-                <p className="text-[10px] text-slate-400 py-6 text-center">No patients found</p>
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-xs text-slate-400 py-6 text-center">No patients found</p>
+                </div>
               )}
             </div>
 
@@ -1650,104 +1657,108 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               </span>
             </div>
 
-            <div className="space-y-3 flex-1 overflow-y-auto pr-1 scrollbar-thin">
-              {todayApptsList.map((app) => {
-                const patientPhone = patients.find((p) => p.id === app.patientId)?.phone || "+91 99000 11000";
+            <div className="flex-grow overflow-y-auto pr-1 scrollbar-thin flex flex-col">
+              {todayApptsList.length > 0 ? (
+                <div className="space-y-3 flex-grow">
+                  {todayApptsList.map((app) => {
+                    const patientPhone = patients.find((p) => p.id === app.patientId)?.phone || "+91 99000 11000";
 
-                return (
-                  <div
-                    key={app.id}
-                    className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/20 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-all shadow-2xs space-y-2 flex flex-col justify-between"
-                  >
-                    {/* First Line: Patient Name & Appt Time */}
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center min-w-0 pr-2">
-                        {/* Status Indicator Dot */}
-                        {app.status === "Scheduled" && <span className="h-2 w-2 rounded-full bg-blue-500 mr-2 shrink-0" title="Scheduled" />}
-                        {(app.status === "Checked In" || app.status === "Waiting") && <span className="h-2 w-2 rounded-full bg-emerald-500 mr-2 shrink-0" title="Checked In" />}
-                        {app.status === "In Procedure" && <span className="h-2 w-2 rounded-full bg-orange-500 mr-2 shrink-0 animate-pulse" title="In Procedure" />}
-                        {app.status === "Completed" && <span className="h-2 w-2 rounded-full bg-slate-400 mr-2 shrink-0" title="Completed" />}
-                        <span className="font-semibold text-[16px] text-slate-800 dark:text-slate-200 truncate leading-none">{app.patientName}</span>
+                    return (
+                      <div
+                        key={app.id}
+                        className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/20 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-all shadow-2xs space-y-2 flex flex-col justify-between"
+                      >
+                        {/* First Line: Patient Name & Appt Time */}
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center min-w-0 pr-2">
+                            {/* Status Indicator Dot */}
+                            {app.status === "Scheduled" && <span className="h-2 w-2 rounded-full bg-blue-500 mr-2 shrink-0" title="Scheduled" />}
+                            {(app.status === "Checked In" || app.status === "Waiting") && <span className="h-2 w-2 rounded-full bg-emerald-500 mr-2 shrink-0" title="Checked In" />}
+                            {app.status === "In Procedure" && <span className="h-2 w-2 rounded-full bg-orange-500 mr-2 shrink-0 animate-pulse" title="In Procedure" />}
+                            {app.status === "Completed" && <span className="h-2 w-2 rounded-full bg-slate-400 mr-2 shrink-0" title="Completed" />}
+                            <span className="font-semibold text-[16px] text-slate-800 dark:text-slate-200 truncate leading-none">{app.patientName}</span>
+                          </div>
+                          <span className="text-[13px] font-semibold text-slate-650 dark:text-slate-400 shrink-0 leading-none">{app.time}</span>
+                        </div>
+
+                        {/* Second Line: Doctor Name */}
+                        <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
+                          {app.doctor}
+                        </p>
+
+                        {/* Third Line: Treatment */}
+                        <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
+                          {app.treatment}
+                        </p>
+
+                        {/* Fourth Line: Phone Number */}
+                        <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
+                          {patientPhone}
+                        </p>
+
+                        {/* Bottom Row: Actions */}
+                        <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100/60 dark:border-slate-800/65">
+                          {/* ✓ Check In / Action Button */}
+                          {app.status === "Scheduled" ? (
+                            <button
+                              type="button"
+                              onClick={() => handleApptCheckIn(app.id)}
+                              className="flex-grow h-[34px] rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              ✓ Check In
+                            </button>
+                          ) : app.status === "Checked In" || app.status === "Waiting" ? (
+                            <button
+                              type="button"
+                              onClick={() => handleApptStartProcedure(app.id)}
+                              className="flex-grow h-[34px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              ✓ Start
+                            </button>
+                          ) : app.status === "In Procedure" ? (
+                            <button
+                              type="button"
+                              onClick={() => handleApptCompleteProcedure(app.id)}
+                              className="flex-grow h-[34px] rounded-lg bg-orange-500 hover:bg-orange-455 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              ✓ Complete
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled
+                              className="flex-grow h-[34px] rounded-lg bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-slate-400 font-medium text-[11.5px] flex items-center justify-center gap-1 cursor-not-allowed"
+                            >
+                              ✓ Completed
+                            </button>
+                          )}
+
+                          {/* ₹ Billing Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleApptGenerateBill(app.id)}
+                            className="flex-1 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            ₹ Billing
+                          </button>
+
+                          {/* 💬 SMS Button */}
+                          <button
+                            type="button"
+                            onClick={() => alert(`SMS appointment reminder dispatched to ${app.patientName} (${patientPhone}).`)}
+                            className="h-[34px] w-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 flex items-center justify-center text-[11.5px] transition-colors shrink-0 cursor-pointer"
+                          >
+                            💬
+                          </button>
+                        </div>
                       </div>
-                      <span className="text-[13px] font-semibold text-slate-650 dark:text-slate-400 shrink-0 leading-none">{app.time}</span>
-                    </div>
-
-                    {/* Second Line: Doctor Name */}
-                    <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
-                      {app.doctor}
-                    </p>
-
-                    {/* Third Line: Treatment */}
-                    <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
-                      {app.treatment}
-                    </p>
-
-                    {/* Fourth Line: Phone Number */}
-                    <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
-                      {patientPhone}
-                    </p>
-
-                    {/* Bottom Row: Actions */}
-                    <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100/60 dark:border-slate-800/65">
-                      {/* ✓ Check In / Action Button */}
-                      {app.status === "Scheduled" ? (
-                        <button
-                          type="button"
-                          onClick={() => handleApptCheckIn(app.id)}
-                          className="flex-1 h-[34px] rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                        >
-                          ✓ Check In
-                        </button>
-                      ) : app.status === "Checked In" || app.status === "Waiting" ? (
-                        <button
-                          type="button"
-                          onClick={() => handleApptStartProcedure(app.id)}
-                          className="flex-1 h-[34px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                        >
-                          ✓ Start
-                        </button>
-                      ) : app.status === "In Procedure" ? (
-                        <button
-                          type="button"
-                          onClick={() => handleApptCompleteProcedure(app.id)}
-                          className="flex-1 h-[34px] rounded-lg bg-orange-500 hover:bg-orange-455 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                        >
-                          ✓ Complete
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled
-                          className="flex-1 h-[34px] rounded-lg bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-slate-400 font-medium text-[11.5px] flex items-center justify-center gap-1 cursor-not-allowed"
-                        >
-                          ✓ Completed
-                        </button>
-                      )}
-
-                      {/* ₹ Billing Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleApptGenerateBill(app.id)}
-                        className="flex-1 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                      >
-                        ₹ Billing
-                      </button>
-
-                      {/* 💬 SMS Button */}
-                      <button
-                        type="button"
-                        onClick={() => alert(`SMS appointment reminder dispatched to ${app.patientName} (${patientPhone}).`)}
-                        className="h-[34px] w-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 flex items-center justify-center text-[11.5px] transition-colors shrink-0 cursor-pointer"
-                      >
-                        💬
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {todayApptsList.length === 0 && (
-                <p className="text-xs text-slate-400 py-8 text-center">No appointments scheduled for today</p>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-xs text-slate-400 py-8 text-center">No appointments scheduled for today</p>
+                </div>
               )}
             </div>
           </div>
@@ -1759,76 +1770,94 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Widget 1 - Walk-In Queue */}
-            <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
-              <span className="font-semibold text-[18px] text-slate-900 dark:text-white block mb-2">Walk-In Queue</span>
-              <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
-                {appointments
-                  .filter(a => a.date === "12 Aug 2026" && (a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in")) && (a.status === "Waiting" || a.status === "Checked In"))
-                  .map((item) => (
-                    <div key={item.id} className="py-2.5 flex items-center justify-between border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
-                      <div>
-                        <span className="text-[16px] font-semibold text-slate-808 dark:text-slate-200 block">{item.patientName}</span>
-                        <p className="text-[14px] font-normal text-slate-500">Token: <span className="text-[12px] font-normal text-slate-400">{item.token || "NEW"}</span> • {item.treatment}</p>
-                      </div>
-                      <button
-                        onClick={() => handleApptStartProcedure(item.id)}
-                        className="h-5 px-2 rounded bg-amber-500 hover:bg-amber-400 text-white font-bold text-[8px]"
-                      >
-                        Call In
-                      </button>
-                    </div>
-                  ))}
-                {appointments.filter(a => a.date === "12 Aug 2026" && (a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in")) && (a.status === "Waiting" || a.status === "Checked In")).length === 0 && (
-                  <p className="text-xs text-slate-400 py-6 text-center">No walk-ins waiting</p>
+            <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs flex flex-col h-[240px]">
+              <span className="font-semibold text-[18px] text-slate-900 dark:text-white block mb-2 shrink-0">Walk-In Queue</span>
+              <div className="flex-1 overflow-y-auto pr-1 flex flex-col scrollbar-thin">
+                {appointments.filter(a => a.date === "12 Aug 2026" && (a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in")) && (a.status === "Waiting" || a.status === "Checked In")).length > 0 ? (
+                  <div className="space-y-1.5 flex-grow">
+                    {appointments
+                      .filter(a => a.date === "12 Aug 2026" && (a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in")) && (a.status === "Waiting" || a.status === "Checked In"))
+                      .map((item) => (
+                        <div key={item.id} className="py-2.5 flex items-center justify-between border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
+                          <div>
+                            <span className="text-[16px] font-semibold text-slate-808 dark:text-slate-200 block">{item.patientName}</span>
+                            <p className="text-[14px] font-normal text-slate-500">Token: <span className="text-[12px] font-normal text-slate-400">{item.token || "NEW"}</span> • {item.treatment}</p>
+                          </div>
+                          <button
+                            onClick={() => handleApptStartProcedure(item.id)}
+                            className="h-5 px-2 rounded bg-amber-500 hover:bg-amber-400 text-white font-bold text-[8px]"
+                          >
+                            Call In
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="flex-grow flex items-center justify-center">
+                    <p className="text-xs text-slate-400 text-center">No walk-ins waiting</p>
+                  </div>
                 )}
               </div>
             </div>
 
             {/* Widget 2 - Pending Bills */}
-            <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
-              <span className="font-semibold text-[18px] text-slate-900 dark:text-white block mb-2">Pending Bills</span>
-              <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
-                {invoices.filter(i => i.status !== "Paid").map((inv) => (
-                  <div key={inv.id} className="py-2.5 flex items-center justify-between border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
-                    <div>
-                      <span className="text-[16px] font-semibold text-slate-808 dark:text-slate-200 block">{inv.patientName}</span>
-                      <p className="text-[14px] font-normal text-red-600">Unpaid: <span className="font-medium">₹{(inv.total - inv.paidAmount).toLocaleString()}</span></p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setSelectedInvoiceForPayment(inv);
-                        setPayCash(0);
-                        setPayUpi(0);
-                        setPayCard(0);
-                        setPayDiscountPercent(inv.discount);
-                        setPayTaxPercent(inv.tax);
-                        setPayCustomItems([]);
-                      }}
-                      className="h-5 px-2 rounded bg-red-650 hover:bg-red-500 text-white font-bold text-[8px]"
-                    >
-                      Pay
-                    </button>
+            <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs flex flex-col h-[240px]">
+              <span className="font-semibold text-[18px] text-slate-900 dark:text-white block mb-2 shrink-0">Pending Bills</span>
+              <div className="flex-1 overflow-y-auto pr-1 flex flex-col scrollbar-thin">
+                {invoices.filter(i => i.status !== "Paid").length > 0 ? (
+                  <div className="space-y-1.5 flex-grow">
+                    {invoices.filter(i => i.status !== "Paid").map((inv) => (
+                      <div key={inv.id} className="py-2.5 flex items-center justify-between border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
+                        <div>
+                          <span className="text-[16px] font-semibold text-slate-808 dark:text-slate-200 block">{inv.patientName}</span>
+                          <p className="text-[14px] font-normal text-red-600">Unpaid: <span className="font-medium">₹{(inv.total - inv.paidAmount).toLocaleString()}</span></p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setSelectedInvoiceForPayment(inv);
+                            setPayCash(0);
+                            setPayUpi(0);
+                            setPayCard(0);
+                            setPayDiscountPercent(inv.discount);
+                            setPayTaxPercent(inv.tax);
+                            setPayCustomItems([]);
+                          }}
+                          className="h-5 px-2 rounded bg-red-650 hover:bg-red-500 text-white font-bold text-[8px]"
+                        >
+                          Pay
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-                {invoices.filter(i => i.status !== "Paid").length === 0 && (
-                  <p className="text-xs text-slate-400 py-6 text-center">No bills outstanding</p>
+                ) : (
+                  <div className="flex-grow flex items-center justify-center">
+                    <p className="text-xs text-slate-400 text-center">No bills outstanding</p>
+                  </div>
                 )}
               </div>
             </div>
 
             {/* Widget 3 - Recent Activity */}
-            <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
-              <span className="font-semibold text-[18px] text-slate-900 dark:text-white block mb-2">Recent Activity</span>
-              <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
-                {activities.slice(0, 5).map((act) => (
-                  <div key={act.id} className="py-2.5 flex gap-2 border-b border-slate-100/30 dark:border-slate-900/30 last:border-0">
-                    <div className="h-2 w-2 rounded-full mt-1.5 shrink-0 bg-blue-500" />
-                    <div>
-                      <p className="text-[14px] font-normal text-slate-700 dark:text-slate-300 leading-normal">{act.msg}</p>
-                      <span className="text-[12px] font-normal text-slate-400 mt-0.5 block">{act.time}</span>
-                    </div>
+            <div className="widget-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs flex flex-col h-[240px]">
+              <span className="font-semibold text-[18px] text-slate-900 dark:text-white block mb-2 shrink-0">Recent Activity</span>
+              <div className="flex-1 overflow-y-auto pr-1 flex flex-col scrollbar-thin">
+                {activities.length > 0 ? (
+                  <div className="space-y-1.5 flex-grow">
+                    {activities.slice(0, 5).map((act) => (
+                      <div key={act.id} className="py-2.5 flex gap-2 border-b border-slate-100/30 dark:border-slate-900/30 last:border-0">
+                        <div className="h-2 w-2 rounded-full mt-1.5 shrink-0 bg-blue-500" />
+                        <div>
+                          <p className="text-[14px] font-normal text-slate-700 dark:text-slate-300 leading-normal">{act.msg}</p>
+                          <span className="text-[12px] font-normal text-slate-400 mt-0.5 block">{act.time}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <div className="flex-grow flex items-center justify-center">
+                    <p className="text-xs text-slate-400 text-center">No recent activity</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
