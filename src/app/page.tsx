@@ -2195,22 +2195,163 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       return true;
     });
 
+    // ── Queue sub-tab ──────────────────────────────────────────────────────
+    if (activeSubTab === "Queue") {
+      const queueAppts = appointments.filter(a => a.status === "Waiting" || a.status === "Checked In");
+      return (
+        <div className="animate-fadeIn grid grid-cols-1 lg:grid-cols-12 gap-4 text-[13px] font-medium text-slate-700">
+          {/* sidebar */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs space-y-3">
+              <Button onClick={() => setActiveModal("addAppointment")} className="w-full h-10 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs">
+                <CalendarPlus className="h-4 w-4" /> Book Appointment
+              </Button>
+              <hr className="border-slate-100 dark:border-slate-800" />
+              <span className="font-semibold text-[11px] text-slate-400 uppercase tracking-wider block">All Doctors</span>
+              <div className="space-y-1.5">
+                <div onClick={() => setApptSelectedDoctor("All")} className={`px-2.5 py-2 rounded-lg border cursor-pointer transition-all flex items-center gap-2 ${apptSelectedDoctor === "All" ? "bg-blue-50/50 border-blue-500 dark:bg-blue-950/20" : "border-slate-100 hover:bg-slate-50 dark:border-slate-800"}` }>
+                  <div className="h-7 w-7 rounded-full bg-blue-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">ALL</div>
+                  <span className="font-semibold text-[12px] text-slate-800 dark:text-slate-200 truncate">All Doctors</span>
+                </div>
+                {doctors.map((doc, idx) => {
+                  const isActive = apptSelectedDoctor === doc.name;
+                  const initials = doc.name.replace("Dr. ", "").split(" ").map(n => n[0]).join("").toUpperCase();
+                  const colors = ["bg-blue-100 text-blue-700","bg-purple-100 text-purple-700","bg-emerald-100 text-emerald-700","bg-indigo-100 text-indigo-700","bg-pink-100 text-pink-700"];
+                  return (
+                    <div key={doc.name} onClick={() => setApptSelectedDoctor(isActive ? "All" : doc.name)} className={`px-2.5 py-2 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${isActive ? "bg-blue-50/50 border-blue-500 dark:bg-blue-955/20" : "border-slate-100 hover:bg-slate-50 dark:border-slate-800"}`}>
+                      <div className="flex items-center gap-2">
+                        <div className={`h-7 w-7 rounded-full font-bold text-[10px] flex items-center justify-center shrink-0 ${colors[idx % colors.length]}`}>{initials}</div>
+                        <span className="font-semibold text-[12px] text-slate-800 dark:text-slate-200 truncate">{doc.name}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          {/* main */}
+          <div className="lg:col-span-10 space-y-4">
+            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <span className="font-bold text-[15px] text-slate-800 dark:text-white block">Walk-in & Waiting Queue</span>
+                  <p className="text-[12px] text-slate-400 mt-0.5">Patients currently checked in or waiting</p>
+                </div>
+                <span className="text-[12px] font-bold bg-amber-50 text-amber-700 border border-amber-100 px-3 py-1 rounded-full">{queueAppts.length} Waiting</span>
+              </div>
+              {queueAppts.length > 0 ? (
+                <div className="divide-y divide-slate-100 dark:divide-slate-900">
+                  {queueAppts.map((item) => (
+                    <div key={item.id} className="py-3 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-amber-100 text-amber-700 font-bold text-[11px] flex items-center justify-center shrink-0">{item.token || "—"}</div>
+                        <div>
+                          <span className="font-semibold text-[14px] text-slate-800 dark:text-slate-200 block">{item.patientName}</span>
+                          <p className="text-[12px] text-slate-450 mt-0.5">{item.doctor} · {item.treatment} · {item.time}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${ item.status === "Waiting" ? "bg-amber-50 text-amber-700" : "bg-cyan-50 text-cyan-700" }`}>{item.status}</span>
+                        <button onClick={() => handleApptStartProcedure(item.id)} className="h-8 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px]">Start</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-12 text-center">
+                  <p className="text-[13px] text-slate-400 font-medium">No patients currently in the queue.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── History sub-tab ───────────────────────────────────────────────────────
+    if (activeSubTab === "History") {
+      const historyAppts = filteredAppts.filter(a => a.status === "Completed" || a.status === "Cancelled").slice().reverse();
+      return (
+        <div className="animate-fadeIn grid grid-cols-1 lg:grid-cols-12 gap-4 text-[13px] font-medium text-slate-700">
+          {/* sidebar */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs space-y-3">
+              <Button onClick={() => setActiveModal("addAppointment")} className="w-full h-10 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs">
+                <CalendarPlus className="h-4 w-4" /> Book Appointment
+              </Button>
+              <hr className="border-slate-100 dark:border-slate-800" />
+              <span className="font-semibold text-[11px] text-slate-400 uppercase tracking-wider block">Filters</span>
+              <select value={apptSelectedDoctor} onChange={(e) => setApptSelectedDoctor(e.target.value)} className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-[12px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700">
+                <option value="All">All Doctors</option>
+                {doctors.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+              </select>
+              <select value={apptSelectedTreatment} onChange={(e) => setApptSelectedTreatment(e.target.value)} className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-[12px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700">
+                <option value="All">All Treatments</option>
+                <option value="Root Canal">Root Canal</option>
+                <option value="Scaling">Scaling</option>
+                <option value="Implant">Implant</option>
+                <option value="Crown">Crown</option>
+                <option value="Consultation">Consultation</option>
+              </select>
+            </div>
+          </div>
+          {/* main */}
+          <div className="lg:col-span-10 space-y-4">
+            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <span className="font-bold text-[15px] text-slate-800 dark:text-white block">Appointment History</span>
+                  <p className="text-[12px] text-slate-400 mt-0.5">Completed and cancelled appointments</p>
+                </div>
+                <span className="text-[12px] font-bold bg-slate-100 text-slate-700 border border-slate-200 px-3 py-1 rounded-full">{historyAppts.length} Records</span>
+              </div>
+              {historyAppts.length > 0 ? (
+                <div className="divide-y divide-slate-100 dark:divide-slate-900">
+                  {historyAppts.map((item) => (
+                    <div key={item.id} onClick={() => setSelectedApptDetail(item)} className="py-3 flex items-center justify-between gap-4 cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-900/20 rounded-lg px-2 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-8 w-8 rounded-full font-bold text-[11px] flex items-center justify-center shrink-0 ${ item.status === "Completed" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600" }`}>
+                          {item.patientName.charAt(0)}
+                        </div>
+                        <div>
+                          <span className="font-semibold text-[14px] text-slate-800 dark:text-slate-200 block">{item.patientName}</span>
+                          <p className="text-[12px] text-slate-450 mt-0.5">{item.date} · {item.time} · {item.doctor}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-slate-500 font-medium">{item.treatment}</span>
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${ item.status === "Completed" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600" }`}>{item.status}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-12 text-center">
+                  <p className="text-[13px] text-slate-400 font-medium">No completed or cancelled appointments found.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className="animate-fadeIn grid grid-cols-1 lg:grid-cols-12 gap-6 text-xs font-semibold text-slate-700">
+      <div className="animate-fadeIn grid grid-cols-1 lg:grid-cols-12 gap-4 text-[13px] font-medium text-slate-700">
         
-        {/* LEFT SIDEBAR PANEL (25% - Col Span 3) */}
-        <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
+        {/* LEFT SIDEBAR PANEL (col-span-2 ~17%) */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs space-y-3">
             <Button 
               onClick={() => setActiveModal("addAppointment")} 
-              className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs"
+              className="w-full h-10 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs"
             >
-              <CalendarPlus className="h-4.5 w-4.5" /> Book Appointment
+              <CalendarPlus className="h-4 w-4" /> Book Appointment
             </Button>
 
             <Button 
               variant="outline"
-              className="w-full h-11 border-slate-200 hover:bg-slate-50 dark:border-slate-800 text-blue-600 font-bold text-xs rounded-xl flex items-center justify-center gap-2"
+              className="w-full h-10 border-slate-200 hover:bg-slate-50 dark:border-slate-800 text-blue-600 font-semibold text-xs rounded-xl flex items-center justify-center gap-2"
               onClick={() => {
                 const dateStr = prompt("Enter target date (YYYY-MM-DD):", "2026-08-12");
                 if (dateStr) {
@@ -2222,44 +2363,24 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 }
               }}
             >
-              <Calendar className="h-4.5 w-4.5" /> Go to Date
+              <Calendar className="h-4 w-4" /> Go to Date
             </Button>
 
             <hr className="border-slate-100 dark:border-slate-800" />
 
-            {/* Location Dropdown */}
+            {/* All Doctors */}
+            <span className="font-semibold text-[11px] text-slate-400 uppercase tracking-wider block">All Doctors</span>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-405 uppercase tracking-wider block">Location</label>
-              <select 
-                value={apptSelectedLocation}
-                onChange={(e) => setApptSelectedLocation(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-705"
-              >
-                <option value="All">All Locations</option>
-                <option value="Bengaluru">Bengaluru Clinic</option>
-                <option value="Jayanagar">Jayanagar Branch</option>
-                <option value="Whitefield">Whitefield Center</option>
-              </select>
-            </div>
-          </div>
-
-          {/* All Doctors Section */}
-          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
-            <span className="font-bold text-xs text-slate-400 uppercase tracking-wider block mb-3">All Doctors</span>
-            <div className="space-y-2">
               <div 
                 onClick={() => setApptSelectedDoctor("All")}
-                className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3 ${
+                className={`px-2.5 py-2 rounded-lg border cursor-pointer transition-all flex items-center gap-2 ${
                   apptSelectedDoctor === "All" 
                     ? "bg-blue-50/50 border-blue-500 dark:bg-blue-950/20" 
-                    : "bg-slate-50/30 border-slate-100 hover:bg-slate-50 dark:bg-slate-900/10 dark:border-slate-800"
+                    : "border-slate-100 hover:bg-slate-50 dark:border-slate-800"
                 }`}
               >
-                <div className="h-8 w-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">ALL</div>
-                <div>
-                  <span className="font-bold text-xs text-slate-800 dark:text-slate-200 block">Show All Doctors</span>
-                  <p className="text-[9px] text-slate-400">View combined schedule</p>
-                </div>
+                <div className="h-7 w-7 rounded-full bg-blue-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">ALL</div>
+                <span className="font-semibold text-[12px] text-slate-800 dark:text-slate-200 truncate">All Doctors</span>
               </div>
 
               {doctors.map((doc, idx) => {
@@ -2279,23 +2400,20 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   <div 
                     key={doc.name}
                     onClick={() => setApptSelectedDoctor(isActive ? "All" : doc.name)}
-                    className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                    className={`px-2.5 py-2 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
                       isActive 
                         ? "bg-blue-50/50 border-blue-500 dark:bg-blue-955/20" 
-                        : "bg-slate-50/30 border-slate-100 hover:bg-slate-50 dark:bg-slate-900/10 dark:border-slate-800"
+                        : "border-slate-100 hover:bg-slate-50 dark:border-slate-800"
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`h-8 w-8 rounded-full font-extrabold text-xs flex items-center justify-center ${avatarColor}`}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={`h-7 w-7 rounded-full font-bold text-[10px] flex items-center justify-center shrink-0 ${avatarColor}`}>
                         {initials}
                       </div>
-                      <div>
-                        <span className="font-bold text-xs text-slate-800 dark:text-slate-200 block">{doc.name}</span>
-                        <p className="text-[9px] text-slate-450">{doc.speciality}</p>
-                      </div>
+                      <span className="font-semibold text-[12px] text-slate-800 dark:text-slate-200 truncate">{doc.name.replace("Dr. ", "")}</span>
                     </div>
                     {todayCount > 0 && (
-                      <span className="text-[9px] bg-slate-100 dark:bg-slate-850 px-2 py-0.5 rounded-full font-bold text-slate-600 dark:text-slate-300">{todayCount} Today</span>
+                      <span className="text-[10px] bg-slate-100 dark:bg-slate-850 px-1.5 py-0.5 rounded-full font-bold text-slate-600 dark:text-slate-300 shrink-0">{todayCount}</span>
                     )}
                   </div>
                 );
@@ -2304,14 +2422,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
         </div>
 
-        {/* RIGHT PANEL (75% - Col Span 9) */}
-        <div className="lg:col-span-9 space-y-6">
+        {/* RIGHT PANEL (col-span-10 ~83%) */}
+        <div className="lg:col-span-10 space-y-4">
           
           {/* Top Toolbar */}
-          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3">
             
             {/* Month Navigator */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button 
                 onClick={() => {
                   const prev = new Date(apptCalendarDate);
@@ -2322,7 +2440,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="font-extrabold text-sm text-slate-800 dark:text-slate-200 min-w-[125px] text-center">
+              <span className="font-bold text-[14px] text-slate-800 dark:text-slate-200 min-w-[130px] text-center">
                 {apptCalendarDate.toLocaleString("default", { month: "long", year: "numeric" })}
               </span>
               <button 
@@ -2337,25 +2455,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               </button>
             </div>
 
-            {/* Search Input */}
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search appointments..."
-                value={apptSearchQuery}
-                onChange={(e) => setApptSearchQuery(e.target.value)}
-                className="h-9 pl-9 pr-3 w-full rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold focus:outline-none dark:bg-slate-900 dark:border-slate-800"
-              />
-            </div>
-
             {/* View Toggle */}
-            <div className="bg-slate-100 dark:bg-slate-900 p-0.5 rounded-xl flex items-center">
+            <div className="bg-slate-100 dark:bg-slate-900 p-0.5 rounded-lg flex items-center">
               {(["Month", "Week", "Day"] as const).map((view) => (
                 <button
                   key={view}
                   onClick={() => setApptView(view)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`px-3.5 py-1.5 rounded-md text-[12px] font-bold transition-all ${
                     apptView === view 
                       ? "bg-white text-blue-600 shadow-sm dark:bg-slate-950" 
                       : "text-slate-550 hover:text-slate-800 dark:text-slate-400"
@@ -2368,16 +2474,16 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
 
           {/* Filters Row */}
-          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-600">
-            <div className="flex items-center gap-1">
-              <SlidersHorizontal className="h-3.5 w-3.5 text-slate-450 mr-1" />
-              <span>Filters:</span>
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-xs flex flex-wrap items-center gap-3 text-[12px] font-medium text-slate-600">
+            <div className="flex items-center gap-1.5">
+              <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400" />
+              <span className="font-semibold">Filters:</span>
             </div>
 
             <select 
               value={apptSelectedStatus}
               onChange={(e) => setApptSelectedStatus(e.target.value)}
-              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700 dark:text-slate-300"
+              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[12px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700 dark:text-slate-300"
             >
               <option value="All">All Statuses</option>
               <option value="Scheduled">Scheduled</option>
@@ -2390,7 +2496,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             <select 
               value={apptSelectedTreatment}
               onChange={(e) => setApptSelectedTreatment(e.target.value)}
-              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700 dark:text-slate-300"
+              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[12px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700 dark:text-slate-300"
             >
               <option value="All">All Treatments</option>
               <option value="Root Canal">Root Canal</option>
@@ -2403,7 +2509,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             <select 
               value={apptSelectedType}
               onChange={(e) => setApptSelectedType(e.target.value)}
-              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700 dark:text-slate-300"
+              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[12px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700 dark:text-slate-300"
             >
               <option value="All">All Types</option>
               <option value="Scheduled">Scheduled Only</option>
@@ -2482,16 +2588,39 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
           {/* WEEK VIEW */}
           {apptView === "Week" && (
-            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs overflow-x-auto">
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs overflow-x-auto">
               <div className="min-w-[800px]">
-                <div className="grid grid-cols-8 gap-2 text-center text-xs font-bold text-slate-400 border-b pb-3 mb-2">
+                {/* Month label for week view */}
+                <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <span className="font-bold text-[15px] text-slate-800 dark:text-white">
+                      {(() => {
+                        const weekDays = getWeekDays(apptCalendarDate);
+                        const first = weekDays[0];
+                        const last = weekDays[6];
+                        const firstMonth = first.toLocaleString("default", { month: "long" });
+                        const lastMonth = last.toLocaleString("default", { month: "long" });
+                        const year = first.getFullYear();
+                        return firstMonth === lastMonth ? `${firstMonth} ${year}` : `${firstMonth} / ${lastMonth} ${year}`;
+                      })()}
+                    </span>
+                    <p className="text-[12px] text-slate-400 mt-0.5">
+                      {(() => {
+                        const weekDays = getWeekDays(apptCalendarDate);
+                        return `${weekDays[0].getDate()} – ${weekDays[6].getDate()} ${weekDays[6].toLocaleString("default", { month: "short" })}`;
+                      })()}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-8 gap-2 text-center text-[12px] font-semibold text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2 mb-2">
                   <div className="text-left py-1">Time</div>
                   {getWeekDays(apptCalendarDate).map((day, idx) => {
                     const daysName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                    const isToday = day.toDateString() === new Date().toDateString();
                     return (
                       <div key={idx} className="py-1">
-                        <span className="block text-[9.5px] uppercase">{daysName[day.getDay()]}</span>
-                        <span className="block text-sm font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">{day.getDate()}</span>
+                        <span className="block text-[10px] uppercase">{daysName[day.getDay()]}</span>
+                        <span className={`block text-[13px] font-bold mt-0.5 ${isToday ? "text-blue-600" : "text-slate-800 dark:text-slate-200"}`}>{day.getDate()}</span>
                       </div>
                     );
                   })}
@@ -2547,9 +2676,41 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
           {/* DAY VIEW */}
           {apptView === "Day" && (
-            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
-              <span className="font-bold text-sm block mb-1">Timeline Schedule for {formatDateString(apptCalendarDate)}</span>
-              <p className="text-[10px] text-slate-400">15-minute time slots workflow tracker</p>
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs space-y-4">
+              {/* Day view header with month label + day nav */}
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div>
+                  <span className="font-bold text-[15px] text-slate-800 dark:text-white block">
+                    {apptCalendarDate.toLocaleString("default", { month: "long", year: "numeric" })}
+                  </span>
+                  <p className="text-[12px] text-slate-400 mt-0.5">Timeline: {formatDateString(apptCalendarDate)} · 15-min slots</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const prev = new Date(apptCalendarDate);
+                      prev.setDate(prev.getDate() - 1);
+                      setApptCalendarDate(prev);
+                    }}
+                    className="h-8 w-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 dark:border-slate-800"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200 min-w-[90px] text-center">
+                    {apptCalendarDate.toLocaleString("default", { weekday: "short", day: "numeric", month: "short" })}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const next = new Date(apptCalendarDate);
+                      next.setDate(next.getDate() + 1);
+                      setApptCalendarDate(next);
+                    }}
+                    className="h-8 w-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 dark:border-slate-800"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
               
               <div className="divide-y divide-slate-100 dark:divide-slate-900 max-h-[600px] overflow-y-auto pr-2">
                 {Array.from({ length: 45 }, (_, idx) => {
