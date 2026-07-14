@@ -135,6 +135,150 @@ interface ActivityItem {
   time: string;
 }
 
+// Odontogram Component Type Definitions & Config
+interface ToothConfig {
+  index: number;
+  fdi: number;
+  x: number;
+  y: number;
+  rotation: number;
+  type: 'molar' | 'premolar' | 'incisor';
+  labelX: number;
+  labelY: number;
+}
+
+const ALL_TEETH: ToothConfig[] = [
+  // Upper Right (Quadrant 1)
+  { index: 1, fdi: 18, x: 83, y: 226, rotation: -90, type: 'molar', labelX: 51, labelY: 230 },
+  { index: 2, fdi: 17, x: 81, y: 192, rotation: -75, type: 'molar', labelX: 51, labelY: 188 },
+  { index: 3, fdi: 16, x: 84, y: 158, rotation: -60, type: 'molar', labelX: 56, labelY: 148 },
+  { index: 4, fdi: 15, x: 94, y: 128, rotation: -45, type: 'premolar', labelX: 71, labelY: 113 },
+  { index: 5, fdi: 14, x: 111, y: 104, rotation: -35, type: 'premolar', labelX: 93, labelY: 85 },
+  { index: 6, fdi: 13, x: 133, y: 86, rotation: -25, type: 'incisor', labelX: 120, labelY: 62 },
+  { index: 7, fdi: 12, x: 158, y: 74, rotation: -15, type: 'incisor', labelX: 153, labelY: 49 },
+  { index: 8, fdi: 11, x: 185, y: 70, rotation: -5, type: 'incisor', labelX: 185, labelY: 45 },
+
+  // Upper Left (Quadrant 2)
+  { index: 9, fdi: 21, x: 215, y: 70, rotation: 5, type: 'incisor', labelX: 215, labelY: 45 },
+  { index: 10, fdi: 22, x: 242, y: 74, rotation: 15, type: 'incisor', labelX: 247, labelY: 49 },
+  { index: 11, fdi: 23, x: 267, y: 86, rotation: 25, type: 'incisor', labelX: 280, labelY: 62 },
+  { index: 12, fdi: 24, x: 289, y: 104, rotation: 35, type: 'premolar', labelX: 307, labelY: 85 },
+  { index: 13, fdi: 25, x: 306, y: 128, rotation: 45, type: 'premolar', labelX: 329, labelY: 113 },
+  { index: 14, fdi: 26, x: 316, y: 158, rotation: 60, type: 'molar', labelX: 344, labelY: 148 },
+  { index: 15, fdi: 27, x: 319, y: 192, rotation: 75, type: 'molar', labelX: 349, labelY: 188 },
+  { index: 16, fdi: 28, x: 317, y: 226, rotation: 90, type: 'molar', labelX: 349, labelY: 230 },
+
+  // Lower Left (Quadrant 3)
+  { index: 24, fdi: 31, x: 215, y: 430, rotation: -5, type: 'incisor', labelX: 215, labelY: 455 },
+  { index: 23, fdi: 32, x: 242, y: 426, rotation: -15, type: 'incisor', labelX: 247, labelY: 451 },
+  { index: 22, fdi: 33, x: 267, y: 414, rotation: -25, type: 'incisor', labelX: 280, labelY: 438 },
+  { index: 21, fdi: 34, x: 289, y: 396, rotation: -35, type: 'premolar', labelX: 307, labelY: 415 },
+  { index: 20, fdi: 35, x: 306, y: 372, rotation: -45, type: 'premolar', labelX: 329, labelY: 387 },
+  { index: 19, fdi: 36, x: 316, y: 342, rotation: -60, type: 'molar', labelX: 344, labelY: 352 },
+  { index: 18, fdi: 37, x: 319, y: 308, rotation: -75, type: 'molar', labelX: 349, labelY: 312 },
+  { index: 17, fdi: 38, x: 317, y: 274, rotation: -90, type: 'molar', labelX: 349, labelY: 270 },
+
+  // Lower Right (Quadrant 4)
+  { index: 25, fdi: 41, x: 185, y: 430, rotation: 5, type: 'incisor', labelX: 185, labelY: 455 },
+  { index: 26, fdi: 42, x: 158, y: 426, rotation: 15, type: 'incisor', labelX: 153, labelY: 451 },
+  { index: 27, fdi: 43, x: 133, y: 414, rotation: 25, type: 'incisor', labelX: 120, labelY: 438 },
+  { index: 28, fdi: 44, x: 111, y: 396, rotation: 35, type: 'premolar', labelX: 93, labelY: 415 },
+  { index: 29, fdi: 45, x: 94, y: 372, rotation: 45, type: 'premolar', labelX: 71, labelY: 387 },
+  { index: 30, fdi: 46, x: 84, y: 342, rotation: 60, type: 'molar', labelX: 56, labelY: 352 },
+  { index: 31, fdi: 47, x: 81, y: 308, rotation: 75, type: 'molar', labelX: 51, labelY: 312 },
+  { index: 32, fdi: 48, x: 83, y: 274, rotation: 90, type: 'molar', labelX: 51, labelY: 270 }
+];
+
+interface OdontogramProps {
+  chartData: Record<number, string>;
+  selectedTooth?: number | null;
+  onSelectTooth?: (toothNum: number) => void;
+  isReadOnly?: boolean;
+}
+
+const Odontogram: React.FC<OdontogramProps> = ({
+  chartData,
+  selectedTooth = null,
+  onSelectTooth,
+  isReadOnly = false
+}) => {
+  const getToothPath = (type: 'molar' | 'premolar' | 'incisor') => {
+    if (type === 'incisor') {
+      return "M -7,-12 C -7,-12 -4,-15 0,-15 C 4,-15 7,-12 7,-12 C 8.5,-6 8.5,4 6.5,9 C 5.5,11.5 3.5,13 0,13 C -3.5,13 -5.5,11.5 -6.5,9 C -8.5,4 -8.5,-6 -7,-12 Z";
+    } else if (type === 'premolar') {
+      return "M -7,-9 C -7,-11 -4,-11.5 0,-11.5 C 4,-11.5 7,-9 7,-9 C 9.5,-5 9.5,5 7,9 C 7,11 4,11.5 0,11.5 C -4,11.5 -7,11 -7,9 C -9.5,5 -9.5,-5 -7,-9 Z";
+    } else {
+      return "M -10,-10 C -10,-13 -7,-13.5 0,-13.5 C 7,-13.5 10,-13 10,-10 C 12.5,-5 12.5,5 10,10 C 10,13 7,13.5 0,13.5 C -7,13.5 -10,13 -10,10 C -12.5,5 -12.5,-5 -10,-10 Z";
+    }
+  };
+
+  const getToothFissures = (type: 'molar' | 'premolar' | 'incisor') => {
+    if (type === 'molar') {
+      return <path d="M -5,0 L 5,0 M 0,-7 L 0,7 M -3,-4 L 0,0 L -3,4 M 3,-4 L 0,0 L 3,4" className="stroke-slate-200 dark:stroke-slate-800 fill-none stroke-[0.8] transition-colors duration-200" />;
+    } else if (type === 'premolar') {
+      return <path d="M -3,0 L 3,0 M 0,-4 L 0,4" className="stroke-slate-200 dark:stroke-slate-800 fill-none stroke-[0.8] transition-colors duration-200" />;
+    }
+    return null;
+  };
+
+  return (
+    <div className="w-full flex justify-center py-4 bg-white dark:bg-slate-955 rounded-lg border border-slate-200 dark:border-slate-800 p-5 shadow-xs select-none">
+      <div className="relative w-full max-w-[340px] aspect-[4/5] mx-auto">
+        <svg viewBox="0 0 400 500" className="w-full h-full">
+          {/* Central Guideline Crosshair */}
+          <line x1="200" y1="50" x2="200" y2="450" className="stroke-slate-200/60 dark:stroke-slate-800/60 stroke-[1]" strokeDasharray="4 4" />
+          <line x1="50" y1="250" x2="350" y2="250" className="stroke-slate-200/60 dark:stroke-slate-800/60 stroke-[1]" strokeDasharray="4 4" />
+
+          {ALL_TEETH.map((tooth) => {
+            const status = chartData[tooth.index];
+            const isSelected = selectedTooth === tooth.index;
+            const hasStatus = !!status && status !== "Healthy";
+            const isHighlighted = isSelected || hasStatus;
+
+            return (
+              <g
+                key={tooth.fdi}
+                className={`cursor-pointer transition-all duration-200 group ${isReadOnly ? 'pointer-events-none' : ''}`}
+                onClick={() => onSelectTooth && onSelectTooth(tooth.index)}
+              >
+                {/* Tooth outline */}
+                <g transform={`translate(${tooth.x}, ${tooth.y}) rotate(${tooth.rotation})`}>
+                  <path
+                    d={getToothPath(tooth.type)}
+                    className={`transition-colors duration-200 ${
+                      isHighlighted 
+                        ? 'fill-blue-100/70 dark:fill-blue-900/30 stroke-blue-500 stroke-[1.2]' 
+                        : 'fill-white dark:fill-slate-900 hover:fill-blue-50/50 dark:hover:fill-blue-955/40 stroke-slate-300 dark:stroke-slate-700 hover:stroke-blue-400 stroke-[1]'
+                    }`}
+                  />
+                  {getToothFissures(tooth.type)}
+                </g>
+
+                {/* FDI Label */}
+                <text
+                  x={tooth.labelX}
+                  y={tooth.labelY}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className={`text-[12px] font-semibold transition-colors duration-200 ${
+                    isHighlighted
+                      ? 'fill-blue-600 dark:fill-blue-400 font-bold'
+                      : 'fill-slate-400 dark:fill-slate-500 group-hover:fill-blue-500'
+                  }`}
+                >
+                  {tooth.fdi}
+                </text>
+
+                <title>{`Tooth #${tooth.fdi}${status ? `: ${status}` : ': Healthy'}`}</title>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+};
+
 // Predefined treatment base prices
 const TREATMENT_PRICES: Record<string, number> = {
   "Consultation": 500,
@@ -3058,27 +3202,20 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             )}
 
             {profileSubTab === "Dental Chart" && (
-              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
-                <span className="font-bold text-sm block border-b pb-2 mb-2">Patient Dental Mapping</span>
-                <div className="grid grid-cols-8 sm:grid-cols-16 gap-2 max-w-xl mx-auto">
-                  {[...Array(32)].map((_, i) => {
-                    const toothNum = i + 1;
-                    const toothStatus = patientItem.dentalChart[toothNum];
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => alert(`Tooth #${toothNum} status: ${toothStatus || "Healthy"}`)}
-                        className={`h-8 w-8 rounded-lg font-bold text-[10px] flex flex-col items-center justify-center border transition-all ${
-                          toothStatus ? "bg-red-500 text-white border-red-600 animate-pulse" : "bg-blue-50 border-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white"
-                        }`}
-                        title={toothStatus ? `Tooth #${toothNum}: ${toothStatus}` : `Tooth #${toothNum}: Healthy`}
-                      >
-                        <span>{toothNum}</span>
-                        {toothStatus && <span className="h-1 w-1 rounded-full bg-white mt-0.5" />}
-                      </button>
-                    );
-                  })}
+              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b pb-2 mb-2">
+                  <span className="font-bold text-sm">Patient Dental Mapping</span>
+                  <span className="text-[10px] text-slate-400">Click a tooth to view details</span>
                 </div>
+                <Odontogram 
+                  chartData={patientItem.dentalChart || {}} 
+                  onSelectTooth={(toothNum) => {
+                    const tooth = ALL_TEETH.find(t => t.index === toothNum);
+                    const toothStatus = patientItem.dentalChart[toothNum];
+                    alert(`Tooth #${tooth?.fdi || toothNum} status: ${toothStatus || "Healthy"}`);
+                  }}
+                  isReadOnly={true}
+                />
               </div>
             )}
 
@@ -3319,19 +3456,15 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         )}
 
         {activeSubTab === "Dental Chart" && (
-          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs text-xs font-semibold">
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold">
             <span className="font-bold text-sm block mb-3">Global Tooth Chart Visualizer</span>
-            <div className="grid grid-cols-8 sm:grid-cols-16 gap-2 max-w-xl mx-auto mb-4">
-              {[...Array(32)].map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => alert(`Tooth #${i+1} status: Normal.`)}
-                  className="h-8 w-8 rounded-lg bg-blue-50 border border-blue-100 text-blue-700 font-bold text-[10px] flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors"
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
+            <Odontogram 
+              chartData={{}}
+              onSelectTooth={(toothNum) => {
+                const tooth = ALL_TEETH.find(t => t.index === toothNum);
+                alert(`Tooth #${tooth?.fdi || toothNum} status: Healthy / Normal.`);
+              }}
+            />
           </div>
         )}
       </div>
@@ -3777,30 +3910,15 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
           {/* Interactive Tooth Grid panel */}
           <div className="space-y-6">
-            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs font-semibold space-y-4">
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold space-y-4">
               <span className="font-bold text-sm block">Tooth Diagnostic Map</span>
-              <p className="text-slate-405 text-[10px]">Select a tooth mapping index to log condition overrides:</p>
+              <p className="text-slate-405 text-[10px]">Select a tooth outline to log override overrides:</p>
               
-              <div className="grid grid-cols-8 gap-1.5 max-w-xs mx-auto">
-                {[...Array(32)].map((_, i) => {
-                  const toothNum = i + 1;
-                  const toothStatus = consultChart[toothNum];
-                  const isSelected = consultSelectedTooth === toothNum;
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setConsultSelectedTooth(toothNum)}
-                      className={`h-7 w-7 rounded-md font-bold text-[9px] flex items-center justify-center border transition-all ${
-                        isSelected ? "bg-blue-600 text-white border-blue-700" :
-                        toothStatus ? "bg-red-500 text-white border-red-600 animate-pulse" : "bg-slate-50 border-slate-200"
-                      }`}
-                    >
-                      {toothNum}
-                    </button>
-                  );
-                })}
-              </div>
+              <Odontogram 
+                chartData={consultChart}
+                selectedTooth={consultSelectedTooth}
+                onSelectTooth={(toothNum) => setConsultSelectedTooth(toothNum)}
+              />
 
               {consultSelectedTooth !== null && (
                 <div className="p-3 border rounded-xl bg-slate-50/50 space-y-2">
