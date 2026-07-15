@@ -78,6 +78,21 @@ interface Patient {
   email?: string;
   bloodGroup?: string;
   patientType?: "New" | "Returning";
+  firstName?: string;
+  lastName?: string;
+  dob?: string;
+  occupation?: string;
+  addressLine?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  allergies?: string;
+  medicalConditions?: string;
+  currentMedications?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  firstVisit?: string;
+  preferredDentist?: string;
 }
 
 interface Appointment {
@@ -126,6 +141,10 @@ interface TreatmentItem {
   notes: string;
   nextVisit: string;
   prescription: string;
+  tooth?: number;
+  cost?: number;
+  diagnosis?: string;
+  date?: string;
 }
 
 interface ActivityItem {
@@ -440,6 +459,91 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [patientsDirectoryQuery, setPatientsDirectoryQuery] = useState("");
 
+  // --- PATIENT PROFILE FORM EDIT STATES ---
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
+  const [editMobile, setEditMobile] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editDob, setEditDob] = useState("");
+  const [editAge, setEditAge] = useState(0);
+  const [editGender, setEditGender] = useState<"Male" | "Female">("Male");
+  const [editBloodGroup, setEditBloodGroup] = useState("");
+  const [editOccupation, setEditOccupation] = useState("");
+  const [editAddressLine, setEditAddressLine] = useState("");
+  const [editCity, setEditCity] = useState("");
+  const [editState, setEditState] = useState("");
+  const [editPincode, setEditPincode] = useState("");
+  const [editAllergies, setEditAllergies] = useState("");
+  const [editMedicalConditions, setEditMedicalConditions] = useState("");
+  const [editCurrentMedications, setEditCurrentMedications] = useState("");
+  const [editEmergencyContactName, setEditEmergencyContactName] = useState("");
+  const [editEmergencyContactPhone, setEditEmergencyContactPhone] = useState("");
+  const [editFirstVisit, setEditFirstVisit] = useState("");
+  const [editLastVisit, setEditLastVisit] = useState("");
+  const [editPreferredDentist, setEditPreferredDentist] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+
+  // --- TOOTH TREATMENT FORM STATE ---
+  const [chartSelectedTooth, setChartSelectedTooth] = useState<number | null>(null);
+  const [chartTreatmentName, setChartTreatmentName] = useState("");
+  const [chartDiagnosis, setChartDiagnosis] = useState("");
+  const [chartStatus, setChartStatus] = useState<"Planned" | "In Progress" | "Completed">("Planned");
+  const [chartDoctor, setChartDoctor] = useState("");
+  const [chartDate, setChartDate] = useState("");
+  const [chartCost, setChartCost] = useState("");
+  const [chartNotes, setChartNotes] = useState("");
+
+  // --- TREATMENTS FORM STATE ---
+  const [showAddTreatmentModal, setShowAddTreatmentModal] = useState(false);
+  const [newTrName, setNewTrName] = useState("");
+  const [newTrTooth, setNewTrTooth] = useState("");
+  const [newTrDoctor, setNewTrDoctor] = useState("");
+  const [newTrCost, setNewTrCost] = useState("");
+  const [newTrDiagnosis, setNewTrDiagnosis] = useState("");
+  const [newTrNotes, setNewTrNotes] = useState("");
+  const [newTrStatus, setNewTrStatus] = useState<"Planned" | "In Progress" | "Completed">("Planned");
+  const [newTrApptLink, setNewTrApptLink] = useState("");
+
+  // --- APPOINTMENTS FORM STATES ---
+  const [showAddApptForm, setShowAddApptForm] = useState(false);
+  const [patApptDoctor, setPatApptDoctor] = useState("");
+  const [patApptTreatment, setPatApptTreatment] = useState("");
+  const [patApptDate, setPatApptDate] = useState("");
+  const [patApptTime, setPatApptTime] = useState("");
+  const [patApptNotes, setPatApptNotes] = useState("");
+
+  const [reschedulingApptId, setReschedulingApptId] = useState<string | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
+
+  // --- PRESCRIPTION BUILDER STATES ---
+  const [prescDoctor, setPrescDoctor] = useState("");
+  const [prescDate, setPrescDate] = useState("");
+  const [prescDiagnosis, setPrescDiagnosis] = useState("");
+  const [prescAdvice, setPrescAdvice] = useState("");
+  const [prescMeds, setPrescMeds] = useState<{ name: string; dosage: string; freq: string; duration: string; instructions: string }[]>([
+    { name: "", dosage: "", freq: "", duration: "", instructions: "" }
+  ]);
+
+  // --- INVOICE FORM STATES ---
+  const [invProcedure, setInvProcedure] = useState("");
+  const [invAmount, setInvAmount] = useState("");
+  const [invDiscount, setInvDiscount] = useState("0");
+  const [invTax, setInvTax] = useState("18");
+  const [invPaid, setInvPaid] = useState("0");
+  const [invMode, setInvMode] = useState("UPI GPay");
+
+  // --- FILES UPLOAD FORM STATE ---
+  const [newFileName, setNewFileName] = useState("");
+  const [newFileType, setNewFileType] = useState("X-Ray Scan");
+  const [newFileUploadedBy, setNewFileUploadedBy] = useState("");
+
+  // --- NOTES FORM STATE ---
+  const [noteTitle, setNoteTitle] = useState("");
+  const [noteCategory, setNoteCategory] = useState("Clinical Notes");
+  const [noteAuthor, setNoteAuthor] = useState("");
+  const [noteDesc, setNoteDesc] = useState("");
+
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
     setTimeout(() => {
@@ -501,6 +605,512 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [treatments, setTreatments] = useState<TreatmentItem[]>([
     { id: "tr-1", name: "Root Canal Therapy", patient: "Vikram Malhotra", doctor: "Dr. Sharma", stage: "Completed", notes: "Fully obturated.", nextVisit: "10 Sep 2026", prescription: "Ibuprofen 400mg" }
   ]);
+
+  // --- PATIENT PROFILE FORM SYNC & HANDLERS ---
+  useEffect(() => {
+    if (selectedPatientId) {
+      const p = patients.find(pat => pat.id === selectedPatientId);
+      if (p) {
+        const names = p.name.split(" ");
+        setEditFirstName(p.firstName || names[0] || "");
+        setEditLastName(p.lastName || names.slice(1).join(" ") || "");
+        setEditMobile(p.phone || "");
+        setEditEmail(p.email || "");
+        setEditDob(p.dob || "");
+        setEditAge(p.age || 0);
+        setEditGender(p.gender || "Male");
+        setEditBloodGroup(p.bloodGroup || "");
+        setEditOccupation(p.occupation || "");
+        
+        const addrParts = p.address ? p.address.split(",") : [];
+        setEditAddressLine(p.addressLine || addrParts[0]?.trim() || p.address || "");
+        setEditCity(p.city || addrParts[1]?.trim() || "");
+        setEditState(p.state || addrParts[2]?.split("-")[0]?.trim() || "");
+        setEditPincode(p.pincode || addrParts[2]?.split("-")[1]?.trim() || "");
+        
+        setEditAllergies(p.allergies || "");
+        setEditMedicalConditions(p.medicalConditions || "");
+        setEditCurrentMedications(p.currentMedications || "");
+        setEditEmergencyContactName(p.emergencyContactName || "");
+        setEditEmergencyContactPhone(p.emergencyContactPhone || "");
+        setEditFirstVisit(p.firstVisit || p.visit || "");
+        setEditLastVisit(p.visit || "");
+        setEditPreferredDentist(p.preferredDentist || "");
+        setEditNotes(p.notes?.join("\n") || "");
+      }
+    }
+  }, [selectedPatientId, patients]);
+
+  const handleDobChange = (dobStr: string) => {
+    setEditDob(dobStr);
+    if (dobStr) {
+      const birthDate = new Date(dobStr);
+      const today = new Date();
+      let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        calculatedAge--;
+      }
+      setEditAge(calculatedAge >= 0 ? calculatedAge : 0);
+    }
+  };
+
+  const handleSavePatientProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editFirstName.trim() || !editMobile.trim()) {
+      showToast("First name and mobile number are required.", "error");
+      return;
+    }
+    
+    const fullName = `${editFirstName.trim()} ${editLastName.trim()}`.trim();
+    const fullAddress = `${editAddressLine.trim()}${editCity ? ', ' + editCity.trim() : ''}${editState ? ', ' + editState.trim() : ''}${editPincode ? ' - ' + editPincode.trim() : ''}`;
+    const mergedMedicalNotes = [
+      editAllergies ? `Allergies: ${editAllergies}` : "",
+      editMedicalConditions ? `Conditions: ${editMedicalConditions}` : "",
+      editCurrentMedications ? `Meds: ${editCurrentMedications}` : ""
+    ].filter(Boolean).join(" | ") || "None";
+
+    setPatients(prev => prev.map(p => {
+      if (p.id === selectedPatientId) {
+        return {
+          ...p,
+          name: fullName,
+          firstName: editFirstName.trim(),
+          lastName: editLastName.trim(),
+          phone: editMobile.trim(),
+          email: editEmail.trim(),
+          dob: editDob,
+          age: editAge,
+          gender: editGender,
+          bloodGroup: editBloodGroup.trim(),
+          occupation: editOccupation.trim(),
+          address: fullAddress,
+          addressLine: editAddressLine.trim(),
+          city: editCity.trim(),
+          state: editState.trim(),
+          pincode: editPincode.trim(),
+          allergies: editAllergies.trim(),
+          medicalConditions: editMedicalConditions.trim(),
+          currentMedications: editCurrentMedications.trim(),
+          emergencyContactName: editEmergencyContactName.trim(),
+          emergencyContactPhone: editEmergencyContactPhone.trim(),
+          firstVisit: editFirstVisit,
+          visit: editLastVisit || p.visit,
+          preferredDentist: editPreferredDentist,
+          medicalNotes: mergedMedicalNotes,
+          notes: editNotes ? editNotes.split("\n").filter(Boolean) : p.notes
+        };
+      }
+      return p;
+    }));
+
+    // Update patient name in appointments, invoices, treatments, etc.
+    const oldPatientItem = patients.find(p => p.id === selectedPatientId);
+    if (oldPatientItem && oldPatientItem.name !== fullName) {
+      setAppointments(prev => prev.map(a => a.patientId === selectedPatientId ? { ...a, patientName: fullName } : a));
+      setInvoices(prev => prev.map(inv => inv.patientId === selectedPatientId ? { ...inv, patientName: fullName } : inv));
+      setTreatments(prev => prev.map(tr => tr.patient === oldPatientItem.name ? { ...tr, patient: fullName } : tr));
+    }
+
+    showToast("Patient profile updated successfully.", "success");
+  };
+
+  const handleChartToothSelect = (toothIndex: number) => {
+    setChartSelectedTooth(toothIndex);
+    if (!chartDoctor && doctors.length > 0) {
+      setChartDoctor(doctors[0].name);
+    }
+    if (!chartDate) {
+      setChartDate(new Date().toISOString().split("T")[0]);
+    }
+  };
+
+  const handleSaveToothTreatment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chartTreatmentName.trim()) {
+      showToast("Treatment name is required.", "error");
+      return;
+    }
+    if (!chartSelectedTooth) return;
+
+    const patientItem = patients.find(p => p.id === selectedPatientId);
+    if (!patientItem) return;
+
+    const toothObj = ALL_TEETH.find(t => t.index === chartSelectedTooth);
+    const toothDisplay = toothObj ? `#${toothObj.fdi}` : `#${chartSelectedTooth}`;
+
+    const newTreatmentId = `tr-${Date.now()}`;
+    const newTreatment: TreatmentItem = {
+      id: newTreatmentId,
+      name: chartTreatmentName.trim(),
+      patient: patientItem.name,
+      doctor: chartDoctor,
+      stage: chartStatus,
+      notes: chartNotes.trim(),
+      nextVisit: "",
+      prescription: "",
+      tooth: chartSelectedTooth,
+      cost: Number(chartCost) || 0,
+      diagnosis: chartDiagnosis.trim(),
+      date: chartDate
+    };
+
+    setTreatments(prev => [...prev, newTreatment]);
+
+    setPatients(prev => prev.map(p => {
+      if (p.id === selectedPatientId) {
+        return {
+          ...p,
+          dentalChart: {
+            ...p.dentalChart,
+            [chartSelectedTooth]: `${chartTreatmentName.trim()} (${chartStatus})`
+          }
+        };
+      }
+      return p;
+    }));
+
+    const newActId = `act-${Date.now()}`;
+    const newAct: ActivityItem = {
+      id: newActId,
+      type: "Chart",
+      msg: `Tooth ${toothDisplay} treatment "${chartTreatmentName.trim()}" saved for ${patientItem.name} (${chartStatus}).`,
+      time: "Just now"
+    };
+    setActivities(prev => [newAct, ...prev]);
+
+    if (chartStatus === "Completed") {
+      const newInvId = `INV-${Date.now().toString().slice(-4)}`;
+      const costAmount = Number(chartCost) || 0;
+      const subtotal = costAmount;
+      const taxAmount = Math.round(subtotal * 0.18);
+      const total = subtotal + taxAmount;
+      
+      const newInvoice: InvoiceItem = {
+        id: newInvId,
+        patientId: patientItem.id,
+        patientName: patientItem.name,
+        doctor: chartDoctor,
+        treatment: chartTreatmentName.trim(),
+        items: [{ description: `${chartTreatmentName.trim()} on Tooth ${toothDisplay}`, amount: costAmount }],
+        discount: 0,
+        tax: 18,
+        subtotal,
+        total,
+        paidAmount: 0,
+        status: "Pending",
+        paymentDate: "",
+        paymentLogs: []
+      };
+      setInvoices(prev => [...prev, newInvoice]);
+    }
+
+    setChartSelectedTooth(null);
+    setChartTreatmentName("");
+    setChartDiagnosis("");
+    setChartStatus("Planned");
+    setChartNotes("");
+    setChartCost("");
+
+    showToast("Tooth treatment override saved.", "success");
+  };
+
+  const handleSaveCustomTreatment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTrName.trim()) {
+      showToast("Treatment name is required.", "error");
+      return;
+    }
+    const patientItem = patients.find(p => p.id === selectedPatientId);
+    if (!patientItem) return;
+
+    const newTrId = `tr-${Date.now()}`;
+    const toothNum = Number(newTrTooth) || undefined;
+    const costAmt = Number(newTrCost) || 0;
+
+    const newTreatment: TreatmentItem = {
+      id: newTrId,
+      name: newTrName.trim(),
+      patient: patientItem.name,
+      doctor: newTrDoctor || (doctors[0]?.name || ""),
+      stage: newTrStatus,
+      notes: newTrNotes.trim(),
+      nextVisit: "",
+      prescription: "",
+      tooth: toothNum,
+      cost: costAmt,
+      diagnosis: newTrDiagnosis.trim(),
+      date: new Date().toISOString().split("T")[0]
+    };
+
+    setTreatments(prev => [...prev, newTreatment]);
+
+    if (toothNum) {
+      setPatients(prev => prev.map(p => {
+        if (p.id === selectedPatientId) {
+          return {
+            ...p,
+            dentalChart: {
+              ...p.dentalChart,
+              [toothNum]: `${newTrName.trim()} (${newTrStatus})`
+            }
+          };
+        }
+        return p;
+      }));
+    }
+
+    if (newTrStatus === "Completed") {
+      const newInvId = `INV-${Date.now().toString().slice(-4)}`;
+      const subtotal = costAmt;
+      const taxAmount = Math.round(subtotal * 0.18);
+      const total = subtotal + taxAmount;
+      
+      const newInvoice: InvoiceItem = {
+        id: newInvId,
+        patientId: patientItem.id,
+        patientName: patientItem.name,
+        doctor: newTrDoctor || (doctors[0]?.name || ""),
+        treatment: newTrName.trim(),
+        items: [{ description: `${newTrName.trim()}${toothNum ? ' on Tooth #' + toothNum : ''}`, amount: costAmt }],
+        discount: 0,
+        tax: 18,
+        subtotal,
+        total,
+        paidAmount: 0,
+        status: "Pending",
+        paymentDate: "",
+        paymentLogs: []
+      };
+      setInvoices(prev => [...prev, newInvoice]);
+    }
+
+    setActivities(prev => [{
+      id: `act-${Date.now()}`,
+      type: "Treatment",
+      msg: `New treatment "${newTrName.trim()}" logged for ${patientItem.name}.`,
+      time: "Just now"
+    }, ...prev]);
+
+    setShowAddTreatmentModal(false);
+    setNewTrName("");
+    setNewTrTooth("");
+    setNewTrCost("");
+    setNewTrDiagnosis("");
+    setNewTrNotes("");
+    setNewTrStatus("Planned");
+    setNewTrApptLink("");
+
+    showToast("Treatment added successfully.", "success");
+  };
+
+  const handleSavePatientAppt = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!patApptTreatment.trim() || !patApptDate || !patApptTime) {
+      showToast("Treatment, date, and time are required.", "error");
+      return;
+    }
+    const patientItem = patients.find(p => p.id === selectedPatientId);
+    if (!patientItem) return;
+
+    const newApptId = `appt-${Date.now()}`;
+    const newAppt: Appointment = {
+      id: newApptId,
+      patientId: patientItem.id,
+      patientName: patientItem.name,
+      doctor: patApptDoctor || (doctors[0]?.name || ""),
+      treatment: patApptTreatment,
+      time: patApptTime,
+      date: patApptDate,
+      status: "Scheduled",
+      notes: patApptNotes.trim(),
+      avatarColor: "bg-blue-100 text-blue-600"
+    };
+
+    setAppointments(prev => [...prev, newAppt]);
+    
+    setActivities(prev => [{
+      id: `act-${Date.now()}`,
+      type: "Appointment",
+      msg: `New appointment scheduled for ${patientItem.name} with ${newAppt.doctor}.`,
+      time: "Just now"
+    }, ...prev]);
+
+    setShowAddApptForm(false);
+    setPatApptTreatment("");
+    setPatApptDate("");
+    setPatApptTime("");
+    setPatApptNotes("");
+
+    showToast("Appointment scheduled successfully.", "success");
+  };
+
+  const handleSavePrescription = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (prescMeds.some(m => !m.name.trim())) {
+      showToast("All medicines must have a name.", "error");
+      return;
+    }
+    const patientItem = patients.find(p => p.id === selectedPatientId);
+    if (!patientItem) return;
+
+    const formattedList = prescMeds.map(m => 
+      `${m.name} (${m.dosage}) - ${m.freq} for ${m.duration} [${m.instructions}]`
+    );
+
+    setPatients(prev => prev.map(p => {
+      if (p.id === selectedPatientId) {
+        return {
+          ...p,
+          prescriptions: [...(p.prescriptions || []), ...formattedList]
+        };
+      }
+      return p;
+    }));
+
+    const docName = prescDoctor || (doctors[0]?.name || "");
+    
+    const newFile = {
+      name: `prescription_${new Date(prescDate || Date.now()).toISOString().slice(0,10)}.pdf`,
+      size: "1.5 KB",
+      type: "application/pdf"
+    };
+
+    setPatients(prev => prev.map(p => {
+      if (p.id === selectedPatientId) {
+        return {
+          ...p,
+          files: [...(p.files || []), newFile]
+        };
+      }
+      return p;
+    }));
+
+    setPrescMeds([{ name: "", dosage: "", freq: "", duration: "", instructions: "" }]);
+    setPrescAdvice("");
+    setPrescDiagnosis("");
+
+    showToast("Prescription generated and saved.", "success");
+  };
+
+  const handleSaveInvoice = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!invProcedure.trim() || !invAmount) {
+      showToast("Procedure and Amount are required.", "error");
+      return;
+    }
+    const patientItem = patients.find(p => p.id === selectedPatientId);
+    if (!patientItem) return;
+
+    const amt = Number(invAmount) || 0;
+    const disc = Number(invDiscount) || 0;
+    const tx = Number(invTax) || 0;
+    const paid = Number(invPaid) || 0;
+
+    const discountAmount = amt * (disc / 100);
+    const subtotal = amt - discountAmount;
+    const taxAmount = Math.round(subtotal * (tx / 100));
+    const total = subtotal + taxAmount;
+    const pending = Math.max(0, total - paid);
+
+    const newInvId = `INV-${Date.now().toString().slice(-4)}`;
+    const newInvoice: InvoiceItem = {
+      id: newInvId,
+      patientId: patientItem.id,
+      patientName: patientItem.name,
+      doctor: doctors[0]?.name || "Dr. Deepa Kodali",
+      treatment: invProcedure.trim(),
+      items: [{ description: invProcedure.trim(), amount: amt }],
+      discount: disc,
+      tax: tx,
+      subtotal,
+      total,
+      paidAmount: paid,
+      status: pending === 0 ? "Paid" : paid > 0 ? "Partially Paid" : "Pending",
+      paymentDate: paid > 0 ? new Date().toISOString().split("T")[0] : "",
+      paymentLogs: paid > 0 ? [{ method: invMode, amount: paid, date: new Date().toISOString().split("T")[0] }] : []
+    };
+
+    setInvoices(prev => [...prev, newInvoice]);
+
+    setActivities(prev => [{
+      id: `act-${Date.now()}`,
+      type: "Billing",
+      msg: `Invoice ${newInvId} generated for ${patientItem.name} (${newInvoice.status}).`,
+      time: "Just now"
+    }, ...prev]);
+
+    setInvProcedure("");
+    setInvAmount("");
+    setInvDiscount("0");
+    setInvTax("18");
+    setInvPaid("0");
+
+    showToast("Invoice saved successfully.", "success");
+  };
+
+  const handleUploadFile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newFileName.trim()) {
+      showToast("File name is required.", "error");
+      return;
+    }
+    const patientItem = patients.find(p => p.id === selectedPatientId);
+    if (!patientItem) return;
+
+    const newFile = {
+      name: newFileName.trim(),
+      size: "2.4 MB",
+      type: newFileType
+    };
+
+    setPatients(prev => prev.map(p => {
+      if (p.id === selectedPatientId) {
+        return {
+          ...p,
+          files: [...(p.files || []), newFile]
+        };
+      }
+      return p;
+    }));
+
+    setNewFileName("");
+    showToast("File uploaded and linked successfully.", "success");
+  };
+
+  const handleSaveNote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!noteTitle.trim() || !noteDesc.trim()) {
+      showToast("Title and Description are required.", "error");
+      return;
+    }
+    const patientItem = patients.find(p => p.id === selectedPatientId);
+    if (!patientItem) return;
+
+    const formattedNote = `[${noteCategory}] ${noteTitle.trim()} - ${noteDesc.trim()} (By ${noteAuthor || "Dr. Deepa Kodali"} on ${new Date().toISOString().slice(0, 10)})`;
+
+    setPatients(prev => prev.map(p => {
+      if (p.id === selectedPatientId) {
+        return {
+          ...p,
+          notes: [...(p.notes || []), formattedNote]
+        };
+      }
+      return p;
+    }));
+
+    setActivities(prev => [{
+      id: `act-${Date.now()}`,
+      type: "Chart",
+      msg: `Clinical note added for ${patientItem.name}.`,
+      time: "Just now"
+    }, ...prev]);
+
+    setNoteTitle("");
+    setNoteDesc("");
+
+    showToast("Clinical Note saved.", "success");
+  };
 
   // --- HELPER DYNAMIC CALCULATIONS ---
 
@@ -3157,170 +3767,1058 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
           <div className="space-y-6">
             {profileSubTab === "Overview" && (
-              <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-                <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-3 text-xs font-semibold">
-                  <span className="font-bold text-sm block mb-1">Personal Details</span>
-                  <p className="text-slate-505">Address: <strong className="text-slate-800 dark:text-slate-200">{patientItem.address}</strong></p>
-                  <p className="text-slate-550">Contact: <strong className="text-slate-800 dark:text-slate-200">{patientItem.phone}</strong></p>
-                  <p className="text-slate-550">Outstanding Balance: <strong className="text-slate-800 text-red-600">{patientItem.balance}</strong></p>
-                  <p className="text-slate-550">Last Visited: <strong className="text-slate-800">{patientItem.visit}</strong></p>
+              <div className="space-y-6">
+                {/* Patient Summary Cards */}
+                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 animate-fadeIn">
+                  <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-3 text-xs font-semibold">
+                    <span className="font-bold text-sm block mb-1">Personal Details</span>
+                    <p className="text-slate-505">Address: <strong className="text-slate-800 dark:text-slate-200">{patientItem.address}</strong></p>
+                    <p className="text-slate-550">Contact: <strong className="text-slate-800 dark:text-slate-200">{patientItem.phone}</strong></p>
+                    <p className="text-slate-550">Outstanding Balance: <strong className="text-slate-800 text-red-650">{patientItem.balance}</strong></p>
+                    <p className="text-slate-550">Last Visited: <strong className="text-slate-800">{patientItem.visit}</strong></p>
+                  </div>
+                  <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs">
+                    <span className="font-bold text-sm block mb-3">Clinical Alert Profile</span>
+                    {patientItem.medicalNotes && patientItem.medicalNotes !== "None" ? (
+                      <div className="flex gap-2 p-3 bg-red-50 text-red-705 border border-red-100 rounded-xl font-semibold">
+                        <Shield className="h-4 w-4 shrink-0 text-red-650" />
+                        <div>
+                          <span className="font-bold block text-red-800">Medical Warning Logs</span>
+                          <p className="text-[10px] mt-0.5">{patientItem.medicalNotes}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-slate-500 font-bold">No active clinical warning logs.</p>
+                    )}
+                  </div>
                 </div>
-                <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs">
-                  <span className="font-bold text-sm block mb-3">Clinical Alert Profile</span>
-                  {patientItem.medicalNotes && patientItem.medicalNotes !== "None" ? (
-                    <div className="flex gap-2 p-3 bg-red-50 text-red-700 border border-red-100 rounded-xl font-semibold">
-                      <Shield className="h-4 w-4 shrink-0 text-red-650" />
-                      <div>
-                        <span className="font-bold block">Medical Warning Logs</span>
-                        <p className="text-[10px] mt-0.5">{patientItem.medicalNotes}</p>
+
+                {/* Editable Profile Form */}
+                <form onSubmit={handleSavePatientProfile} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-6 text-xs animate-fadeIn">
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-white border-b pb-2 mb-4">Edit Patient Profile</h3>
+                    
+                    {/* Basic Info */}
+                    <div className="space-y-4">
+                      <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400">Basic Information</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <Label>Patient ID</Label>
+                          <Input value={patientItem.id} disabled className="bg-slate-50 dark:bg-slate-900 border-slate-200" />
+                        </div>
+                        <div>
+                          <Label>First Name</Label>
+                          <Input value={editFirstName} onChange={e => setEditFirstName(e.target.value)} required />
+                        </div>
+                        <div>
+                          <Label>Last Name</Label>
+                          <Input value={editLastName} onChange={e => setEditLastName(e.target.value)} />
+                        </div>
+                        <div>
+                          <Label>Mobile Number</Label>
+                          <Input value={editMobile} onChange={e => setEditMobile(e.target.value)} required />
+                        </div>
+                        <div>
+                          <Label>Email</Label>
+                          <Input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} />
+                        </div>
+                        <div>
+                          <Label>Date of Birth</Label>
+                          <Input type="date" value={editDob} onChange={e => handleDobChange(e.target.value)} />
+                        </div>
+                        <div>
+                          <Label>Age (Auto-calculated)</Label>
+                          <Input type="number" value={editAge} disabled className="bg-slate-50 dark:bg-slate-900 border-slate-200" />
+                        </div>
+                        <div>
+                          <Label>Gender</Label>
+                          <select 
+                            className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                            value={editGender} 
+                            onChange={e => setEditGender(e.target.value as "Male" | "Female")}
+                          >
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                          </select>
+                        </div>
+                        <div>
+                          <Label>Blood Group</Label>
+                          <select 
+                            className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                            value={editBloodGroup} 
+                            onChange={e => setEditBloodGroup(e.target.value)}
+                          >
+                            <option value="">-- Choose --</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                          </select>
+                        </div>
+                        <div>
+                          <Label>Occupation</Label>
+                          <Input value={editOccupation} onChange={e => setEditOccupation(e.target.value)} />
+                        </div>
                       </div>
                     </div>
-                  ) : (
-                    <p className="text-slate-500 font-bold">No active clinical warning logs.</p>
-                  )}
-                </div>
+
+                    {/* Address Section */}
+                    <div className="space-y-4 mt-6">
+                      <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400">Address Details</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div className="sm:col-span-2">
+                          <Label>Address Line</Label>
+                          <Input value={editAddressLine} onChange={e => setEditAddressLine(e.target.value)} />
+                        </div>
+                        <div>
+                          <Label>City</Label>
+                          <Input value={editCity} onChange={e => setEditCity(e.target.value)} />
+                        </div>
+                        <div>
+                          <Label>State</Label>
+                          <Input value={editState} onChange={e => setEditState(e.target.value)} />
+                        </div>
+                        <div>
+                          <Label>Pincode</Label>
+                          <Input value={editPincode} onChange={e => setEditPincode(e.target.value)} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Medical Section */}
+                    <div className="space-y-4 mt-6">
+                      <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400">Medical History & Emergency Contact</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <Label>Allergies</Label>
+                          <Input value={editAllergies} onChange={e => setEditAllergies(e.target.value)} placeholder="e.g. Penicillin, Latex" />
+                        </div>
+                        <div>
+                          <Label>Medical Conditions</Label>
+                          <Input value={editMedicalConditions} onChange={e => setEditMedicalConditions(e.target.value)} placeholder="e.g. Hypertension, Diabetes" />
+                        </div>
+                        <div>
+                          <Label>Current Medications</Label>
+                          <Input value={editCurrentMedications} onChange={e => setEditCurrentMedications(e.target.value)} placeholder="e.g. Metformin, Lisinopril" />
+                        </div>
+                        <div>
+                          <Label>Emergency Contact Person</Label>
+                          <Input value={editEmergencyContactName} onChange={e => setEditEmergencyContactName(e.target.value)} />
+                        </div>
+                        <div>
+                          <Label>Emergency Contact Phone</Label>
+                          <Input value={editEmergencyContactPhone} onChange={e => setEditEmergencyContactPhone(e.target.value)} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Dental Info */}
+                    <div className="space-y-4 mt-6">
+                      <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400">Dental Preferences</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <Label>First Visit Date</Label>
+                          <Input type="date" value={editFirstVisit} onChange={e => setEditFirstVisit(e.target.value)} />
+                        </div>
+                        <div>
+                          <Label>Last Visit Date</Label>
+                          <Input type="date" value={editLastVisit} onChange={e => setEditLastVisit(e.target.value)} />
+                        </div>
+                        <div>
+                          <Label>Preferred Dentist</Label>
+                          <select 
+                            className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                            value={editPreferredDentist} 
+                            onChange={e => setEditPreferredDentist(e.target.value)}
+                          >
+                            <option value="">-- Choose Dentist --</option>
+                            {doctors.map(d => (
+                              <option key={d.name} value={d.name}>{d.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <Button type="button" onClick={() => setSelectedPatientId(null)} className="h-9 px-4 rounded border font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">
+                      Cancel
+                    </Button>
+                    <Button type="submit" className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold">
+                      Save Changes
+                    </Button>
+                  </div>
+                </form>
               </div>
             )}
 
             {profileSubTab === "Treatments" && (
-              <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs font-semibold space-y-4">
-                <span className="font-bold text-sm block border-b pb-2 mb-2">Patient Treatments History</span>
-                {treatments.filter(t => t.patient === patientItem.name).length > 0 ? (
-                  treatments.filter(t => t.patient === patientItem.name).map((tr) => (
-                    <div key={tr.id} className="p-3 border border-slate-100 bg-slate-50/50 rounded-xl flex justify-between items-center">
-                      <div>
-                        <span className="font-bold text-slate-808 block">{tr.name}</span>
-                        <p className="text-slate-500 mt-1">Doctor: {tr.doctor} • Stage: {tr.stage} • Notes: {tr.notes}</p>
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold space-y-4 animate-fadeIn">
+                  <div className="flex justify-between items-center border-b pb-2 mb-2">
+                    <span className="font-bold text-sm">Patient Treatment History Log</span>
+                    <Button 
+                      onClick={() => {
+                        setShowAddTreatmentModal(true);
+                        setNewTrDoctor(doctors[0]?.name || "");
+                      }} 
+                      className="h-8 px-3 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px]"
+                    >
+                      Add Treatment
+                    </Button>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b text-[10px] text-slate-405 uppercase tracking-wider">
+                          <th className="pb-2.5">Date</th>
+                          <th className="pb-2.5">Tooth</th>
+                          <th className="pb-2.5">Treatment</th>
+                          <th className="pb-2.5">Doctor</th>
+                          <th className="pb-2.5">Status</th>
+                          <th className="pb-2.5">Cost</th>
+                          <th className="pb-2.5 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-700 dark:text-slate-300">
+                        {treatments.filter(t => t.patient === patientItem.name).length > 0 ? (
+                          treatments.filter(t => t.patient === patientItem.name).map((tr) => (
+                            <tr key={tr.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
+                              <td className="py-3 font-semibold">{tr.date || patientItem.visit}</td>
+                              <td className="py-3 font-bold text-blue-600 dark:text-blue-400">{tr.tooth ? `Tooth #${ALL_TEETH.find(t => t.index === tr.tooth)?.fdi || tr.tooth}` : "General"}</td>
+                              <td className="py-3 font-bold text-slate-900 dark:text-white">{tr.name}</td>
+                              <td className="py-3">{tr.doctor}</td>
+                              <td className="py-3">
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                  tr.stage === "Completed" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40" :
+                                  tr.stage === "In Progress" ? "bg-blue-100 text-blue-800 dark:bg-blue-955/40" :
+                                  "bg-slate-100 text-slate-800 dark:bg-slate-900/40"
+                                }`}>
+                                  {tr.stage}
+                                </span>
+                              </td>
+                              <td className="py-3 font-bold">₹{(tr.cost || 0).toLocaleString()}</td>
+                              <td className="py-3 text-right">
+                                <button 
+                                  onClick={() => {
+                                    setTreatments(prev => prev.filter(t => t.id !== tr.id));
+                                    showToast("Treatment history log removed.", "success");
+                                  }} 
+                                  className="text-red-500 hover:text-red-750 font-bold"
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={7} className="py-4 text-slate-400 text-center">No treatment history logged.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Add Treatment Modal */}
+                {showAddTreatmentModal && (
+                  <div className="fixed inset-0 z-55 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4">
+                    <div className="w-full max-w-md bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden text-xs font-semibold">
+                      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+                        <span className="font-bold text-[14px]">Add New Patient Treatment Log</span>
+                        <button onClick={() => setShowAddTreatmentModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
                       </div>
-                      <span className="font-bold text-slate-500">Next Visit: {tr.nextVisit}</span>
+                      <form onSubmit={handleSaveCustomTreatment} className="p-5 space-y-4">
+                        <div>
+                          <Label>Treatment Name</Label>
+                          <select 
+                            className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                            value={newTrName}
+                            onChange={e => {
+                              setNewTrName(e.target.value);
+                              if (TREATMENT_PRICES[e.target.value]) {
+                                setNewTrCost(String(TREATMENT_PRICES[e.target.value]));
+                              }
+                            }}
+                            required
+                          >
+                            <option value="">-- Choose Procedure --</option>
+                            {Object.keys(TREATMENT_PRICES).map(t => (
+                              <option key={t} value={t}>{t} (₹{TREATMENT_PRICES[t]})</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>Tooth Index (Optional)</Label>
+                            <select 
+                              className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                              value={newTrTooth}
+                              onChange={e => setNewTrTooth(e.target.value)}
+                            >
+                              <option value="">-- General / None --</option>
+                              {ALL_TEETH.map(t => (
+                                <option key={t.fdi} value={t.index}>Tooth #{t.fdi}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <Label>Doctor Assigned</Label>
+                            <select 
+                              className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                              value={newTrDoctor}
+                              onChange={e => setNewTrDoctor(e.target.value)}
+                            >
+                              {doctors.map(d => (
+                                <option key={d.name} value={d.name}>{d.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>Procedure Cost (₹)</Label>
+                            <Input type="number" value={newTrCost} onChange={e => setNewTrCost(e.target.value)} />
+                          </div>
+                          <div>
+                            <Label>Treatment Status</Label>
+                            <select 
+                              className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                              value={newTrStatus}
+                              onChange={e => setNewTrStatus(e.target.value as any)}
+                            >
+                              <option value="Planned">Planned</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="Completed">Completed</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Diagnosis Notes</Label>
+                          <Input value={newTrDiagnosis} onChange={e => setNewTrDiagnosis(e.target.value)} placeholder="e.g. Tooth sensitivity" />
+                        </div>
+                        <div>
+                          <Label>Procedure Notes</Label>
+                          <Input value={newTrNotes} onChange={e => setNewTrNotes(e.target.value)} placeholder="Procedure steps..." />
+                        </div>
+                        <div className="flex gap-3 justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+                          <Button type="button" onClick={() => setShowAddTreatmentModal(false)} className="h-9 px-4 rounded border font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">
+                            Cancel
+                          </Button>
+                          <Button type="submit" className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold">
+                            Save
+                          </Button>
+                        </div>
+                      </form>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-slate-400 py-2">No treatments logged in historical database.</p>
+                  </div>
                 )}
               </div>
             )}
 
             {profileSubTab === "Dental Chart" && (
-              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b pb-2 mb-2">
-                  <span className="font-bold text-sm">Patient Dental Mapping</span>
-                  <span className="text-[10px] text-slate-400">Click a tooth to view details</span>
+              <div className="space-y-6 animate-fadeIn">
+                <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b pb-2 mb-2">
+                    <span className="font-bold text-sm">Patient Dental Mapping</span>
+                    <span className="text-[10px] text-slate-400">Click a tooth outline to log overrides</span>
+                  </div>
+                  <Odontogram 
+                    chartData={patientItem.dentalChart || {}} 
+                    selectedTooth={chartSelectedTooth}
+                    onSelectTooth={handleChartToothSelect}
+                  />
                 </div>
-                <Odontogram 
-                  chartData={patientItem.dentalChart || {}} 
-                  onSelectTooth={(toothNum) => {
-                    const tooth = ALL_TEETH.find(t => t.index === toothNum);
-                    const toothStatus = patientItem.dentalChart[toothNum];
-                    alert(`Tooth #${tooth?.fdi || toothNum} status: ${toothStatus || "Healthy"}`);
-                  }}
-                  isReadOnly={true}
-                />
+
+                {chartSelectedTooth !== null && (
+                  <form onSubmit={handleSaveToothTreatment} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
+                    <div className="flex justify-between items-center border-b pb-2">
+                      <span className="font-bold text-sm text-blue-600 dark:text-blue-400">
+                        Tooth Diagnostic Treatment Log: Tooth #{ALL_TEETH.find(t => t.index === chartSelectedTooth)?.fdi || chartSelectedTooth}
+                      </span>
+                      <button type="button" onClick={() => setChartSelectedTooth(null)} className="text-slate-450 hover:text-slate-700 font-bold text-base">×</button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label>Treatment Procedure</Label>
+                        <select 
+                          className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                          value={chartTreatmentName}
+                          onChange={e => {
+                            setChartTreatmentName(e.target.value);
+                            if (TREATMENT_PRICES[e.target.value]) {
+                              setChartCost(String(TREATMENT_PRICES[e.target.value]));
+                            }
+                          }}
+                          required
+                        >
+                          <option value="">-- Choose Procedure --</option>
+                          {Object.keys(TREATMENT_PRICES).map(t => (
+                            <option key={t} value={t}>{t} (₹{TREATMENT_PRICES[t]})</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <Label>Diagnosis Notes</Label>
+                        <Input value={chartDiagnosis} onChange={e => setChartDiagnosis(e.target.value)} placeholder="e.g. Deep cavity, pulpal involvement" />
+                      </div>
+
+                      <div>
+                        <Label>Treatment Stage Status</Label>
+                        <select 
+                          className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                          value={chartStatus} 
+                          onChange={e => setChartStatus(e.target.value as any)}
+                        >
+                          <option value="Planned">Planned</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="Completed">Completed</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <Label>Doctor Assigned</Label>
+                        <select 
+                          className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                          value={chartDoctor} 
+                          onChange={e => setChartDoctor(e.target.value)}
+                        >
+                          {doctors.map(d => (
+                            <option key={d.name} value={d.name}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <Label>Treatment Date</Label>
+                        <Input type="date" value={chartDate} onChange={e => setChartDate(e.target.value)} />
+                      </div>
+
+                      <div>
+                        <Label>Estimated Procedure Cost (₹)</Label>
+                        <Input type="number" value={chartCost} onChange={e => setChartCost(e.target.value)} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Procedure & Consultation Notes</Label>
+                      <Input value={chartNotes} onChange={e => setChartNotes(e.target.value)} placeholder="Enter details..." />
+                    </div>
+
+                    <div className="flex gap-3 justify-end pt-2">
+                      <Button type="button" onClick={() => setChartSelectedTooth(null)} className="h-9 px-4 rounded border font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">
+                        Cancel
+                      </Button>
+                      <Button type="submit" className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold">
+                        Save Treatment
+                      </Button>
+                    </div>
+                  </form>
+                )}
               </div>
             )}
 
             {profileSubTab === "Appointments" && (
-              <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs font-semibold">
-                <span className="font-bold text-sm block mb-3">Appointments Log</span>
-                <div className="divide-y">
-                  {pAppts.length > 0 ? (
-                    pAppts.map((app) => (
-                      <div key={app.id} className="py-3 flex justify-between items-center">
+              <div className="space-y-6 animate-fadeIn">
+                <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold space-y-4">
+                  <div className="flex justify-between items-center border-b pb-2 mb-2">
+                    <span className="font-bold text-sm">Appointments Log & Intake schedule</span>
+                    <Button 
+                      onClick={() => {
+                        setShowAddApptForm(prev => !prev);
+                        setApptDoctor(doctors[0]?.name || "");
+                      }} 
+                      className="h-8 px-3 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px]"
+                    >
+                      {showAddApptForm ? "Close Form" : "Book Appointment"}
+                    </Button>
+                  </div>
+
+                  {showAddApptForm && (
+                    <form onSubmit={handleSavePatientAppt} className="p-4 bg-slate-50/50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 space-y-3">
+                      <span className="font-bold block text-blue-605">Schedule New Slot</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                         <div>
-                          <span className="font-bold">{app.time} on {app.date} • {app.treatment}</span>
-                          <p className="text-slate-500 text-[10px]">Doctor: {app.doctor}</p>
+                          <Label>Doctor</Label>
+                          <select 
+                            className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                            value={patApptDoctor} 
+                            onChange={e => setPatApptDoctor(e.target.value)}
+                          >
+                            {doctors.map(d => (
+                              <option key={d.name} value={d.name}>{d.name}</option>
+                            ))}
+                          </select>
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider">{app.status}</span>
+                        <div>
+                          <Label>Treatment</Label>
+                          <select 
+                            className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                            value={patApptTreatment}
+                            onChange={e => setPatApptTreatment(e.target.value)}
+                            required
+                          >
+                            <option value="">-- Select --</option>
+                            {Object.keys(TREATMENT_PRICES).map(t => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <Label>Date</Label>
+                          <Input type="date" value={patApptDate} onChange={e => setPatApptDate(e.target.value)} required />
+                        </div>
+                        <div>
+                          <Label>Time Slot</Label>
+                          <Input value={patApptTime} onChange={e => setPatApptTime(e.target.value)} placeholder="e.g. 09:30 AM" required />
+                        </div>
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-slate-400 py-2">No appointment slots logged.</p>
+                      <div>
+                        <Label>Reason / Notes</Label>
+                        <Input value={patApptNotes} onChange={e => setPatApptNotes(e.target.value)} placeholder="Intake reason..." />
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        <Button type="button" onClick={() => setShowAddApptForm(false)} className="h-8 px-3 rounded border text-[11px]">Cancel</Button>
+                        <Button type="submit" className="h-8 px-3 rounded bg-blue-600 hover:bg-blue-500 text-white text-[11px]">Book Slot</Button>
+                      </div>
+                    </form>
                   )}
+
+                  <div className="space-y-4">
+                    {/* Log tables partitioned by state status */}
+                    {["Scheduled", "Checked In", "Waiting", "Completed", "Cancelled"].map(group => {
+                      const list = pAppts.filter(a => {
+                        if (group === "Scheduled") return a.status === "Scheduled";
+                        if (group === "Checked In") return a.status === "Checked In" || a.status === "Waiting";
+                        if (group === "Completed") return a.status === "Completed";
+                        return a.status === "Cancelled";
+                      });
+
+                      if (list.length === 0) return null;
+
+                      return (
+                        <div key={group} className="space-y-2">
+                          <span className="font-bold text-xs uppercase tracking-wider text-slate-400 block border-b pb-1 mt-2">{group} appointments</span>
+                          <div className="divide-y divide-slate-100 dark:divide-slate-900">
+                            {list.map(app => (
+                              <div key={app.id} className="py-3 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                                <div>
+                                  <span className="font-bold text-[13px] text-slate-900 dark:text-white">{app.time} on {app.date} • {app.treatment}</span>
+                                  <p className="text-slate-500 text-[11px] mt-0.5">Doctor: {app.doctor} {app.notes ? `• Notes: ${app.notes}` : ''}</p>
+                                </div>
+                                
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {reschedulingApptId === app.id ? (
+                                    <div className="flex gap-1.5 items-center">
+                                      <Input type="date" value={rescheduleDate} onChange={e => setRescheduleDate(e.target.value)} className="h-7 w-28 text-[10px] p-1" />
+                                      <Input value={rescheduleTime} onChange={e => setRescheduleTime(e.target.value)} placeholder="09:00 AM" className="h-7 w-20 text-[10px] p-1" />
+                                      <button 
+                                        onClick={() => {
+                                          if (!rescheduleDate || !rescheduleTime) return;
+                                          setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, date: rescheduleDate, time: rescheduleTime } : a));
+                                          setReschedulingApptId(null);
+                                          showToast("Appointment rescheduled.", "success");
+                                        }}
+                                        className="h-7 px-2 bg-emerald-600 text-white rounded text-[10px] font-bold"
+                                      >
+                                        Save
+                                      </button>
+                                      <button onClick={() => setReschedulingApptId(null)} className="text-slate-400 font-bold px-1">×</button>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      {app.status === "Scheduled" && (
+                                        <>
+                                          <button 
+                                            onClick={() => {
+                                              setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Checked In" } : a));
+                                              showToast("Patient checked in.", "success");
+                                            }}
+                                            className="h-7 px-2.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-[10px] transition-colors"
+                                          >
+                                            Check In
+                                          </button>
+                                          <button 
+                                            onClick={() => {
+                                              setReschedulingApptId(app.id);
+                                              setRescheduleDate(app.date);
+                                              setRescheduleTime(app.time);
+                                            }}
+                                            className="h-7 px-2.5 rounded border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-[10px]"
+                                          >
+                                            Reschedule
+                                          </button>
+                                        </>
+                                      )}
+                                      
+                                      {(app.status === "Checked In" || app.status === "Waiting") && (
+                                        <button 
+                                          onClick={() => {
+                                            setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Completed" } : a));
+                                            showToast("Appointment completed.", "success");
+                                          }}
+                                          className="h-7 px-2.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[10px]"
+                                        >
+                                          Complete
+                                        </button>
+                                      )}
+
+                                      {app.status !== "Cancelled" && app.status !== "Completed" && (
+                                        <button 
+                                          onClick={() => {
+                                            setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Cancelled" } : a));
+                                            showToast("Appointment cancelled.", "success");
+                                          }}
+                                          className="h-7 px-2.5 rounded border border-red-200 text-red-650 hover:bg-red-50 font-semibold text-[10px]"
+                                        >
+                                          Cancel
+                                        </button>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {pAppts.length === 0 && (
+                      <p className="text-slate-400 py-4 text-center">No appointment logs for this patient file.</p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
 
             {profileSubTab === "Invoices" && (
-              <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs">
-                <span className="font-bold text-sm block mb-3">Billing Invoice Statements</span>
-                <table className="w-full text-left border-collapse font-semibold">
-                  <thead>
-                    <tr className="border-b text-[10px] text-slate-400 uppercase">
-                      <th className="pb-2">Invoice #</th>
-                      <th className="pb-2">Amount</th>
-                      <th className="pb-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pInvoices.length > 0 ? (
-                      pInvoices.map((inv) => (
-                        <tr key={inv.id}>
-                          <td className="py-2.5 font-bold">
-                            <button onClick={() => setLastGeneratedReceipt(inv)} className="text-blue-600 hover:underline">{inv.id}</button>
-                          </td>
-                          <td className="py-2.5">₹{inv.total.toLocaleString()}</td>
-                          <td className="py-2.5">
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                              inv.status === "Paid" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
-                            }`}>{inv.status}</span>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={3} className="py-4 text-slate-400 text-center">No billing statements generated.</td>
+              <div className="space-y-6 animate-fadeIn">
+                {/* Billing invoice creation form */}
+                <form onSubmit={handleSaveInvoice} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
+                  <span className="font-bold text-sm block border-b pb-2 mb-2">Create New Billing Invoice</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <Label>Procedure / Item</Label>
+                      <select 
+                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                        value={invProcedure}
+                        onChange={e => {
+                          setInvProcedure(e.target.value);
+                          if (TREATMENT_PRICES[e.target.value]) {
+                            setInvAmount(String(TREATMENT_PRICES[e.target.value]));
+                          }
+                        }}
+                        required
+                      >
+                        <option value="">-- Choose Procedure --</option>
+                        {Object.keys(TREATMENT_PRICES).map(t => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label>Procedure Amount (₹)</Label>
+                      <Input type="number" value={invAmount} onChange={e => setInvAmount(e.target.value)} required />
+                    </div>
+                    <div>
+                      <Label>Discount (%)</Label>
+                      <Input type="number" min="0" max="100" value={invDiscount} onChange={e => setInvDiscount(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>Tax Rate (%)</Label>
+                      <Input type="number" min="0" max="100" value={invTax} onChange={e => setInvTax(e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Paid Amount (₹)</Label>
+                      <Input type="number" min="0" value={invPaid} onChange={e => setInvPaid(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>Payment Mode</Label>
+                      <select 
+                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                        value={invMode} 
+                        onChange={e => setInvMode(e.target.value)}
+                      >
+                        <option value="UPI GPay">UPI / GPay</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Card Swipe">Card</option>
+                        <option value="Bank Transfer">Net Banking</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button type="submit" className="h-9 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded">Save Invoice</Button>
+                  </div>
+                </form>
+
+                {/* Invoices List */}
+                <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs">
+                  <span className="font-bold text-sm block mb-3 border-b pb-2">Billing Statements</span>
+                  <table className="w-full text-left border-collapse font-semibold">
+                    <thead>
+                      <tr className="border-b text-[10px] text-slate-405 uppercase">
+                        <th className="pb-2">Invoice #</th>
+                        <th className="pb-2">Procedure</th>
+                        <th className="pb-2">Total Amount</th>
+                        <th className="pb-2">Paid Amount</th>
+                        <th className="pb-2">Status</th>
+                        <th className="pb-2 text-right">Actions</th>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {pInvoices.length > 0 ? (
+                        pInvoices.map((inv) => (
+                          <tr key={inv.id} className="border-b last:border-b-0">
+                            <td className="py-2.5 font-bold">
+                              <button type="button" onClick={() => setLastGeneratedReceipt(inv)} className="text-blue-600 hover:underline">{inv.id}</button>
+                            </td>
+                            <td className="py-2.5">{inv.treatment}</td>
+                            <td className="py-2.5 font-bold">₹{inv.total.toLocaleString()}</td>
+                            <td className="py-2.5 text-slate-500">₹{inv.paidAmount.toLocaleString()}</td>
+                            <td className="py-2.5">
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                inv.status === "Paid" ? "bg-emerald-55 text-emerald-800" :
+                                inv.status === "Partially Paid" ? "bg-yellow-50 text-yellow-800" :
+                                "bg-red-50 text-red-700"
+                              }`}>{inv.status}</span>
+                            </td>
+                            <td className="py-2.5 text-right space-x-2">
+                              {inv.status !== "Paid" && (
+                                <button 
+                                  onClick={() => {
+                                    setInvoices(prev => prev.map(i => i.id === inv.id ? { ...i, status: "Paid", paidAmount: i.total } : i));
+                                    showToast("Invoice marked as Paid.", "success");
+                                  }} 
+                                  className="text-emerald-600 hover:underline font-bold"
+                                >
+                                  Mark Paid
+                                </button>
+                              )}
+                              <button 
+                                onClick={() => {
+                                  alert(`Print layout prepared for receipt ${inv.id}.`);
+                                  setLastGeneratedReceipt(inv);
+                                }} 
+                                className="text-blue-600 hover:underline font-bold"
+                              >
+                                Print
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="py-4 text-slate-400 text-center">No billing statements generated.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {profileSubTab === "Prescriptions" && (
-              <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs font-semibold space-y-4">
-                <span className="font-bold text-sm block border-b pb-2 mb-2">Prescriptions Issued</span>
-                {patientItem.prescriptions.length > 0 ? (
-                  patientItem.prescriptions.map((pr, idx) => (
-                    <div key={idx} className="p-3 border border-slate-100 bg-slate-50/20 rounded-xl">
-                      <span className="font-bold block">{pr}</span>
+              <div className="space-y-6 animate-fadeIn">
+                {/* Prescription Builder */}
+                <form onSubmit={handleSavePrescription} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
+                  <span className="font-bold text-sm block border-b pb-2 mb-2">Prescription Builder</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <Label>Practitioner / Doctor</Label>
+                      <select 
+                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                        value={prescDoctor} 
+                        onChange={e => setPrescDoctor(e.target.value)}
+                      >
+                        {doctors.map(d => (
+                          <option key={d.name} value={d.name}>{d.name}</option>
+                        ))}
+                      </select>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-slate-400 py-2">No prescriptions logged.</p>
-                )}
+                    <div>
+                      <Label>Prescription Date</Label>
+                      <Input type="date" value={prescDate} onChange={e => setPrescDate(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>Diagnosis Notes</Label>
+                      <Input value={prescDiagnosis} onChange={e => setPrescDiagnosis(e.target.value)} placeholder="e.g. Acute apical periodontitis" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <span className="font-bold text-[11px] text-blue-605 block">Medicines Directory</span>
+                    {prescMeds.map((med, idx) => (
+                      <div key={idx} className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-end border-b pb-2 sm:border-b-0 sm:pb-0">
+                        <div className="sm:col-span-2">
+                          <Label>Medicine Name</Label>
+                          <Input 
+                            value={med.name} 
+                            onChange={e => {
+                              const copy = [...prescMeds];
+                              copy[idx].name = e.target.value;
+                              setPrescMeds(copy);
+                            }} 
+                            placeholder="Amoxicillin 500mg, Ibuprofen 400mg..."
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label>Dosage / Freq</Label>
+                          <Input 
+                            value={med.dosage} 
+                            onChange={e => {
+                              const copy = [...prescMeds];
+                              copy[idx].dosage = e.target.value;
+                              setPrescMeds(copy);
+                            }} 
+                            placeholder="3x daily, after meals..."
+                          />
+                        </div>
+                        <div>
+                          <Label>Duration</Label>
+                          <Input 
+                            value={med.duration} 
+                            onChange={e => {
+                              const copy = [...prescMeds];
+                              copy[idx].duration = e.target.value;
+                              setPrescMeds(copy);
+                            }} 
+                            placeholder="5 days, 1 week..."
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Input 
+                            value={med.instructions} 
+                            onChange={e => {
+                              const copy = [...prescMeds];
+                              copy[idx].instructions = e.target.value;
+                              setPrescMeds(copy);
+                            }} 
+                            placeholder="Special advice..." 
+                            className="flex-1"
+                          />
+                          {prescMeds.length > 1 && (
+                            <button 
+                              type="button" 
+                              onClick={() => setPrescMeds(prev => prev.filter((_, i) => i !== idx))} 
+                              className="h-9 px-2 text-red-500 hover:text-red-750 font-bold border border-slate-200 rounded"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    <button 
+                      type="button" 
+                      onClick={() => setPrescMeds(prev => [...prev, { name: "", dosage: "", freq: "", duration: "", instructions: "" }])} 
+                      className="text-xs text-blue-605 hover:underline font-bold mt-1 inline-block"
+                    >
+                      + Add Medicine Row
+                    </button>
+                  </div>
+
+                  <div>
+                    <Label>Doctor Advice / Instructions</Label>
+                    <Input value={prescAdvice} onChange={e => setPrescAdvice(e.target.value)} placeholder="Follow-up warnings..." />
+                  </div>
+
+                  <div className="flex gap-3 justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <Button 
+                      type="button" 
+                      onClick={() => {
+                        alert("PDF format initialized. Prescription downloaded successfully.");
+                      }} 
+                      className="h-9 px-4 rounded border font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
+                    >
+                      Generate PDF
+                    </Button>
+                    <Button type="submit" className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold">
+                      Save Prescription
+                    </Button>
+                  </div>
+                </form>
+
+                {/* Prescriptions History list */}
+                <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold space-y-4">
+                  <span className="font-bold text-sm block border-b pb-2 mb-2">Prescriptions Issued</span>
+                  {patientItem.prescriptions.length > 0 ? (
+                    patientItem.prescriptions.map((pr, idx) => (
+                      <div key={idx} className="p-3 border border-slate-100 bg-slate-50/20 rounded-xl flex justify-between items-center">
+                        <span className="font-semibold">{pr}</span>
+                        <button 
+                          onClick={() => {
+                            setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, prescriptions: p.prescriptions.filter((_, i) => i !== idx) } : p));
+                            showToast("Prescription deleted.", "success");
+                          }}
+                          className="text-red-500 hover:underline"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-slate-400 py-2 text-center">No prescriptions logged.</p>
+                  )}
+                </div>
               </div>
             )}
 
             {profileSubTab === "Files" && (
-              <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs font-semibold space-y-3">
-                <span className="font-bold text-sm block mb-2">Patient Files Uploads</span>
-                {patientItem.files.length > 0 ? (
-                  patientItem.files.map((file, idx) => (
-                    <div key={idx} className="p-3 border border-dashed border-slate-200 rounded-xl flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-blue-500" />
-                        <div>
-                          <span className="font-bold block">{file.name}</span>
-                          <p className="text-[10px] text-slate-400">{file.size} • PNG Scan File</p>
+              <div className="space-y-6 animate-fadeIn">
+                {/* Mock Upload Form */}
+                <form onSubmit={handleUploadFile} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
+                  <span className="font-bold text-sm block border-b pb-2 mb-2">Attach Patient Scanning File</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <Label>File Name</Label>
+                      <Input value={newFileName} onChange={e => setNewFileName(e.target.value)} placeholder="e.g. panorex_xray_final.png" required />
+                    </div>
+                    <div>
+                      <Label>File Type Category</Label>
+                      <select 
+                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                        value={newFileType} 
+                        onChange={e => setNewFileType(e.target.value)}
+                      >
+                        <option value="X-Ray Scan">X-Ray Scan</option>
+                        <option value="Intraoral Photo">Intraoral Photo</option>
+                        <option value="Prescription PDF">Prescription PDF</option>
+                        <option value="Clinical PDF">Clinical Report</option>
+                        <option value="Billing Statement">Billing Statement</option>
+                      </select>
+                    </div>
+                    <div className="flex items-end">
+                      <Button type="submit" className="h-9 w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded">
+                        Upload Scan
+                      </Button>
+                    </div>
+                  </div>
+                </form>
+
+                {/* Uploaded Files Table list */}
+                <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold space-y-3">
+                  <span className="font-bold text-sm block mb-2 border-b pb-2">Patient Files Uploads</span>
+                  {patientItem.files.length > 0 ? (
+                    patientItem.files.map((file, idx) => (
+                      <div key={idx} className="p-3 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-5 w-5 text-blue-500" />
+                          <div>
+                            <span className="font-bold block text-slate-850 dark:text-slate-100">{file.name}</span>
+                            <p className="text-[10px] text-slate-400">{file.size || "1.8 MB"} • {file.type || "PNG Scan File"}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button onClick={() => alert(`Downloading file: ${file.name}`)} className="text-[10px] text-blue-650 hover:underline font-bold">Download</button>
+                          <button 
+                            onClick={() => {
+                              setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, files: p.files.filter((_, i) => i !== idx) } : p));
+                              showToast("File deleted.", "success");
+                            }}
+                            className="text-[10px] text-red-500 hover:underline font-bold"
+                          >
+                            Delete
+                          </button>
                         </div>
                       </div>
-                      <button className="text-[10px] text-blue-650 hover:underline">Download</button>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-slate-400 py-2">No attachments uploaded.</p>
-                )}
+                    ))
+                  ) : (
+                    <p className="text-slate-400 py-2 text-center">No attachments uploaded.</p>
+                  )}
+                </div>
               </div>
             )}
 
             {profileSubTab === "Notes" && (
-              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs font-semibold space-y-4">
-                <span className="font-bold text-sm block mb-2">Clinical Practitioner Notes</span>
-                {patientItem.notes.map((note, idx) => (
-                  <div key={idx} className="p-2 bg-slate-50 rounded-xl text-slate-700 leading-relaxed">
-                    {note}
+              <div className="space-y-6 animate-fadeIn">
+                {/* Notes Editor */}
+                <form onSubmit={handleSaveNote} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
+                  <span className="font-bold text-sm block border-b pb-2 mb-2">Practitioner Notes Editor</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <Label>Note Title</Label>
+                      <Input value={noteTitle} onChange={e => setNoteTitle(e.target.value)} placeholder="e.g. Sensitivity override" required />
+                    </div>
+                    <div>
+                      <Label>Note Category</Label>
+                      <select 
+                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                        value={noteCategory} 
+                        onChange={e => setNoteCategory(e.target.value)}
+                      >
+                        <option value="Clinical Notes">Clinical Notes</option>
+                        <option value="Reception Notes">Reception Notes</option>
+                        <option value="Doctor Notes">Doctor Notes</option>
+                        <option value="Follow-up Notes">Follow-up Notes</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label>Author</Label>
+                      <select 
+                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                        value={noteAuthor} 
+                        onChange={e => setNoteAuthor(e.target.value)}
+                      >
+                        <option value="">-- Choose Staff --</option>
+                        {doctors.map(d => (
+                          <option key={d.name} value={d.name}>{d.name}</option>
+                        ))}
+                        <option value="Clinic Frontdesk Reception">Frontdesk Staff</option>
+                      </select>
+                    </div>
                   </div>
-                ))}
+                  <div>
+                    <Label>Note Description / Rich Editor Area</Label>
+                    <textarea 
+                      className="w-full h-24 p-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-transparent focus:outline-none"
+                      value={noteDesc}
+                      onChange={e => setNoteDesc(e.target.value)}
+                      placeholder="Type diagnostic mapping notes, follow up directions, or front desk alerts..."
+                      required
+                    />
+                  </div>
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button type="submit" className="h-9 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded">
+                      Save Note
+                    </Button>
+                  </div>
+                </form>
+
+                {/* Display Practitioner Notes list */}
+                <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold space-y-4">
+                  <span className="font-bold text-sm block mb-2 border-b pb-2">Clinical Practitioner Notes Log</span>
+                  {patientItem.notes.length > 0 ? (
+                    patientItem.notes.map((note, idx) => (
+                      <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-900/40 border border-slate-200/50 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-300 leading-relaxed flex justify-between items-start gap-4">
+                        <div className="flex-1 whitespace-pre-wrap">{note}</div>
+                        <button 
+                          onClick={() => {
+                            setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, notes: p.notes.filter((_, i) => i !== idx) } : p));
+                            showToast("Note deleted.", "success");
+                          }}
+                          className="text-red-500 hover:underline shrink-0"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-slate-405 text-center py-2">No clinical practitioner notes logged.</p>
+                  )}
+                </div>
               </div>
             )}
           </div>
