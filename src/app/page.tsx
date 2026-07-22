@@ -2310,34 +2310,37 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             <form onSubmit={handleSavePatientQuick} className="flex-grow flex flex-col justify-between overflow-hidden">
               {/* Form Content Wrapper */}
               <div className="flex-1 overflow-y-auto pr-1.5 scrollbar-thin space-y-4 pb-2.5">
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-0.5">
+                {/* Row 1 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
                     <Label htmlFor="qPatID" className="form-label-custom">Patient ID</Label>
                     <Input id="qPatID" value={`DS-${1000 + patients.length + 1}`} disabled className="form-field-custom bg-slate-50 dark:bg-slate-900 opacity-60 cursor-not-allowed font-bold" />
                   </div>
-                  <div className="space-y-0.5">
+                  <div className="space-y-1">
                     <Label htmlFor="qMobile" className="form-label-custom">Mobile Number</Label>
                     <Input id="qMobile" placeholder="e.g. +91 99000 11000" value={quickMobile} onChange={e => setQuickMobile(e.target.value)} required className="form-field-custom" />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-0.5">
+                {/* Row 2 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
                     <Label htmlFor="qFirstName" className="form-label-custom">First Name</Label>
                     <Input id="qFirstName" placeholder="e.g. Rahul" value={quickFirstName} onChange={e => setQuickFirstName(e.target.value)} required className="form-field-custom" />
                   </div>
-                  <div className="space-y-0.5">
+                  <div className="space-y-1">
                     <Label htmlFor="qLastName" className="form-label-custom">Last Name</Label>
                     <Input id="qLastName" placeholder="e.g. Verma" value={quickLastName} onChange={e => setQuickLastName(e.target.value)} required className="form-field-custom" />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-0.5">
+                {/* Row 3 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
                     <Label htmlFor="qAge" className="form-label-custom">Age</Label>
                     <Input id="qAge" type="number" min="0" value={quickAge || ""} onChange={e => setQuickAge(parseInt(e.target.value) || 30)} required className="form-field-custom" />
                   </div>
-                  <div className="space-y-0.5">
+                  <div className="space-y-1">
                     <Label htmlFor="qGender" className="form-label-custom">Gender</Label>
                     <select
                       id="qGender"
@@ -2351,19 +2354,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-0.5">
+                {/* Row 4 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
                     <Label htmlFor="qLocation" className="form-label-custom">Location</Label>
                     <Input id="qLocation" placeholder="e.g. Jayanagar" value={quickLocation} onChange={e => setQuickLocation(e.target.value)} className="form-field-custom" />
                   </div>
-                  <div className="space-y-0.5">
-                    <Label htmlFor="qEmail" className="form-label-custom">Email (Optional)</Label>
-                    <Input id="qEmail" type="email" placeholder="e.g. email@domain.com" value={quickEmail} onChange={e => setQuickEmail(e.target.value)} className="form-field-custom" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-0.5">
+                  <div className="space-y-1">
                     <Label htmlFor="qBloodGroup" className="form-label-custom">Blood Group (Optional)</Label>
                     <select
                       id="qBloodGroup"
@@ -2382,13 +2379,16 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <option value="O-">O-</option>
                     </select>
                   </div>
-                  <div className="space-y-0.5">
-                    {/* Empty block to maintain grid balance */}
-                  </div>
                 </div>
 
-                {/* Notes Field */}
-                <div className="space-y-0.5">
+                {/* Row 5 */}
+                <div className="space-y-1">
+                  <Label htmlFor="qEmail" className="form-label-custom">Email (Optional)</Label>
+                  <Input id="qEmail" type="email" placeholder="e.g. email@domain.com" value={quickEmail} onChange={e => setQuickEmail(e.target.value)} className="form-field-custom" />
+                </div>
+
+                {/* Row 6 */}
+                <div className="space-y-1">
                   <Label htmlFor="qNotes" className="form-label-custom">Notes / Remarks</Label>
                   <textarea
                     id="qNotes"
