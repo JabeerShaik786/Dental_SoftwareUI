@@ -1937,6 +1937,16 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       "08:00 PM", "08:15 PM"
     ];
 
+    const formatTo24h = (timeStr: string) => {
+      const match = timeStr.match(/^(\d+):(\d+)\s*(AM|PM)$/i);
+      if (!match) return timeStr;
+      let [_, h, m, p] = match;
+      let hr = parseInt(h, 10);
+      if (p.toUpperCase() === "PM" && hr < 12) hr += 12;
+      if (p.toUpperCase() === "AM" && hr === 12) hr = 0;
+      return `${String(hr).padStart(2, '0')}:${m}`;
+    };
+
     // Slot matcher helper
     const getApptForSlot = (date: string, timeSlot: string) => {
       const cleanT = (t: string) => t.trim().toLowerCase().replace(/^0/, "");
@@ -2181,7 +2191,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setSlotPatientId("");
                         setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
                       }}
-                      className={`slot-btn p-2.5 rounded-xl border text-[10px] transition-all ${
+                      className={`slot-btn ${!appt && !isBlocked ? "slot-btn-empty" : ""} p-2.5 rounded-xl border text-[10px] transition-all ${
                         appt 
                           ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800 flex flex-col justify-between items-start text-left" 
                           : isBlocked
@@ -2207,7 +2217,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           </span>
                         </>
                       ) : (
-                        <span className="slot-time font-medium text-[15px] text-slate-400 dark:text-slate-500">{time.replace(" AM", "").replace(" PM", "")}</span>
+                        <span className="slot-time">{formatTo24h(time)}</span>
                       )}
                     </button>
                   );
@@ -2255,7 +2265,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setSlotPatientId("");
                         setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
                       }}
-                      className={`slot-btn p-2.5 rounded-xl border text-[10px] transition-all ${
+                      className={`slot-btn ${!appt && !isBlocked ? "slot-btn-empty" : ""} p-2.5 rounded-xl border text-[10px] transition-all ${
                         appt 
                           ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800 flex flex-col justify-between items-start text-left" 
                           : isBlocked
@@ -2281,7 +2291,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           </span>
                         </>
                       ) : (
-                        <span className="slot-time font-medium text-[15px] text-slate-400 dark:text-slate-500">{time.replace(" AM", "").replace(" PM", "")}</span>
+                        <span className="slot-time">{formatTo24h(time)}</span>
                       )}
                     </button>
                   );

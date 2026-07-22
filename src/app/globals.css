@@ -275,10 +275,27 @@
     align-items: flex-start !important;
     text-align: left !important;
   }
+  .dashboard-container .slot-btn.slot-btn-empty {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    padding: 0 !important;
+  }
   .dashboard-container .slot-time {
     font-size: 13px !important;
     font-weight: 400 !important;
     color: #94a3b8 !important;
+  }
+  .dashboard-container .slot-btn.slot-btn-empty .slot-time {
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    color: #94a3b8 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: static !important;
+    transform: none !important;
   }
   .dashboard-container .slot-patient-name {
     font-size: 14px !important;
