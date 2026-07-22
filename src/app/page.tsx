@@ -2207,7 +2207,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           </span>
                         </>
                       ) : (
-                        <span className="slot-time font-bold text-[13px] text-slate-400 dark:text-slate-500">{time.replace(" AM", "")}</span>
+                        <span className="slot-time font-medium text-[15px] text-slate-400 dark:text-slate-500">{time.replace(" AM", "").replace(" PM", "")}</span>
                       )}
                     </button>
                   );
@@ -2281,7 +2281,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           </span>
                         </>
                       ) : (
-                        <span className="slot-time font-bold text-[13px] text-slate-400 dark:text-slate-500">{time.replace(" PM", "")}</span>
+                        <span className="slot-time font-medium text-[15px] text-slate-400 dark:text-slate-500">{time.replace(" AM", "").replace(" PM", "")}</span>
                       )}
                     </button>
                   );
