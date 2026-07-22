@@ -46,7 +46,9 @@ import {
   CalendarPlus,
   MessageSquare,
   MessageCircle,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Sun,
+  Moon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -2078,24 +2080,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     return (
       <div className="dashboard-container space-y-4 animate-fadeIn text-slate-700">
-        {/* Notification Strip */}
-        <div className="alerts-strip bg-[#FEF2F2] border border-[#FECACA] dark:bg-red-955/10 dark:border-red-900/25 rounded-lg px-4 flex flex-wrap md:flex-nowrap items-center h-auto md:h-10 py-2.5 md:py-0 w-full text-[13px] text-[#DC2626] dark:text-red-400 overflow-hidden shrink-0 gap-y-1">
-          <span className="font-semibold flex items-center gap-1.5 shrink-0 mr-2">
-            <Bell className="h-4 w-4 text-[#DC2626] dark:text-red-400 shrink-0" />
-            Clinic Alerts
-          </span>
-          <div className="text-[13.5px] font-normal truncate flex flex-wrap md:flex-nowrap items-center gap-1.5 flex-1 min-w-0">
-            <span className="opacity-60">•</span>
-            <span className="truncate">
-              Next appointment: {nextScheduled ? `${nextScheduled.patientName} – ${nextScheduled.treatment} at ${nextScheduled.time}` : "none scheduled"}
-            </span>
-            <span className="opacity-60">•</span>
-            <span className="shrink-0">2 pending follow-ups</span>
-            <span className="opacity-60">•</span>
-            <span className="shrink-0">1 unpaid invoice</span>
-          </div>
-        </div>
-
         {/* SECTION 1 - Weekly Appointment Calendar (TOP CENTER) */}
         <div className="calendar-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3 gap-3">
@@ -2159,11 +2143,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
 
           {/* Time Slots Grid (Morning vs Evening) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+          <div className="flex flex-col lg:flex-row gap-6 mt-4 relative">
             {/* Morning Column */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-1.5 text-blue-650 font-medium text-[13px] border-b pb-1.5">
-                <Clock className="h-3.5 w-3.5" />
+            <div className="flex-1 min-w-0 space-y-3">
+              <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-[14px] border-b pb-1.5">
+                <Sun className="h-4 w-4" />
                 <span>Morning Sessions (09:00 AM - 12:45 PM)</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -2197,26 +2181,33 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setSlotPatientId("");
                         setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
                       }}
-                      className={`slot-btn p-2.5 rounded-xl border text-[10px] flex flex-col justify-between items-start text-left h-20 transition-all ${
+                      className={`slot-btn p-2.5 rounded-xl border text-[10px] transition-all ${
                         appt 
-                          ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800" 
+                          ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800 flex flex-col justify-between items-start text-left" 
                           : isBlocked
-                            ? "bg-slate-100/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-900"
-                            : "bg-slate-50/20 border-dashed border-slate-200/60 dark:bg-slate-900/10 dark:border-slate-800/40 opacity-75"
-                      } ${btnStyle}`}
+                            ? "bg-slate-100/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-900 flex flex-col justify-between items-start text-left"
+                            : "bg-slate-50/20 border-dashed border-slate-200/60 dark:bg-slate-900/10 dark:border-slate-800/40 opacity-75 flex items-center justify-center text-center"
+                      } h-20 ${btnStyle}`}
                     >
-                      <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
-                      {statusBadge ? (
-                        <div className="w-full mt-1">
-                          <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
-                          <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
-                            {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
+                      {appt ? (
+                        <>
+                          <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
+                          <div className="w-full mt-1">
+                            <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
+                            <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
+                              {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
+                            </span>
+                          </div>
+                        </>
+                      ) : isBlocked ? (
+                        <>
+                          <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
+                          <span className="slot-open-label text-[9px] font-bold flex items-center gap-1 mt-1 text-slate-400">
+                            🔒 Blocked
                           </span>
-                        </div>
+                        </>
                       ) : (
-                        <span className={`slot-open-label text-[9px] font-semibold flex items-center gap-1 mt-1 ${isBlocked ? "font-bold" : ""}`}>
-                          {isBlocked ? "🔒 Blocked" : "+ Open Slot"}
-                        </span>
+                        <span className="slot-time font-bold text-[13px] text-slate-400 dark:text-slate-500">{time.replace(" AM", "")}</span>
                       )}
                     </button>
                   );
@@ -2224,10 +2215,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               </div>
             </div>
 
+            {/* Vertical Divider */}
+            <div className="hidden lg:block w-[1px] bg-slate-200 dark:bg-slate-800 self-stretch" />
+
             {/* Evening Column */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-1.5 text-indigo-650 font-medium text-[13px] border-b pb-1.5">
-                <Clock className="h-3.5 w-3.5" />
+            <div className="flex-1 min-w-0 space-y-3">
+              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-[14px] border-b pb-1.5">
+                <Moon className="h-4 w-4" />
                 <span>Evening Sessions (04:30 PM - 08:15 PM)</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -2261,26 +2255,33 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setSlotPatientId("");
                         setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
                       }}
-                      className={`slot-btn p-2.5 rounded-xl border text-[10px] flex flex-col justify-between items-start text-left h-20 transition-all ${
+                      className={`slot-btn p-2.5 rounded-xl border text-[10px] transition-all ${
                         appt 
-                          ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800" 
+                          ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800 flex flex-col justify-between items-start text-left" 
                           : isBlocked
-                            ? "bg-slate-100/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-900"
-                            : "bg-slate-50/20 border-dashed border-slate-200/60 dark:bg-slate-900/10 dark:border-slate-800/40 opacity-75"
-                      } ${btnStyle}`}
+                            ? "bg-slate-100/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-900 flex flex-col justify-between items-start text-left"
+                            : "bg-slate-50/20 border-dashed border-slate-200/60 dark:bg-slate-900/10 dark:border-slate-800/40 opacity-75 flex items-center justify-center text-center"
+                      } h-20 ${btnStyle}`}
                     >
-                      <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
-                      {statusBadge ? (
-                        <div className="w-full mt-1">
-                          <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
-                          <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
-                            {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
+                      {appt ? (
+                        <>
+                          <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
+                          <div className="w-full mt-1">
+                            <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
+                            <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
+                              {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
+                            </span>
+                          </div>
+                        </>
+                      ) : isBlocked ? (
+                        <>
+                          <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
+                          <span className="slot-open-label text-[9px] font-bold flex items-center gap-1 mt-1 text-slate-400">
+                            🔒 Blocked
                           </span>
-                        </div>
+                        </>
                       ) : (
-                        <span className={`slot-open-label text-[9px] font-semibold flex items-center gap-1 mt-1 ${isBlocked ? "font-bold" : ""}`}>
-                          {isBlocked ? "🔒 Blocked" : "+ Open Slot"}
-                        </span>
+                        <span className="slot-time font-bold text-[13px] text-slate-400 dark:text-slate-500">{time.replace(" PM", "")}</span>
                       )}
                     </button>
                   );
@@ -2342,28 +2343,25 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className="space-y-0.5">
-                    <Label htmlFor="qDOB" className="form-label-custom">Date of Birth</Label>
-                    <Input id="qDOB" type="date" value={quickDOB} onChange={e => setQuickDOB(e.target.value)} className="form-field-custom" />
-                  </div>
-                  <div className="space-y-0.5">
                     <Label htmlFor="qLocation" className="form-label-custom">Location</Label>
                     <Input id="qLocation" placeholder="e.g. Jayanagar" value={quickLocation} onChange={e => setQuickLocation(e.target.value)} className="form-field-custom" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <Label htmlFor="qEmail" className="form-label-custom">Email (Optional)</Label>
+                    <Input id="qEmail" type="email" placeholder="e.g. email@domain.com" value={quickEmail} onChange={e => setQuickEmail(e.target.value)} className="form-field-custom" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className="space-y-0.5">
-                    <Label htmlFor="qEmail" className="form-label-custom">Email (Optional)</Label>
-                    <Input id="qEmail" type="email" placeholder="e.g. email@domain.com" value={quickEmail} onChange={e => setQuickEmail(e.target.value)} className="form-field-custom" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <Label htmlFor="qBloodGroup" className="form-label-custom">Blood Group</Label>
+                    <Label htmlFor="qBloodGroup" className="form-label-custom">Blood Group (Optional)</Label>
                     <select
                       id="qBloodGroup"
                       className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
                       value={quickBloodGroup}
                       onChange={e => setQuickBloodGroup(e.target.value)}
                     >
+                      <option value="">-- Choose --</option>
                       <option value="A+">A+</option>
                       <option value="A-">A-</option>
                       <option value="B+">B+</option>
@@ -2373,6 +2371,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <option value="O+">O+</option>
                       <option value="O-">O-</option>
                     </select>
+                  </div>
+                  <div className="space-y-0.5">
+                    {/* Empty block to maintain grid balance */}
                   </div>
                 </div>
 
@@ -2485,14 +2486,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         >
                           <Receipt className="h-3.5 w-3.5" />
                         </button>
-                        <button
-                          type="button"
-                          title="Quick Edit"
-                          onClick={() => handleQuickEditPatient(pat)}
-                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-505 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        >
-                          <Settings className="h-3.5 w-3.5" />
-                        </button>
                       </div>
                     </div>
                   ))}
@@ -2600,6 +2593,23 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                               ✓ Completed
                             </button>
                           )}
+
+                          {/* Reschedule Button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newDate = prompt("Enter new date (e.g. 12 Aug 2026):", app.date);
+                              const newTime = prompt("Enter new time (e.g. 09:30 AM):", app.time);
+                              if (newDate && newTime) {
+                                setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, date: newDate, time: newTime } : a));
+                                pushActivity("Appointment", `Rescheduled ${app.patientName} to ${newDate} at ${newTime}.`);
+                                showToast("Appointment rescheduled.", "success");
+                              }
+                            }}
+                            className="flex-1 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            Reschedule
+                          </button>
 
                           {/* ₹ Billing Button */}
                           <button
@@ -5623,14 +5633,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 </div>
               </div>
               
-              <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3">
-                <Link
-                  href="/preview-hub"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-500 hover:underline transition-colors"
-                >
-                  <HelpCircle className="h-3.5 w-3.5" />
-                  Auth Preview
-                </Link>
+              <div className="flex items-center justify-start border-t border-slate-100 dark:border-slate-800 pt-3">
                 <button
                   onClick={() => router.push("/login")}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-655 hover:text-red-500 hover:underline transition-colors"
@@ -5651,7 +5654,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           
           <div className="flex items-center gap-7 flex-grow">
             <span className="text-[22px] font-bold text-slate-900 dark:text-white shrink-0 hidden md:inline-block">
-              {activeTab}
+              {activeTab === "Dashboard" && !sidebarCollapsed ? null : activeTab}
             </span>
             <div className="flex items-center gap-3 flex-grow max-w-[540px] w-full relative">
               <button
@@ -5949,13 +5952,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             </div>
 
             <div className="border-t border-slate-100 dark:border-slate-800 pt-3 flex flex-col gap-2.5">
-              <Link
-                href="/preview-hub"
-                className="text-xs font-semibold text-blue-650 flex items-center gap-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <HelpCircle className="h-4 w-4" /> Auth Preview Hub
-              </Link>
               <button
                 onClick={() => router.push("/login")}
                 className="text-xs font-semibold text-red-655 flex items-center gap-2 text-left"
