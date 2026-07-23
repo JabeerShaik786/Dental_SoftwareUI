@@ -461,6 +461,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [slotDoctor, setSlotDoctor] = useState("Dr. Deepa Kodali");
   const [slotTreatment, setSlotTreatment] = useState("Consultation");
 
+  // Hover states for Month View cell popover
+  const [hoveredApptDay, setHoveredApptDay] = useState<{
+    dateStr: string;
+    rect: { top: number; left: number; width: number; height: number };
+    appointments: Appointment[];
+  } | null>(null);
+  const hoverTimeoutRef = useRef<any>(null);
+
   useEffect(() => {
     function handleDropdownClickOutside(event: MouseEvent) {
       if (
@@ -483,7 +491,43 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }
   }, [selectedSlotData]);
 
-  const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+  const handleCellMouseEnter = (rect: DOMRect, dateStr: string, appointments: Appointment[]) => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setHoveredApptDay({
+      dateStr,
+      rect: {
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height
+      },
+      appointments
+    });
+  };
+
+  const handleCellMouseLeave = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredApptDay(null);
+    }, 200);
+  };
+
+  const handlePopoverMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+  };
+
+  const handlePopoverMouseLeave = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredApptDay(null);
+    }, 200);
+  };
 
   // Custom toast notifications and directory queries
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -3237,13 +3281,17 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     return (
                       <div 
                         key={index} 
-                        onMouseEnter={() => setHoveredDate(dayDateStr)}
-                        onMouseLeave={() => setHoveredDate(null)}
-                        className={`min-h-[110px] p-2 border rounded-xl flex flex-col justify-between transition-colors relative overflow-visible ${
+                        className={`min-h-[110px] p-2 border rounded-xl flex flex-col justify-between transition-colors overflow-hidden relative cursor-pointer ${
                           dayObj.isCurrentMonth 
                             ? "bg-white border-slate-200 dark:bg-slate-955 dark:border-slate-800" 
                             : "bg-slate-50/50 border-slate-100 text-slate-400 dark:bg-slate-900/10 dark:border-slate-900"
                         }`}
+                        onMouseEnter={(e) => {
+                          if (dayAppts.length > 0) {
+                            handleCellMouseEnter(e.currentTarget.getBoundingClientRect(), dayDateStr, dayAppts);
+                          }
+                        }}
+                        onMouseLeave={handleCellMouseLeave}
                       >
                         <div className="flex justify-between items-center mb-1">
                           <span className={`text-[10px] font-extrabold h-5 w-5 rounded-full flex items-center justify-center ${
@@ -3253,76 +3301,19 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           </span>
                         </div>
                         
-                        {/* Centered subtle badge or muted label */}
-                        <div className="flex-1 flex flex-col items-center justify-center">
+                        <div className="flex flex-col items-center justify-center flex-1 h-full pb-2">
                           {dayAppts.length > 0 ? (
-                            <span className="inline-flex items-center px-2 py-0.75 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-650 dark:bg-slate-900 dark:text-slate-405 border border-slate-200/40 dark:border-slate-800/40">
+                            <div 
+                              className="px-2.5 py-1.5 rounded-lg bg-blue-50/70 border border-blue-100 text-blue-700 dark:bg-blue-955/20 dark:border-blue-900/30 dark:text-blue-400 text-[10px] font-extrabold text-center flex items-center justify-center whitespace-nowrap transition-all hover:scale-105"
+                            >
                               {dayAppts.length} {dayAppts.length === 1 ? "Appointment" : "Appointments"}
-                            </span>
+                            </div>
                           ) : (
-                            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">
+                            <span className="text-[10px] font-bold text-slate-400/90 dark:text-slate-550">
                               No Appointments
                             </span>
                           )}
                         </div>
-
-                        {/* Hover Popover */}
-                        {dayAppts.length > 0 && hoveredDate === dayDateStr && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.15 }}
-                            className={`absolute ${
-                              (index % 7) >= 4 ? "right-full mr-2.5" : "left-full ml-2.5"
-                            } top-0 w-80 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-4 flex flex-col gap-3 font-semibold text-xs text-left cursor-default`}
-                            onClick={e => e.stopPropagation()}
-                          >
-                            <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-850">
-                              <span className="text-[13px] font-extrabold text-slate-850 dark:text-slate-105">
-                                Appointments — {(() => {
-                                  const day = dayObj.date.getDate();
-                                  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                                  const month = months[dayObj.date.getMonth()];
-                                  const year = dayObj.date.getFullYear();
-                                  return `${day} ${month} ${year}`;
-                                })()}
-                              </span>
-                            </div>
-                            <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
-                              {dayAppts.map(appt => (
-                                <div
-                                  key={appt.id}
-                                  onClick={() => {
-                                    setSelectedApptDetail(appt);
-                                    setHoveredDate(null);
-                                  }}
-                                  className="p-2.5 rounded-lg border border-slate-100 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer transition-colors flex flex-col gap-1.5"
-                                >
-                                  <div className="flex justify-between items-start gap-2">
-                                    <span className="font-extrabold text-slate-900 dark:text-white truncate">
-                                      {appt.patientName}
-                                    </span>
-                                    <span className="text-[10px] text-blue-600 dark:text-blue-400 shrink-0 font-bold">
-                                      {appt.time}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between items-center text-[10px] text-slate-550 dark:text-slate-400 font-medium">
-                                    <span>{appt.treatment} • {appt.doctor}</span>
-                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
-                                      appt.status === "Scheduled" ? "bg-blue-100 text-blue-805 dark:bg-blue-900/40 dark:text-blue-400" :
-                                      appt.status === "Checked In" || appt.status === "Waiting" ? "bg-emerald-100 text-emerald-805 dark:bg-emerald-900/40 dark:text-emerald-400" :
-                                      appt.status === "In Procedure" ? "bg-orange-100 text-orange-850 dark:bg-orange-950/40 dark:text-orange-400" :
-                                      appt.status === "Completed" ? "bg-slate-100 text-slate-800 dark:bg-slate-900/40 dark:text-slate-400" :
-                                      "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-400"
-                                    }`}>
-                                      {appt.status}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
                       </div>
                     );
                   })}
@@ -6779,6 +6770,76 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           }`}>
             <div className={`h-2 w-2 rounded-full ${toast.type === "success" ? "bg-emerald-500" : "bg-red-500"}`} />
             <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
+
+      {hoveredApptDay && (
+        <div
+          style={{
+            position: "fixed",
+            top: hoveredApptDay.rect.top,
+            left: (typeof window !== "undefined" && hoveredApptDay.rect.left + hoveredApptDay.rect.width + 8 + 320 > window.innerWidth)
+              ? hoveredApptDay.rect.left - 328
+              : hoveredApptDay.rect.left + hoveredApptDay.rect.width + 8,
+            width: "320px",
+            zIndex: 9999
+          }}
+          onMouseEnter={handlePopoverMouseEnter}
+          onMouseLeave={handlePopoverMouseLeave}
+          className="animate-scaleIn bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-4 text-xs font-semibold text-slate-700 flex flex-col gap-3"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-850 pb-2">
+            <span className="font-bold text-slate-800 dark:text-white text-[13px]">
+              Appointments — {hoveredApptDay.dateStr}
+            </span>
+            <span className="text-[10px] bg-blue-50 text-blue-600 dark:bg-blue-955/30 dark:text-blue-400 px-1.5 py-0.5 rounded font-extrabold">
+              {hoveredApptDay.appointments.length}
+            </span>
+          </div>
+
+          {/* List */}
+          <div className="space-y-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-1">
+            {hoveredApptDay.appointments.map(appt => (
+              <div
+                key={appt.id}
+                onClick={() => {
+                  setSelectedApptDetail(appt);
+                  setHoveredApptDay(null);
+                }}
+                className="p-2.5 rounded-lg border border-slate-100 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer flex flex-col gap-1 transition-all hover:border-slate-200 dark:hover:border-slate-800 shadow-3xs"
+              >
+                <div className="flex justify-between items-center gap-2">
+                  <span className="font-bold text-slate-900 dark:text-white text-xs truncate">
+                    {appt.patientName}
+                  </span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-550 shrink-0 font-extrabold">
+                    {appt.time}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center text-[10px] text-slate-550 dark:text-slate-400 font-medium">
+                  <span className="truncate">{appt.treatment}</span>
+                  <span className="shrink-0">{appt.doctor}</span>
+                </div>
+
+                <div className="mt-1 flex justify-between items-center">
+                  <span className="text-[9px] text-slate-455 dark:text-slate-500">
+                    {appt.patientId}
+                  </span>
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[8px] font-extrabold uppercase tracking-wider ${
+                    appt.status === "Scheduled" ? "bg-blue-100 text-blue-808 dark:bg-blue-900/40 dark:text-blue-400" :
+                    appt.status === "Checked In" || appt.status === "Waiting" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400" :
+                    appt.status === "In Procedure" ? "bg-orange-100 text-orange-850 dark:bg-orange-950/40 dark:text-orange-400" :
+                    appt.status === "Completed" ? "bg-slate-100 text-slate-808 dark:bg-slate-900/40 dark:text-slate-400" :
+                    "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-400"
+                  }`}>
+                    {appt.status}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
