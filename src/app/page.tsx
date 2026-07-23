@@ -6439,9 +6439,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-md bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl overflow-hidden text-xs font-semibold"
+            className="w-full max-w-[560px] bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl overflow-hidden text-xs font-semibold"
           >
-            <div className="flex items-start justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-start justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
               <div className="flex flex-col text-slate-900 dark:text-white">
                 <span className="text-[18px] font-bold leading-tight">Slot Management:</span>
                 <span className="text-[16px] font-semibold text-slate-500 dark:text-slate-400 mt-1 leading-normal">
@@ -6453,7 +6453,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               </button>
             </div>
 
-            <div className="p-5">
+            <div className="px-6 pt-5 pb-6">
               {selectedSlotData.appointment ? (
                 // Booked Slot
                 <div>
@@ -6487,7 +6487,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   </div>
 
                   {/* Horizontal Action Row */}
-                  <div className="flex items-center gap-3 w-full mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                  <div className="flex items-center gap-3 w-full mt-8 pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
                     {/* Primary Status-based Action Button */}
                     {selectedSlotData.appointment.status === "Scheduled" && (
                       <button
@@ -6672,7 +6672,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     );
                   })()}
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-5">
                     <div className="space-y-1.5">
                       <Label>Assign Doctor</Label>
                       <select
@@ -6700,7 +6700,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 w-full mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                  <div className="flex items-center gap-3 w-full mt-8 pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
                     <button
                       type="button"
                       onClick={() => handleBlockSlotToggle(selectedSlotData.date, selectedSlotData.time)}
