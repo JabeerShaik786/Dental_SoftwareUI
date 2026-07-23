@@ -483,6 +483,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }
   }, [selectedSlotData]);
 
+  const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+
   // Custom toast notifications and directory queries
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [patientsDirectoryQuery, setPatientsDirectoryQuery] = useState("");
@@ -3235,7 +3237,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     return (
                       <div 
                         key={index} 
-                        className={`min-h-[110px] p-2 border rounded-xl flex flex-col justify-between transition-colors overflow-hidden ${
+                        onMouseEnter={() => setHoveredDate(dayDateStr)}
+                        onMouseLeave={() => setHoveredDate(null)}
+                        className={`min-h-[110px] p-2 border rounded-xl flex flex-col justify-between transition-colors relative overflow-visible ${
                           dayObj.isCurrentMonth 
                             ? "bg-white border-slate-200 dark:bg-slate-955 dark:border-slate-800" 
                             : "bg-slate-50/50 border-slate-100 text-slate-400 dark:bg-slate-900/10 dark:border-slate-900"
@@ -3249,39 +3253,76 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           </span>
                         </div>
                         
-                        {/* Time, Patient Name, Patient ID in Column-wise format, Scrollbar removed */}
-                        <div className="space-y-1.5 flex-1 pr-0.5 overflow-hidden">
-                          {dayAppts.slice(0, 2).map(appt => {
-                            let docBorderColor = "border-l-blue-500 bg-blue-50/20";
-                            if (appt.doctor.includes("Raghuram")) docBorderColor = "border-l-cyan-500 bg-cyan-50/20";
-                            else if (appt.doctor.includes("Srinivasa")) docBorderColor = "border-l-purple-500 bg-purple-50/20";
-                            else if (appt.doctor.includes("Priyanka")) docBorderColor = "border-l-emerald-505 bg-emerald-55/20";
-                            else if (appt.doctor.includes("Krishna")) docBorderColor = "border-l-indigo-500 bg-indigo-50/20";
-
-                            return (
-                              <div 
-                                key={appt.id}
-                                onClick={() => setSelectedApptDetail(appt)}
-                                className={`p-1 border-l-2 rounded text-[9px] cursor-pointer hover:shadow-xs transition-shadow flex flex-col gap-0.5 leading-tight ${docBorderColor}`}
-                              >
-                                <span className="font-bold text-slate-550 dark:text-slate-400 text-[7.5px]">{appt.time}</span>
-                                <span className="font-extrabold text-slate-900 dark:text-white truncate">{appt.patientName}</span>
-                                <span className="text-slate-500 text-[8px] truncate">{appt.patientId}</span>
-                              </div>
-                            );
-                          })}
-                          
-                          {dayAppts.length > 2 && (
-                            <button 
-                              onClick={() => {
-                                setSelectedSlotData({ date: dayDateStr, time: "Multiple" });
-                              }}
-                              className="w-full text-center py-0.5 rounded bg-slate-100 hover:bg-slate-202 dark:bg-slate-900 text-[9px] font-extrabold text-blue-600"
-                            >
-                              +{dayAppts.length - 2} More
-                            </button>
+                        {/* Centered subtle badge or muted label */}
+                        <div className="flex-1 flex flex-col items-center justify-center">
+                          {dayAppts.length > 0 ? (
+                            <span className="inline-flex items-center px-2 py-0.75 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-650 dark:bg-slate-900 dark:text-slate-405 border border-slate-200/40 dark:border-slate-800/40">
+                              {dayAppts.length} {dayAppts.length === 1 ? "Appointment" : "Appointments"}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">
+                              No Appointments
+                            </span>
                           )}
                         </div>
+
+                        {/* Hover Popover */}
+                        {dayAppts.length > 0 && hoveredDate === dayDateStr && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.15 }}
+                            className={`absolute ${
+                              (index % 7) >= 4 ? "right-full mr-2.5" : "left-full ml-2.5"
+                            } top-0 w-80 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-4 flex flex-col gap-3 font-semibold text-xs text-left cursor-default`}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-850">
+                              <span className="text-[13px] font-extrabold text-slate-850 dark:text-slate-105">
+                                Appointments — {(() => {
+                                  const day = dayObj.date.getDate();
+                                  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                                  const month = months[dayObj.date.getMonth()];
+                                  const year = dayObj.date.getFullYear();
+                                  return `${day} ${month} ${year}`;
+                                })()}
+                              </span>
+                            </div>
+                            <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
+                              {dayAppts.map(appt => (
+                                <div
+                                  key={appt.id}
+                                  onClick={() => {
+                                    setSelectedApptDetail(appt);
+                                    setHoveredDate(null);
+                                  }}
+                                  className="p-2.5 rounded-lg border border-slate-100 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer transition-colors flex flex-col gap-1.5"
+                                >
+                                  <div className="flex justify-between items-start gap-2">
+                                    <span className="font-extrabold text-slate-900 dark:text-white truncate">
+                                      {appt.patientName}
+                                    </span>
+                                    <span className="text-[10px] text-blue-600 dark:text-blue-400 shrink-0 font-bold">
+                                      {appt.time}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between items-center text-[10px] text-slate-550 dark:text-slate-400 font-medium">
+                                    <span>{appt.treatment} • {appt.doctor}</span>
+                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
+                                      appt.status === "Scheduled" ? "bg-blue-100 text-blue-805 dark:bg-blue-900/40 dark:text-blue-400" :
+                                      appt.status === "Checked In" || appt.status === "Waiting" ? "bg-emerald-100 text-emerald-805 dark:bg-emerald-900/40 dark:text-emerald-400" :
+                                      appt.status === "In Procedure" ? "bg-orange-100 text-orange-850 dark:bg-orange-950/40 dark:text-orange-400" :
+                                      appt.status === "Completed" ? "bg-slate-100 text-slate-800 dark:bg-slate-900/40 dark:text-slate-400" :
+                                      "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-400"
+                                    }`}>
+                                      {appt.status}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
                       </div>
                     );
                   })}
