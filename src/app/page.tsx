@@ -6439,9 +6439,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-[560px] bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl overflow-hidden text-xs font-semibold"
+            className="w-full max-w-[680px] bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl overflow-hidden text-xs font-semibold"
           >
-            <div className="flex items-start justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-start justify-between px-8 py-6 border-b border-slate-100 dark:border-slate-800">
               <div className="flex flex-col text-slate-900 dark:text-white">
                 <span className="text-[18px] font-bold leading-tight">Slot Management:</span>
                 <span className="text-[16px] font-semibold text-slate-500 dark:text-slate-400 mt-1 leading-normal">
@@ -6453,11 +6453,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               </button>
             </div>
 
-            <div className="px-6 pt-5 pb-6">
+            <div className="p-8">
               {selectedSlotData.appointment ? (
                 // Booked Slot
                 <div>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-6">
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-6 mb-8">
                     <div>
                       <span className="text-[13px] text-slate-450 dark:text-slate-500 block mb-1 uppercase tracking-wider font-semibold">Patient</span>
                       <strong className="text-[16px] text-slate-850 dark:text-slate-100 font-semibold block leading-tight">{selectedSlotData.appointment.patientName}</strong>
@@ -6487,13 +6487,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   </div>
 
                   {/* Horizontal Action Row */}
-                  <div className="flex items-center gap-3 w-full mt-8 pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                  <div className="flex items-center gap-3 w-full mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 shrink-0">
                     {/* Primary Status-based Action Button */}
                     {selectedSlotData.appointment.status === "Scheduled" && (
                       <button
                         type="button"
                         onClick={() => handleApptCheckIn(selectedSlotData.appointment!.id)}
-                        className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
+                        className="h-12 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                       >
                         Check In
                       </button>
@@ -6502,7 +6502,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <button
                         type="button"
                         onClick={() => handleApptStartProcedure(selectedSlotData.appointment!.id)}
-                        className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
+                        className="h-12 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                       >
                         Start Procedure
                       </button>
@@ -6511,7 +6511,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <button
                         type="button"
                         onClick={() => handleApptCompleteProcedure(selectedSlotData.appointment!.id)}
-                        className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
+                        className="h-12 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                       >
                         Complete Procedure
                       </button>
@@ -6523,7 +6523,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => handleApptGenerateBill(selectedSlotData.appointment!.id)}
-                            className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
+                            className="h-12 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                           >
                             {hasInvoice ? "Collect Payment" : "Generate Bill"}
                           </button>
@@ -6543,7 +6543,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setAppointments(prev => prev.map(a => a.id === selectedSlotData.appointment!.id ? { ...a, status: "Cancelled" } : a));
                         setSelectedSlotData(null);
                       }}
-                      className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
+                      className="h-12 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                     >
                       Block Slot
                     </button>
@@ -6554,7 +6554,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setAppointments(prev => prev.map(a => a.id === selectedSlotData.appointment!.id ? { ...a, status: "Cancelled" } : a));
                         setSelectedSlotData(null);
                       }}
-                      className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] border border-red-200 text-red-655 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/20 transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
+                      className="h-12 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] border border-red-200 text-red-655 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/20 transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                     >
                       Cancel
                     </button>
@@ -6562,20 +6562,20 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 </div>
               ) : blockedSlots[`${selectedSlotData.date}_${selectedSlotData.time}`] ? (
                 // Blocked Slot
-                <div className="space-y-4 text-center py-1">
+                <div className="space-y-6 text-center py-1">
                   <p className="text-slate-500 font-medium">This slot is currently blocked for clinical maintenance.</p>
-                  <div className="flex items-center gap-3 w-full mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                  <div className="flex items-center gap-3 w-full mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 shrink-0">
                     <button
                       type="button"
                       onClick={() => handleBlockSlotToggle(selectedSlotData.date, selectedSlotData.time)}
-                      className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-emerald-600 hover:bg-emerald-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
+                      className="h-12 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] bg-emerald-600 hover:bg-emerald-500 text-white transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                     >
                       Unblock Slot
                     </button>
                     <button
                       type="button"
                       onClick={() => setSelectedSlotData(null)}
-                      className="h-11 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
+                      className="h-12 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                     >
                       Close
                     </button>
