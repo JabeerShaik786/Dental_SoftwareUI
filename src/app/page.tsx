@@ -244,7 +244,7 @@ const Odontogram: React.FC<OdontogramProps> = ({
 
   return (
     <div className="w-full flex justify-center py-4 bg-white dark:bg-slate-955 rounded-lg border border-slate-200 dark:border-slate-800 p-5 shadow-xs select-none">
-      <div className="relative w-full max-w-[340px] aspect-[4/5] mx-auto">
+      <div className="relative w-full max-w-[390px] aspect-[4/5] mx-auto">
         <svg viewBox="0 0 400 500" className="w-full h-full">
           {/* Central Guideline Crosshair */}
           <line x1="200" y1="50" x2="200" y2="450" className="stroke-slate-200/60 dark:stroke-slate-800/60 stroke-[1]" strokeDasharray="4 4" />
@@ -4198,106 +4198,135 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             )}
 
             {profileSubTab === "Dental Chart" && (
-              <div className="space-y-6 animate-fadeIn">
-                <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between border-b pb-2 mb-2">
-                    <span className="font-bold text-sm">Patient Dental Mapping</span>
-                    <span className="text-[10px] text-slate-400">Click a tooth outline to log overrides</span>
+              <div className="animate-fadeIn w-full">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-stretch">
+                  {/* Left Panel: Dental Chart (Width 40% on Desktop, top on Tablet/Mobile) */}
+                  <div className="lg:col-span-2 flex flex-col bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+                    <div className="flex items-center justify-between border-b pb-3 mb-4 shrink-0">
+                      <span className="font-bold text-sm">Patient Dental Mapping</span>
+                      <span className="text-[10px] text-slate-400">Click a tooth outline to log overrides</span>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center py-4">
+                      <div className="w-full">
+                        <Odontogram 
+                          chartData={patientItem.dentalChart || {}} 
+                          selectedTooth={chartSelectedTooth}
+                          onSelectTooth={handleChartToothSelect}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <Odontogram 
-                    chartData={patientItem.dentalChart || {}} 
-                    selectedTooth={chartSelectedTooth}
-                    onSelectTooth={handleChartToothSelect}
-                  />
+
+                  {/* Right Panel: Treatment Details (Width 60% on Desktop, bottom on Tablet/Mobile) */}
+                  <div className="lg:col-span-3 flex flex-col bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold">
+                    {chartSelectedTooth !== null ? (
+                      <form onSubmit={handleSaveToothTreatment} className="flex-grow flex flex-col justify-between h-full">
+                        <div className="space-y-5">
+                          <div className="flex justify-between items-center border-b pb-3">
+                            <span className="font-bold text-sm text-blue-600 dark:text-blue-400">
+                              Treatment Details — Tooth #{ALL_TEETH.find(t => t.index === chartSelectedTooth)?.fdi || chartSelectedTooth}
+                            </span>
+                            <button type="button" onClick={() => setChartSelectedTooth(null)} className="text-slate-450 hover:text-slate-700 font-bold text-base">×</button>
+                          </div>
+
+                          <div className="space-y-4">
+                            {/* Row 1 */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <Label>Treatment Procedure</Label>
+                                <select 
+                                  className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                                  value={chartTreatmentName}
+                                  onChange={e => {
+                                    setChartTreatmentName(e.target.value);
+                                    if (TREATMENT_PRICES[e.target.value]) {
+                                      setChartCost(String(TREATMENT_PRICES[e.target.value]));
+                                    }
+                                  }}
+                                  required
+                                >
+                                  <option value="">-- Choose Procedure --</option>
+                                  {Object.keys(TREATMENT_PRICES).map(t => (
+                                    <option key={t} value={t}>{t} (₹{TREATMENT_PRICES[t]})</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="space-y-1">
+                                <Label>Treatment Status</Label>
+                                <select 
+                                  className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                                  value={chartStatus} 
+                                  onChange={e => setChartStatus(e.target.value as any)}
+                                >
+                                  <option value="Planned">Planned</option>
+                                  <option value="In Progress">In Progress</option>
+                                  <option value="Completed">Completed</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            {/* Row 2 */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <Label>Doctor Assigned</Label>
+                                <select 
+                                  className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                                  value={chartDoctor} 
+                                  onChange={e => setChartDoctor(e.target.value)}
+                                >
+                                  {doctors.map(d => (
+                                    <option key={d.name} value={d.name}>{d.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="space-y-1">
+                                <Label>Treatment Date</Label>
+                                <Input type="date" value={chartDate} onChange={e => setChartDate(e.target.value)} />
+                              </div>
+                            </div>
+
+                            {/* Row 3 */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <Label>Estimated Procedure Cost (₹)</Label>
+                                <Input type="number" value={chartCost} onChange={e => setChartCost(e.target.value)} />
+                              </div>
+                              <div className="space-y-1">
+                                <Label>Diagnosis Notes</Label>
+                                <Input value={chartDiagnosis} onChange={e => setChartDiagnosis(e.target.value)} placeholder="e.g. Deep cavity, pulpal involvement" />
+                              </div>
+                            </div>
+
+                            {/* Row 4 */}
+                            <div className="space-y-1">
+                              <Label>Procedure / Consultation Notes</Label>
+                              <Input value={chartNotes} onChange={e => setChartNotes(e.target.value)} placeholder="Enter details..." />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3 justify-end pt-4 border-t border-slate-100 dark:border-slate-800 mt-auto">
+                          <Button type="button" onClick={() => setChartSelectedTooth(null)} className="h-9 px-4 rounded border font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">
+                            Cancel
+                          </Button>
+                          <Button type="submit" className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold">
+                            Save Treatment
+                          </Button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="flex-grow flex flex-col items-center justify-center text-center p-8 text-slate-400 dark:text-slate-550 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl h-full min-h-[300px]">
+                        <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-full mb-3 text-slate-400 dark:text-slate-500">
+                          <Activity className="h-6 w-6" />
+                        </div>
+                        <span className="font-bold text-sm text-slate-700 dark:text-slate-300 mb-1">No Tooth Selected</span>
+                        <p className="max-w-xs text-[11px] font-normal leading-relaxed text-slate-450 dark:text-slate-400">
+                          Select a tooth outline from the Dental Chart on the left to view, log, or update clinical treatment details.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-
-                {chartSelectedTooth !== null && (
-                  <form onSubmit={handleSaveToothTreatment} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
-                    <div className="flex justify-between items-center border-b pb-2">
-                      <span className="font-bold text-sm text-blue-600 dark:text-blue-400">
-                        Tooth Diagnostic Treatment Log: Tooth #{ALL_TEETH.find(t => t.index === chartSelectedTooth)?.fdi || chartSelectedTooth}
-                      </span>
-                      <button type="button" onClick={() => setChartSelectedTooth(null)} className="text-slate-450 hover:text-slate-700 font-bold text-base">×</button>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label>Treatment Procedure</Label>
-                        <select 
-                          className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
-                          value={chartTreatmentName}
-                          onChange={e => {
-                            setChartTreatmentName(e.target.value);
-                            if (TREATMENT_PRICES[e.target.value]) {
-                              setChartCost(String(TREATMENT_PRICES[e.target.value]));
-                            }
-                          }}
-                          required
-                        >
-                          <option value="">-- Choose Procedure --</option>
-                          {Object.keys(TREATMENT_PRICES).map(t => (
-                            <option key={t} value={t}>{t} (₹{TREATMENT_PRICES[t]})</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <Label>Diagnosis Notes</Label>
-                        <Input value={chartDiagnosis} onChange={e => setChartDiagnosis(e.target.value)} placeholder="e.g. Deep cavity, pulpal involvement" />
-                      </div>
-
-                      <div>
-                        <Label>Treatment Stage Status</Label>
-                        <select 
-                          className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
-                          value={chartStatus} 
-                          onChange={e => setChartStatus(e.target.value as any)}
-                        >
-                          <option value="Planned">Planned</option>
-                          <option value="In Progress">In Progress</option>
-                          <option value="Completed">Completed</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <Label>Doctor Assigned</Label>
-                        <select 
-                          className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
-                          value={chartDoctor} 
-                          onChange={e => setChartDoctor(e.target.value)}
-                        >
-                          {doctors.map(d => (
-                            <option key={d.name} value={d.name}>{d.name}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <Label>Treatment Date</Label>
-                        <Input type="date" value={chartDate} onChange={e => setChartDate(e.target.value)} />
-                      </div>
-
-                      <div>
-                        <Label>Estimated Procedure Cost (₹)</Label>
-                        <Input type="number" value={chartCost} onChange={e => setChartCost(e.target.value)} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label>Procedure & Consultation Notes</Label>
-                      <Input value={chartNotes} onChange={e => setChartNotes(e.target.value)} placeholder="Enter details..." />
-                    </div>
-
-                    <div className="flex gap-3 justify-end pt-2">
-                      <Button type="button" onClick={() => setChartSelectedTooth(null)} className="h-9 px-4 rounded border font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">
-                        Cancel
-                      </Button>
-                      <Button type="submit" className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold">
-                        Save Treatment
-                      </Button>
-                    </div>
-                  </form>
-                )}
               </div>
             )}
 
