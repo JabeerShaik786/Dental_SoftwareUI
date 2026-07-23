@@ -3302,16 +3302,12 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         </div>
                         
                         <div className="flex flex-col items-center justify-center flex-1 h-full pb-2">
-                          {dayAppts.length > 0 ? (
+                          {dayAppts.length > 0 && (
                             <div 
                               className="px-2.5 py-1.5 rounded-lg bg-blue-50/70 border border-blue-100 text-blue-700 dark:bg-blue-955/20 dark:border-blue-900/30 dark:text-blue-400 text-[10px] font-extrabold text-center flex items-center justify-center whitespace-nowrap transition-all hover:scale-105"
                             >
                               {dayAppts.length} {dayAppts.length === 1 ? "Appointment" : "Appointments"}
                             </div>
-                          ) : (
-                            <span className="text-[10px] font-bold text-slate-400/90 dark:text-slate-550">
-                              No Appointments
-                            </span>
                           )}
                         </div>
                       </div>
