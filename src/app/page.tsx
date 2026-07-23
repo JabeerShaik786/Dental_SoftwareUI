@@ -364,6 +364,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     };
   }, []);
 
+
   const [showNotifications, setShowNotifications] = useState(false);
   const [globalSearchQuery, setGlobalSearchQuery] = useState("");
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -454,8 +455,33 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   
   // Slot booking form states
   const [slotPatientId, setSlotPatientId] = useState("");
+  const [slotPatientDropdownOpen, setSlotPatientDropdownOpen] = useState(false);
+  const [slotPatientSearchQuery, setSlotPatientSearchQuery] = useState("");
+  const slotPatientDropdownRef = useRef<HTMLDivElement | null>(null);
   const [slotDoctor, setSlotDoctor] = useState("Dr. Deepa Kodali");
   const [slotTreatment, setSlotTreatment] = useState("Consultation");
+
+  useEffect(() => {
+    function handleDropdownClickOutside(event: MouseEvent) {
+      if (
+        slotPatientDropdownRef.current &&
+        !slotPatientDropdownRef.current.contains(event.target as Node)
+      ) {
+        setSlotPatientDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleDropdownClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleDropdownClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (selectedSlotData) {
+      setSlotPatientSearchQuery("");
+      setSlotPatientDropdownOpen(false);
+    }
+  }, [selectedSlotData]);
 
   // Custom toast notifications and directory queries
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -6557,21 +6583,94 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 </div>
               ) : (
                 // Empty Slot - Allow Booking or Blocking
-                <form onSubmit={handleSlotBookingSubmit} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label>Select Patient Record</Label>
-                    <select
-                      className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
-                      value={slotPatientId}
-                      onChange={e => setSlotPatientId(e.target.value)}
-                      required
-                    >
-                      <option value="">-- Choose Patient --</option>
-                      {patients.map(p => (
-                        <option key={p.id} value={p.id}>{p.name} ({p.id})</option>
-                      ))}
-                    </select>
-                  </div>
+                 <form onSubmit={handleSlotBookingSubmit} className="space-y-4">
+                  {(() => {
+                    const selectedPatient = patients.find(p => p.id === slotPatientId);
+                    const filteredPatientsForSlot = patients.filter(p => {
+                      const query = slotPatientSearchQuery.toLowerCase().trim();
+                      if (!query) return true;
+                      return (
+                        p.name.toLowerCase().includes(query) ||
+                        p.id.toLowerCase().includes(query) ||
+                        (p.phone && p.phone.toLowerCase().includes(query))
+                      );
+                    });
+                    
+                    return (
+                      <div className="space-y-1.5">
+                        <Label>Select Patient Record</Label>
+                        
+                        {/* Hidden select for HTML5 required validation */}
+                        <select
+                          value={slotPatientId}
+                          onChange={e => setSlotPatientId(e.target.value)}
+                          required
+                          className="absolute w-0 h-0 opacity-0 pointer-events-none"
+                        >
+                          <option value="">-- Choose Patient --</option>
+                          {patients.map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+
+                        <div className="relative" ref={slotPatientDropdownRef}>
+                          <div
+                            onClick={() => setSlotPatientDropdownOpen(!slotPatientDropdownOpen)}
+                            className="flex h-9 w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 cursor-pointer"
+                          >
+                            <span className="truncate">
+                              {selectedPatient ? `${selectedPatient.name} (${selectedPatient.id})` : "-- Choose Patient --"}
+                            </span>
+                            <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                          </div>
+
+                          {slotPatientDropdownOpen && (
+                            <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-lg border border-slate-200 bg-white dark:bg-slate-950 dark:border-slate-850 shadow-lg z-50 flex flex-col">
+                              {/* Search input field inside the dropdown */}
+                              <div className="sticky top-0 bg-white dark:bg-slate-955 p-1.5 border-b border-slate-100 dark:border-slate-850">
+                                <input
+                                  type="text"
+                                  placeholder="Search by name, ID, or mobile..."
+                                  value={slotPatientSearchQuery}
+                                  onChange={e => setSlotPatientSearchQuery(e.target.value)}
+                                  className="h-8 w-full rounded-md border border-slate-150 bg-slate-50/50 dark:bg-slate-900 dark:border-slate-800 px-2.5 py-1 text-xs outline-none focus:bg-white dark:text-slate-350"
+                                  onClick={e => e.stopPropagation()}
+                                  autoFocus
+                                />
+                              </div>
+
+                              {/* List of matching patient records */}
+                              <div className="overflow-y-auto flex-1 max-h-48 scrollbar-thin">
+                                {filteredPatientsForSlot.length > 0 ? (
+                                  filteredPatientsForSlot.map(p => (
+                                    <div
+                                      key={p.id}
+                                      onClick={() => {
+                                        setSlotPatientId(p.id);
+                                        setSlotPatientDropdownOpen(false);
+                                      }}
+                                      className={`px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer border-b border-slate-50/50 dark:border-slate-900/50 last:border-b-0 text-left ${
+                                        slotPatientId === p.id ? "bg-blue-50/30 dark:bg-blue-955/20" : ""
+                                      }`}
+                                    >
+                                      <p className="font-semibold text-slate-800 dark:text-slate-200 text-xs">{p.name}</p>
+                                      <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                                        {p.id} • {p.phone || "+91 99000 11000"}
+                                      </p>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="px-3 py-4 text-center text-xs text-slate-400 dark:text-slate-500">
+                                    No patients found
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
@@ -6595,7 +6694,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         onChange={e => setSlotTreatment(e.target.value)}
                       >
                         {Object.keys(TREATMENT_PRICES).map(t => (
-                          <option key={t} value={t}>{t} (₹{TREATMENT_PRICES[t]})</option>
+                          <option key={t} value={t}>{t}</option>
                         ))}
                       </select>
                     </div>
