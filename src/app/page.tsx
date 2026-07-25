@@ -4931,24 +4931,24 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     return (
       <div className="space-y-6 animate-fadeIn">
-        <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2 max-w-xs w-full">
-            <Search className="h-4 w-4 text-slate-400 shrink-0" />
-            <input 
-              placeholder="Filter directory by name, ID, or mobile number..." 
-              value={patientsDirectoryQuery}
-              onChange={(e) => setPatientsDirectoryQuery(e.target.value)}
-              className="w-full text-xs font-semibold outline-none bg-transparent dark:text-slate-200" 
-            />
-          </div>
-          <div className="flex gap-3 shrink-0">
-            <Button onClick={() => setActiveModal("addPatient")} className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-9 rounded-lg px-4">
-              <Plus className="h-4 w-4 mr-1.5" /> Register Patient
-            </Button>
-          </div>
-        </div>
-
         {activeSubTab === "All Patients" && (
+          <>
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="flex items-center gap-2 max-w-xs w-full">
+                <Search className="h-4 w-4 text-slate-400 shrink-0" />
+                <input 
+                  placeholder="Filter directory by name, ID, or mobile number..." 
+                  value={patientsDirectoryQuery}
+                  onChange={(e) => setPatientsDirectoryQuery(e.target.value)}
+                  className="w-full text-xs font-semibold outline-none bg-transparent dark:text-slate-200" 
+                />
+              </div>
+              <div className="flex gap-3 shrink-0">
+                <Button onClick={() => setActiveSubTab("Add Patient")} className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-9 rounded-lg px-4">
+                  <Plus className="h-4 w-4 mr-1.5" /> Register Patient
+                </Button>
+              </div>
+            </div>
           <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs font-semibold">
               <thead>
@@ -4995,11 +4995,21 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         {activeSubTab === "Add Patient" && (
-          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs max-w-xl text-xs font-semibold">
-            <span className="font-bold text-sm block mb-4">Patient Intake File Registration</span>
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs max-w-xl text-xs font-semibold">
+            <div className="flex items-center gap-3 mb-4">
+              <button
+                type="button"
+                onClick={() => setActiveSubTab("All Patients")}
+                className="h-8 w-8 rounded-full border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-500"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="font-bold text-sm">Patient Intake File Registration</span>
+            </div>
             <form onSubmit={(e) => {
               e.preventDefault();
               const saved = registerPatient({
@@ -5960,7 +5970,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         </header>
 
         {/* Dynamic Inner Sub-tabs Bar (hidden if in active consultation mode) */}
-        {!activeConsultationApptId && !selectedPatientId && activeTab !== "Dashboard" && (
+        {!activeConsultationApptId && !selectedPatientId && activeTab !== "Dashboard" && activeTab !== "Patients" && (
           <div className="bg-white dark:bg-slate-955 border-b border-slate-200 dark:border-slate-800 px-6 py-2.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none sticky top-20 z-20 shrink-0">
             {moduleSubTabs[activeTab]?.map((subTab) => {
               const active = activeSubTab === subTab;
