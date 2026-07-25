@@ -243,8 +243,8 @@ const Odontogram: React.FC<OdontogramProps> = ({
   };
 
   return (
-    <div className="w-full flex justify-center py-4 bg-white dark:bg-slate-955 rounded-lg border border-slate-200 dark:border-slate-800 p-5 shadow-xs select-none">
-      <div className="relative w-full max-w-[390px] aspect-[4/5] mx-auto">
+    <div className="w-full flex justify-center select-none">
+      <div className="relative w-full max-w-[425px] aspect-[4/5] mx-auto">
         <svg viewBox="0 0 400 500" className="w-full h-full">
           {/* Central Guideline Crosshair */}
           <line x1="200" y1="50" x2="200" y2="450" className="stroke-slate-200/60 dark:stroke-slate-800/60 stroke-[1]" strokeDasharray="4 4" />
@@ -4199,14 +4199,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
             {profileSubTab === "Dental Chart" && (
               <div className="animate-fadeIn w-full">
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-stretch">
-                  {/* Left Panel: Dental Chart (Width 40% on Desktop, top on Tablet/Mobile) */}
-                  <div className="lg:col-span-2 flex flex-col bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
-                    <div className="flex items-center justify-between border-b pb-3 mb-4 shrink-0">
-                      <span className="font-bold text-sm">Patient Dental Mapping</span>
-                      <span className="text-[10px] text-slate-400">Click a tooth outline to log overrides</span>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                  {/* Left Panel: Dental Chart (Width 42% on Desktop, top on Tablet/Mobile) */}
+                  <div className="lg:col-span-5 flex flex-col bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+                    <div className="border-b pb-3 mb-4 shrink-0">
+                      <span className="text-[18px] font-semibold text-slate-900 dark:text-white">Dental Chart</span>
                     </div>
-                    <div className="flex-1 flex items-center justify-center py-4">
+                    <div className="flex-1 flex items-center justify-center py-2">
                       <div className="w-full">
                         <Odontogram 
                           chartData={patientItem.dentalChart || {}} 
@@ -4217,25 +4216,30 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     </div>
                   </div>
 
-                  {/* Right Panel: Treatment Details (Width 60% on Desktop, bottom on Tablet/Mobile) */}
-                  <div className="lg:col-span-3 flex flex-col bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold">
+                  {/* Right Panel: Treatment Details (Width 58% on Desktop, bottom on Tablet/Mobile) */}
+                  <div className="lg:col-span-7 flex flex-col bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold">
                     {chartSelectedTooth !== null ? (
                       <form onSubmit={handleSaveToothTreatment} className="flex-grow flex flex-col justify-between h-full">
                         <div className="space-y-5">
-                          <div className="flex justify-between items-center border-b pb-3">
-                            <span className="font-bold text-sm text-blue-600 dark:text-blue-400">
-                              Treatment Details — Tooth #{ALL_TEETH.find(t => t.index === chartSelectedTooth)?.fdi || chartSelectedTooth}
-                            </span>
-                            <button type="button" onClick={() => setChartSelectedTooth(null)} className="text-slate-450 hover:text-slate-700 font-bold text-base">×</button>
+                          <div className="flex justify-between items-start border-b pb-3">
+                            <div className="flex flex-col">
+                              <span className="text-[18px] font-semibold text-slate-900 dark:text-white">
+                                Treatment Details
+                              </span>
+                              <span className="text-[16px] font-medium text-blue-605 dark:text-blue-400 mt-0.5">
+                                Tooth #{ALL_TEETH.find(t => t.index === chartSelectedTooth)?.fdi || chartSelectedTooth}
+                              </span>
+                            </div>
+                            <button type="button" onClick={() => setChartSelectedTooth(null)} className="text-slate-400 hover:text-slate-700 font-medium text-lg leading-none">×</button>
                           </div>
 
                           <div className="space-y-4">
                             {/* Row 1 */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div className="space-y-1">
-                                <Label>Treatment Procedure</Label>
+                                <label className="text-[14px] font-medium text-slate-700 dark:text-slate-300 block mb-1">Treatment Procedure</label>
                                 <select 
-                                  className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                                  className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-[13px] focus:outline-none dark:border-slate-800 dark:bg-slate-900"
                                   value={chartTreatmentName}
                                   onChange={e => {
                                     setChartTreatmentName(e.target.value);
@@ -4252,9 +4256,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                                 </select>
                               </div>
                               <div className="space-y-1">
-                                <Label>Treatment Status</Label>
+                                <label className="text-[14px] font-medium text-slate-700 dark:text-slate-300 block mb-1">Treatment Status</label>
                                 <select 
-                                  className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                                  className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-[13px] focus:outline-none dark:border-slate-800 dark:bg-slate-900"
                                   value={chartStatus} 
                                   onChange={e => setChartStatus(e.target.value as any)}
                                 >
@@ -4268,9 +4272,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                             {/* Row 2 */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div className="space-y-1">
-                                <Label>Doctor Assigned</Label>
+                                <label className="text-[14px] font-medium text-slate-700 dark:text-slate-300 block mb-1">Doctor Assigned</label>
                                 <select 
-                                  className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                                  className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-[13px] focus:outline-none dark:border-slate-800 dark:bg-slate-900"
                                   value={chartDoctor} 
                                   onChange={e => setChartDoctor(e.target.value)}
                                 >
@@ -4280,32 +4284,32 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                                 </select>
                               </div>
                               <div className="space-y-1">
-                                <Label>Treatment Date</Label>
-                                <Input type="date" value={chartDate} onChange={e => setChartDate(e.target.value)} />
+                                <label className="text-[14px] font-medium text-slate-700 dark:text-slate-300 block mb-1">Treatment Date</label>
+                                <Input type="date" value={chartDate} onChange={e => setChartDate(e.target.value)} className="text-[13px]" />
                               </div>
                             </div>
 
                             {/* Row 3 */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div className="space-y-1">
-                                <Label>Estimated Procedure Cost (₹)</Label>
-                                <Input type="number" value={chartCost} onChange={e => setChartCost(e.target.value)} />
+                                <label className="text-[14px] font-medium text-slate-700 dark:text-slate-300 block mb-1">Estimated Procedure Cost (₹)</label>
+                                <Input type="number" value={chartCost} onChange={e => setChartCost(e.target.value)} className="text-[13px]" />
                               </div>
                               <div className="space-y-1">
-                                <Label>Diagnosis Notes</Label>
-                                <Input value={chartDiagnosis} onChange={e => setChartDiagnosis(e.target.value)} placeholder="e.g. Deep cavity, pulpal involvement" />
+                                <label className="text-[14px] font-medium text-slate-700 dark:text-slate-300 block mb-1">Diagnosis Notes</label>
+                                <Input value={chartDiagnosis} onChange={e => setChartDiagnosis(e.target.value)} placeholder="e.g. Deep cavity, pulpal involvement" className="text-[13px]" />
                               </div>
                             </div>
 
                             {/* Row 4 */}
                             <div className="space-y-1">
-                              <Label>Procedure / Consultation Notes</Label>
-                              <Input value={chartNotes} onChange={e => setChartNotes(e.target.value)} placeholder="Enter details..." />
+                              <label className="text-[14px] font-medium text-slate-700 dark:text-slate-300 block mb-1">Procedure / Consultation Notes</label>
+                              <Input value={chartNotes} onChange={e => setChartNotes(e.target.value)} placeholder="Enter details..." className="text-[13px]" />
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex gap-3 justify-end pt-4 border-t border-slate-100 dark:border-slate-800 mt-auto">
+                        <div className="flex gap-3 justify-end pt-4 border-t border-slate-105 dark:border-slate-800 mt-auto">
                           <Button type="button" onClick={() => setChartSelectedTooth(null)} className="h-9 px-4 rounded border font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">
                             Cancel
                           </Button>
@@ -4315,13 +4319,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         </div>
                       </form>
                     ) : (
-                      <div className="flex-grow flex flex-col items-center justify-center text-center p-8 text-slate-400 dark:text-slate-550 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl h-full min-h-[300px]">
-                        <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-full mb-3 text-slate-400 dark:text-slate-500">
-                          <Activity className="h-6 w-6" />
+                      <div className="flex-grow flex flex-col items-center justify-center text-center p-8 text-slate-400 dark:text-slate-550 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl h-full min-h-[300px] -translate-y-2">
+                        <div className="bg-slate-50 dark:bg-slate-900/60 p-2.5 rounded-full mb-2 text-slate-400 dark:text-slate-500 shrink-0">
+                          <Activity className="h-5 w-5" />
                         </div>
-                        <span className="font-bold text-sm text-slate-700 dark:text-slate-300 mb-1">No Tooth Selected</span>
-                        <p className="max-w-xs text-[11px] font-normal leading-relaxed text-slate-450 dark:text-slate-400">
-                          Select a tooth outline from the Dental Chart on the left to view, log, or update clinical treatment details.
+                        <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs mb-0.5">Select a Tooth</span>
+                        <p className="max-w-[200px] text-[10px] font-medium leading-normal text-slate-450 dark:text-slate-400">
+                          Select a tooth from the dental chart to view or update its clinical information.
                         </p>
                       </div>
                     )}
