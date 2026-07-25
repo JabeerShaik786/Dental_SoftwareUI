@@ -48,7 +48,9 @@ import {
   MessageCircle,
   SlidersHorizontal,
   Sun,
-  Moon
+  Moon,
+  Upload,
+  Play
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -333,6 +335,40 @@ const moduleSubTabs: Record<string, string[]> = {
   Settings: ["Clinic", "Doctors", "Staff", "Users", "Preferences", "Integrations", "Backup"]
 };
 
+interface ClinicalMedia {
+  id: string;
+  patientId: string;
+  name: string;
+  type: string;
+  category: "Clinical Photos" | "X-rays" | "Videos" | "Scans" | "Documents" | "Treatment Progress";
+  url: string;
+  uploadDate: string;
+  uploadedBy: string;
+  toothNumber?: string;
+  treatment?: string;
+  appointment?: string;
+  prescription?: string;
+}
+
+const parseClinicalNote = (noteStr: string) => {
+  if (noteStr.startsWith("Title: ")) {
+    const parts = noteStr.split(" | ");
+    const title = parts[0]?.replace("Title: ", "") || "";
+    const category = parts[1]?.replace("Category: ", "") || "General";
+    const author = parts[2]?.replace("Author: ", "") || "Doctor";
+    const content = parts[3]?.replace("Content: ", "") || "";
+    const date = parts[4]?.replace("Date: ", "") || "12 Aug 2026";
+    return { title, category, author, content, date };
+  }
+  return {
+    title: "Clinical Practitioner Note",
+    category: "General",
+    author: "Practitioner",
+    content: noteStr,
+    date: "12 Aug 2026"
+  };
+};
+
 export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initialTab?: string } = {}) {
   const router = useRouter();
 
@@ -468,6 +504,130 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     appointments: Appointment[];
   } | null>(null);
   const hoverTimeoutRef = useRef<any>(null);
+
+  // Clinical Notes form states (integrated into Prescriptions)
+  const [noteTitle, setNoteTitle] = useState("");
+  const [noteCategory, setNoteCategory] = useState("General");
+  const [noteContent, setNoteContent] = useState("");
+  const [noteAuthor, setNoteAuthor] = useState("Dr. Deepa Kodali");
+
+  // Media Gallery states
+  const [patientMedia, setPatientMedia] = useState<ClinicalMedia[]>([
+    {
+      id: "media-1",
+      patientId: "DS-1001",
+      name: "panorex_xray_mehta.png",
+      type: "image/png",
+      category: "X-rays",
+      url: "https://images.unsplash.com/photo-1606811971618-4486d14f3f99?q=80&w=600&auto=format&fit=crop",
+      uploadDate: "12 Aug 2026",
+      uploadedBy: "Dr. Deepa Kodali",
+      toothNumber: "16",
+      treatment: "Root Canal Therapy",
+      appointment: "12 Aug 2026 at 09:00 AM",
+      prescription: "Amoxicillin 500mg"
+    },
+    {
+      id: "media-2",
+      patientId: "DS-1001",
+      name: "clinical_report.pdf",
+      type: "application/pdf",
+      category: "Documents",
+      url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+      uploadDate: "10 Aug 2026",
+      uploadedBy: "Dr. Deepa Kodali",
+      treatment: "Consultation",
+      appointment: "10 Aug 2026"
+    }
+  ]);
+  const [mediaFilter, setMediaFilter] = useState("All");
+  const [selectedMediaForPreview, setSelectedMediaForPreview] = useState<ClinicalMedia | null>(null);
+  const [mediaToEdit, setMediaToEdit] = useState<ClinicalMedia | null>(null);
+
+  // Edit/Rename media form fields
+  const [editMediaName, setEditMediaName] = useState("");
+  const [editMediaCategory, setEditMediaCategory] = useState("Clinical Photos");
+  const [editMediaTooth, setEditMediaTooth] = useState("");
+  const [editMediaTreatment, setEditMediaTreatment] = useState("");
+  const [editMediaAppointment, setEditMediaAppointment] = useState("");
+  const [editMediaPrescription, setEditMediaPrescription] = useState("");
+  const [editMediaUploadedBy, setEditMediaUploadedBy] = useState("Dr. Deepa Kodali");
+
+  useEffect(() => {
+    if (mediaToEdit) {
+      setEditMediaName(mediaToEdit.name);
+      setEditMediaCategory(mediaToEdit.category);
+      setEditMediaTooth(mediaToEdit.toothNumber || "");
+      setEditMediaTreatment(mediaToEdit.treatment || "");
+      setEditMediaAppointment(mediaToEdit.appointment || "");
+      setEditMediaPrescription(mediaToEdit.prescription || "");
+      setEditMediaUploadedBy(mediaToEdit.uploadedBy);
+    }
+  }, [mediaToEdit]);
+
+  const handleSaveMediaMetadata = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mediaToEdit) return;
+    if (!editMediaName.trim()) {
+      showToast("File name cannot be empty.", "error");
+      return;
+    }
+    setPatientMedia(prev => prev.map(m => {
+      if (m.id === mediaToEdit.id) {
+        return {
+          ...m,
+          name: editMediaName.trim(),
+          category: editMediaCategory as any,
+          toothNumber: editMediaTooth.trim() || undefined,
+          treatment: editMediaTreatment.trim() || undefined,
+          appointment: editMediaAppointment.trim() || undefined,
+          prescription: editMediaPrescription.trim() || undefined,
+          uploadedBy: editMediaUploadedBy
+        };
+      }
+      return m;
+    }));
+    setMediaToEdit(null);
+    showToast("Clinical media file updated.", "success");
+  };
+
+  const handleMockMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const filesArray = Array.from(e.target.files);
+    
+    const newMediaItems: ClinicalMedia[] = filesArray.map((file, idx) => {
+      let cat: any = "Clinical Photos";
+      if (file.type.startsWith("image/")) {
+        if (file.name.toLowerCase().includes("xray") || file.name.toLowerCase().includes("x-ray")) {
+          cat = "X-rays";
+        } else if (file.name.toLowerCase().includes("scan")) {
+          cat = "Scans";
+        }
+      } else if (file.type.startsWith("video/")) {
+        cat = "Videos";
+      } else if (file.type === "application/pdf") {
+        cat = "Documents";
+      }
+      
+      return {
+        id: `media-${Date.now()}-${idx}`,
+        patientId: selectedPatientId || "",
+        name: file.name,
+        type: file.type || "image/png",
+        category: cat,
+        url: file.type.startsWith("video/")
+          ? "https://www.w3schools.com/html/mov_bbb.mp4"
+          : file.type === "application/pdf"
+          ? "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+          : "https://images.unsplash.com/photo-1606811971618-4486d14f3f99?q=80&w=600&auto=format&fit=crop",
+        uploadDate: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+        uploadedBy: prescDoctor || (doctors[0]?.name || "Dr. Deepa Kodali")
+      };
+    });
+    
+    setPatientMedia(prev => [...newMediaItems, ...prev]);
+    showToast(`${filesArray.length} clinical media files uploaded.`, "success");
+  };
 
   useEffect(() => {
     function handleDropdownClickOutside(event: MouseEvent) {
@@ -612,11 +772,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [newFileType, setNewFileType] = useState("X-Ray Scan");
   const [newFileUploadedBy, setNewFileUploadedBy] = useState("");
 
-  // --- NOTES FORM STATE ---
-  const [noteTitle, setNoteTitle] = useState("");
-  const [noteCategory, setNoteCategory] = useState("Clinical Notes");
-  const [noteAuthor, setNoteAuthor] = useState("");
-  const [noteDesc, setNoteDesc] = useState("");
+
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
@@ -1032,11 +1188,19 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       `${m.name} (${m.dosage}) - ${m.freq} for ${m.duration} [${m.instructions}]`
     );
 
+    let updatedNotes = [...(patientItem.notes || [])];
+    if (noteTitle.trim() && noteContent.trim()) {
+      const dateStr = prescDate ? new Date(prescDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+      const formattedNote = `Title: ${noteTitle.trim()} | Category: ${noteCategory} | Author: ${noteAuthor} | Content: ${noteContent.trim()} | Date: ${dateStr}`;
+      updatedNotes = [...updatedNotes, formattedNote];
+    }
+
     setPatients(prev => prev.map(p => {
       if (p.id === selectedPatientId) {
         return {
           ...p,
-          prescriptions: [...(p.prescriptions || []), ...formattedList]
+          prescriptions: [...(p.prescriptions || []), ...formattedList],
+          notes: updatedNotes
         };
       }
       return p;
@@ -1063,8 +1227,40 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setPrescMeds([{ name: "", dosage: "", freq: "", duration: "", instructions: "" }]);
     setPrescAdvice("");
     setPrescDiagnosis("");
+    
+    setNoteTitle("");
+    setNoteContent("");
+    setNoteCategory("General");
 
     showToast("Prescription generated and saved.", "success");
+  };
+
+  const handleSaveClinicalNote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!noteTitle.trim() || !noteContent.trim()) {
+      showToast("Note title and content are required.", "error");
+      return;
+    }
+    const patientItem = patients.find(p => p.id === selectedPatientId);
+    if (!patientItem) return;
+
+    const dateStr = prescDate ? new Date(prescDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    const formattedNote = `Title: ${noteTitle.trim()} | Category: ${noteCategory} | Author: ${noteAuthor} | Content: ${noteContent.trim()} | Date: ${dateStr}`;
+
+    setPatients(prev => prev.map(p => {
+      if (p.id === selectedPatientId) {
+        return {
+          ...p,
+          notes: [...(p.notes || []), formattedNote]
+        };
+      }
+      return p;
+    }));
+
+    setNoteTitle("");
+    setNoteContent("");
+    setNoteCategory("General");
+    showToast("Clinical note saved successfully.", "success");
   };
 
   const handleSaveInvoice = (e: React.FormEvent) => {
@@ -1152,39 +1348,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     showToast("File uploaded and linked successfully.", "success");
   };
 
-  const handleSaveNote = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!noteTitle.trim() || !noteDesc.trim()) {
-      showToast("Title and Description are required.", "error");
-      return;
-    }
-    const patientItem = patients.find(p => p.id === selectedPatientId);
-    if (!patientItem) return;
 
-    const formattedNote = `[${noteCategory}] ${noteTitle.trim()} - ${noteDesc.trim()} (By ${noteAuthor || "Dr. Deepa Kodali"} on ${new Date().toISOString().slice(0, 10)})`;
-
-    setPatients(prev => prev.map(p => {
-      if (p.id === selectedPatientId) {
-        return {
-          ...p,
-          notes: [...(p.notes || []), formattedNote]
-        };
-      }
-      return p;
-    }));
-
-    setActivities(prev => [{
-      id: `act-${Date.now()}`,
-      type: "Chart",
-      msg: `Clinical note added for ${patientItem.name}.`,
-      time: "Just now"
-    }, ...prev]);
-
-    setNoteTitle("");
-    setNoteDesc("");
-
-    showToast("Clinical Note saved.", "success");
-  };
 
   // --- HELPER DYNAMIC CALCULATIONS ---
 
@@ -3823,7 +3987,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
           {/* Sub-tabs inside profile */}
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none border-b border-slate-200 dark:border-slate-800 pb-1.5 shrink-0">
-            {["Overview", "Treatments", "Dental Chart", "Appointments", "Invoices", "Prescriptions", "Files", "Notes"].map((t) => {
+            {["Overview", "Treatments", "Dental Chart", "Appointments", "Invoices", "Prescriptions", "Files", "Media"].map((t) => {
               const active = profileSubTab === t;
               return (
                 <button
@@ -4730,8 +4894,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     ))}
                     <button 
                       type="button" 
-                      onClick={() => setPrescMeds(prev => [...prev, { name: "", dosage: "", freq: "", duration: "", instructions: "" }])} 
-                      className="text-xs text-blue-605 hover:underline font-bold mt-1 inline-block"
+                      onClick={() => prescMeds.length < 10 && setPrescMeds(prev => [...prev, { name: "", dosage: "", freq: "", duration: "", instructions: "" }])} 
+                      className="text-xs text-blue-650 hover:underline font-bold mt-1 inline-block"
                     >
                       + Add Medicine Row
                     </button>
@@ -4758,9 +4922,113 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   </div>
                 </form>
 
+                {/* Integrated Clinical Notes Section */}
+                <form onSubmit={handleSaveClinicalNote} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
+                  <span className="font-bold text-sm block border-b pb-2 mb-2 text-slate-800 dark:text-white">Clinical Notes</span>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <Label>Note Title</Label>
+                      <Input value={noteTitle} onChange={e => setNoteTitle(e.target.value)} placeholder="e.g. Follow-up observations" required />
+                    </div>
+                    
+                    <div>
+                      <Label>Note Category</Label>
+                      <select 
+                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-805 dark:bg-slate-900"
+                        value={noteCategory} 
+                        onChange={e => setNoteCategory(e.target.value)}
+                      >
+                        <option value="General">General</option>
+                        <option value="Clinical">Clinical</option>
+                        <option value="Treatment Progress">Treatment Progress</option>
+                        <option value="X-Ray Analysis">X-Ray Analysis</option>
+                        <option value="Intake Assessment">Intake Assessment</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <Label>Author (Doctor/Staff)</Label>
+                      <select 
+                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-805 dark:bg-slate-900"
+                        value={noteAuthor} 
+                        onChange={e => setNoteAuthor(e.target.value)}
+                      >
+                        {doctors.map(d => (
+                          <option key={d.name} value={d.name}>{d.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>Rich Text / Multiline Notes field</Label>
+                    <textarea 
+                      rows={4}
+                      className="flex w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-slate-200"
+                      value={noteContent} 
+                      onChange={e => setNoteContent(e.target.value)} 
+                      placeholder="Write clinical practitioner observations, treatment logs, or notes here..." 
+                      required
+                    />
+                  </div>
+
+                  <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <Button type="submit" className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold">
+                      Save Clinical Note
+                    </Button>
+                  </div>
+                </form>
+
+                {/* Clinical Notes History list */}
+                <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold space-y-4">
+                  <span className="font-bold text-sm block border-b pb-2 mb-2 text-slate-800 dark:text-white">Clinical Notes History</span>
+                  {patientItem.notes.length > 0 ? (
+                    <div className="space-y-3">
+                      {patientItem.notes.slice().reverse().map((noteStr, idx) => {
+                        const noteIndex = patientItem.notes.length - 1 - idx;
+                        const parsed = parseClinicalNote(noteStr);
+                        return (
+                          <div key={idx} className="p-4 bg-slate-50/50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 rounded-xl flex flex-col gap-2">
+                            <div className="flex justify-between items-start gap-4">
+                              <div className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-slate-900 dark:text-white text-xs">{parsed.title}</span>
+                                  <span className="px-2 py-0.5 rounded-[4px] bg-slate-100 dark:bg-slate-800 text-slate-500 text-[9px] font-extrabold uppercase tracking-wide">
+                                    {parsed.category}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                                  Logged by <strong className="text-slate-600 dark:text-slate-400">{parsed.author}</strong> on {parsed.date}
+                                </span>
+                              </div>
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, notes: p.notes.filter((_, i) => i !== noteIndex) } : p));
+                                  showToast("Clinical note deleted.", "success");
+                                }}
+                                className="text-red-500 hover:underline text-[11px]"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                            
+                            <p className="text-slate-700 dark:text-slate-300 text-xs font-normal leading-relaxed whitespace-pre-wrap">
+                              {parsed.content}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-slate-405 text-center py-2">No clinical practitioner notes logged.</p>
+                  )}
+                </div>
+
                 {/* Prescriptions History list */}
-                <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold space-y-4">
-                  <span className="font-bold text-sm block border-b pb-2 mb-2">Prescriptions Issued</span>
+                <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold space-y-4">
+                  <span className="font-bold text-sm block border-b pb-2 mb-2 text-slate-800 dark:text-white">Prescriptions Issued</span>
                   {patientItem.prescriptions.length > 0 ? (
                     patientItem.prescriptions.map((pr, idx) => (
                       <div key={idx} className="p-3 border border-slate-100 bg-slate-50/20 rounded-xl flex justify-between items-center">
@@ -4849,83 +5117,343 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               </div>
             )}
 
-            {profileSubTab === "Notes" && (
+            {profileSubTab === "Media" && (
               <div className="space-y-6 animate-fadeIn">
-                {/* Notes Editor */}
-                <form onSubmit={handleSaveNote} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
-                  <span className="font-bold text-sm block border-b pb-2 mb-2">Practitioner Notes Editor</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <Label>Note Title</Label>
-                      <Input value={noteTitle} onChange={e => setNoteTitle(e.target.value)} placeholder="e.g. Sensitivity override" required />
-                    </div>
-                    <div>
-                      <Label>Note Category</Label>
-                      <select 
-                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
-                        value={noteCategory} 
-                        onChange={e => setNoteCategory(e.target.value)}
-                      >
-                        <option value="Clinical Notes">Clinical Notes</option>
-                        <option value="Reception Notes">Reception Notes</option>
-                        <option value="Doctor Notes">Doctor Notes</option>
-                        <option value="Follow-up Notes">Follow-up Notes</option>
-                      </select>
-                    </div>
-                    <div>
-                      <Label>Author</Label>
-                      <select 
-                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
-                        value={noteAuthor} 
-                        onChange={e => setNoteAuthor(e.target.value)}
-                      >
-                        <option value="">-- Choose Staff --</option>
-                        {doctors.map(d => (
-                          <option key={d.name} value={d.name}>{d.name}</option>
-                        ))}
-                        <option value="Clinic Frontdesk Reception">Frontdesk Staff</option>
-                      </select>
-                    </div>
+                {/* Header Title */}
+                <div className="flex justify-between items-center border-b pb-3 mb-4 shrink-0">
+                  <span className="text-[18px] font-semibold text-slate-900 dark:text-white">Patient Media Gallery</span>
+                </div>
+
+                {/* Upload Card */}
+                <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col md:flex-row justify-between items-center gap-4">
+                  <div className="space-y-1">
+                    <span className="font-bold text-slate-805 dark:text-white text-xs block">Clinical Repository</span>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                      Supported file types: Photos, X-rays, Smile Photos, Scans, PDF Clinical Reports, and Videos.
+                    </p>
                   </div>
                   <div>
-                    <Label>Note Description / Rich Editor Area</Label>
-                    <textarea 
-                      className="w-full h-24 p-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-transparent focus:outline-none"
-                      value={noteDesc}
-                      onChange={e => setNoteDesc(e.target.value)}
-                      placeholder="Type diagnostic mapping notes, follow up directions, or front desk alerts..."
-                      required
+                    <input 
+                      type="file" 
+                      id="media-file-upload-input" 
+                      multiple 
+                      className="hidden" 
+                      onChange={handleMockMediaUpload} 
                     />
-                  </div>
-                  <div className="flex justify-end gap-3 pt-2">
-                    <Button type="submit" className="h-9 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded">
-                      Save Note
+                    <Button 
+                      onClick={() => document.getElementById("media-file-upload-input")?.click()}
+                      className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-9 rounded-lg px-4 flex items-center gap-2"
+                    >
+                      <Upload className="h-4 w-4" /> Upload Files
                     </Button>
                   </div>
-                </form>
+                </div>
 
-                {/* Display Practitioner Notes list */}
-                <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold space-y-4">
-                  <span className="font-bold text-sm block mb-2 border-b pb-2">Clinical Practitioner Notes Log</span>
-                  {patientItem.notes.length > 0 ? (
-                    patientItem.notes.map((note, idx) => (
-                      <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-900/40 border border-slate-200/50 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-300 leading-relaxed flex justify-between items-start gap-4">
-                        <div className="flex-1 whitespace-pre-wrap">{note}</div>
+                {/* Media Filter Tabs */}
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none border-b border-slate-100 dark:border-slate-800 pb-2.5 shrink-0 text-[11px] font-semibold">
+                  {["All", "Clinical Photos", "X-rays", "Videos", "Scans", "Documents", "Treatment Progress"].map((cat) => {
+                    const active = mediaFilter === cat;
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => setMediaFilter(cat)}
+                        className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors ${
+                          active 
+                            ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900" 
+                            : "text-slate-500 hover:text-slate-805 hover:bg-slate-100 dark:hover:bg-slate-900"
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Media Cards Grid or Empty State */}
+                {patientMedia.filter(m => m.patientId === selectedPatientId && (mediaFilter === "All" || m.category === mediaFilter)).length === 0 ? (
+                  <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-10 shadow-xs flex flex-col items-center justify-center text-center">
+                    <div className="text-3xl mb-3">🦷</div>
+                    <span className="font-bold text-slate-850 dark:text-white text-sm block mb-1">No Clinical Media Available</span>
+                    <p className="max-w-md text-xs text-slate-400 dark:text-slate-550 mb-4 leading-normal font-medium">
+                      Upload patient photos, X-rays, videos, or treatment documents to build the patient's clinical history.
+                    </p>
+                    <Button 
+                      onClick={() => document.getElementById("media-file-upload-input")?.click()}
+                      className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-9 rounded-lg px-4"
+                    >
+                      <Upload className="h-4 w-4 mr-1.5" /> Upload Media
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                    {patientMedia
+                      .filter(m => m.patientId === selectedPatientId && (mediaFilter === "All" || m.category === mediaFilter))
+                      .slice()
+                      .reverse()
+                      .map((media) => (
+                        <div key={media.id} className="group bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+                          {/* Thumbnail Area */}
+                          <div 
+                            onClick={() => setSelectedMediaForPreview(media)}
+                            className="relative aspect-video bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center overflow-hidden cursor-pointer"
+                          >
+                            {media.type.startsWith("image/") ? (
+                              <img src={media.url} alt={media.name} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300" />
+                            ) : media.type.startsWith("video/") ? (
+                              <div className="flex flex-col items-center gap-1.5 text-slate-400">
+                                <Play className="h-8 w-8 text-blue-500 animate-pulse" />
+                                <span className="text-[10px] font-semibold uppercase tracking-wider">Video Clip</span>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center gap-1.5 text-slate-400">
+                                <FileText className="h-8 w-8 text-rose-500" />
+                                <span className="text-[10px] font-semibold uppercase tracking-wider">PDF Document</span>
+                              </div>
+                            )}
+
+                            {/* Category Badge Overlay */}
+                            <span className="absolute top-2 left-2 px-2 py-0.5 rounded-[4px] bg-slate-900/80 text-white text-[8.5px] font-extrabold uppercase tracking-wider backdrop-blur-xs">
+                              {media.category}
+                            </span>
+                          </div>
+
+                          {/* Info Area */}
+                          <div className="p-4 flex-1 flex flex-col justify-between gap-3 text-xs font-semibold">
+                            <div className="space-y-1">
+                              <span 
+                                onClick={() => setSelectedMediaForPreview(media)}
+                                className="font-bold text-slate-855 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer block truncate text-xs"
+                                title={media.name}
+                              >
+                                {media.name}
+                              </span>
+                              <div className="flex justify-between items-center text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                                <span>{media.uploadDate}</span>
+                                <span>By {media.uploadedBy}</span>
+                              </div>
+                            </div>
+
+                            {/* Linked Associations Tags */}
+                            {(media.toothNumber || media.treatment || media.appointment || media.prescription) && (
+                              <div className="pt-2.5 border-t border-slate-50 dark:border-slate-905 flex flex-wrap gap-1">
+                                {media.toothNumber && (
+                                  <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-705 dark:bg-blue-955/30 dark:text-blue-400 text-[9px] font-extrabold">
+                                    Tooth #{media.toothNumber}
+                                  </span>
+                                )}
+                                {media.treatment && (
+                                  <span className="px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-705 dark:bg-cyan-955/30 dark:text-cyan-400 text-[9px] font-extrabold truncate max-w-[120px]" title={media.treatment}>
+                                    {media.treatment}
+                                  </span>
+                                )}
+                                {media.appointment && (
+                                  <span className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-705 dark:bg-purple-955/30 dark:text-purple-400 text-[9px] font-extrabold truncate max-w-[120px]" title={media.appointment}>
+                                    {media.appointment}
+                                  </span>
+                                )}
+                                {media.prescription && (
+                                  <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-705 dark:bg-emerald-955/30 dark:text-emerald-400 text-[9px] font-extrabold truncate max-w-[120px]" title={media.prescription}>
+                                    {media.prescription}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Actions Footer */}
+                            <div className="pt-2 border-t border-slate-100 dark:border-slate-850 flex justify-between items-center gap-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                              <button 
+                                onClick={() => setSelectedMediaForPreview(media)}
+                                className="hover:text-slate-800 dark:hover:text-white"
+                              >
+                                View
+                              </button>
+                              <a 
+                                href={media.url}
+                                download={media.name}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="hover:text-slate-800 dark:hover:text-white"
+                              >
+                                Download
+                              </a>
+                              <button 
+                                onClick={() => setMediaToEdit(media)}
+                                className="hover:text-slate-800 dark:hover:text-white"
+                              >
+                                Rename
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  setPatientMedia(prev => prev.filter(m => m.id !== media.id));
+                                  showToast("Clinical media file deleted.", "success");
+                                }}
+                                className="text-red-505 hover:underline"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+
+                {/* Media Preview Modal */}
+                {selectedMediaForPreview && (
+                  <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fadeIn">
+                    <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-3xl overflow-hidden shadow-xl flex flex-col max-h-[90vh]">
+                      {/* Modal Header */}
+                      <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 dark:border-slate-850 shrink-0">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-bold text-slate-855 dark:text-white text-sm">{selectedMediaForPreview.name}</span>
+                          <span className="text-[10px] text-slate-405 dark:text-slate-500 font-medium">
+                            Uploaded on {selectedMediaForPreview.uploadDate} by {selectedMediaForPreview.uploadedBy}
+                          </span>
+                        </div>
                         <button 
-                          onClick={() => {
-                            setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, notes: p.notes.filter((_, i) => i !== idx) } : p));
-                            showToast("Note deleted.", "success");
-                          }}
-                          className="text-red-500 hover:underline shrink-0"
+                          type="button" 
+                          onClick={() => setSelectedMediaForPreview(null)}
+                          className="text-slate-400 hover:text-slate-700 dark:hover:text-white text-lg font-bold"
                         >
-                          Delete
+                          ×
                         </button>
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-slate-405 text-center py-2">No clinical practitioner notes logged.</p>
-                  )}
-                </div>
+
+                      {/* Modal Content */}
+                      <div className="flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-slate-900/40 flex justify-center items-center">
+                        {selectedMediaForPreview.type.startsWith("image/") ? (
+                          <img src={selectedMediaForPreview.url} alt={selectedMediaForPreview.name} className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm" />
+                        ) : selectedMediaForPreview.type.startsWith("video/") ? (
+                          <video src={selectedMediaForPreview.url} controls className="max-w-full max-h-[60vh] rounded-lg shadow-sm" autoPlay />
+                        ) : (
+                          <iframe src={selectedMediaForPreview.url} className="w-full h-[60vh] rounded-lg border border-slate-200 dark:border-slate-805" title={selectedMediaForPreview.name} />
+                        )}
+                      </div>
+
+                      {/* Modal Metadata / Footer */}
+                      <div className="px-6 py-4 border-t border-slate-105 dark:border-slate-850 bg-white dark:bg-slate-955 flex justify-between items-center shrink-0 flex-wrap gap-3">
+                        <div className="flex flex-wrap gap-2 text-[10px] font-bold">
+                          {selectedMediaForPreview.toothNumber && (
+                            <span className="px-2 py-1 rounded bg-blue-50 text-blue-700 dark:bg-blue-955/40 dark:text-blue-405">
+                              Tooth #{selectedMediaForPreview.toothNumber}
+                            </span>
+                          )}
+                          {selectedMediaForPreview.treatment && (
+                            <span className="px-2 py-1 rounded bg-cyan-50 text-cyan-700 dark:bg-cyan-955/40 dark:text-cyan-405">
+                              {selectedMediaForPreview.treatment}
+                            </span>
+                          )}
+                          {selectedMediaForPreview.appointment && (
+                            <span className="px-2 py-1 rounded bg-purple-50 text-purple-700 dark:bg-purple-955/40 dark:text-purple-405">
+                              Appt: {selectedMediaForPreview.appointment}
+                            </span>
+                          )}
+                          {selectedMediaForPreview.prescription && (
+                            <span className="px-2 py-1 rounded bg-emerald-50 text-emerald-705 dark:bg-emerald-955/40 dark:text-emerald-405">
+                              Rx: {selectedMediaForPreview.prescription}
+                            </span>
+                          )}
+                        </div>
+                        <Button 
+                          onClick={() => setSelectedMediaForPreview(null)}
+                          className="h-9 px-4 rounded bg-slate-905 text-white dark:bg-slate-100 dark:text-slate-900 font-semibold"
+                        >
+                          Close Preview
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Media Rename / Association Edit Modal */}
+                {mediaToEdit && (
+                  <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fadeIn">
+                    <form 
+                      onSubmit={handleSaveMediaMetadata}
+                      className="bg-white dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-2xl w-full max-w-md overflow-hidden shadow-xl flex flex-col p-6 space-y-4 text-xs font-semibold"
+                    >
+                      <div className="flex justify-between items-center border-b pb-3 mb-2 shrink-0">
+                        <span className="font-bold text-slate-850 dark:text-white text-sm">Edit Media Details</span>
+                        <button 
+                          type="button" 
+                          onClick={() => setMediaToEdit(null)}
+                          className="text-slate-405 hover:text-slate-700 dark:hover:text-white text-lg font-bold"
+                        >
+                          ×
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <Label>File Name</Label>
+                          <Input value={editMediaName} onChange={e => setEditMediaName(e.target.value)} required />
+                        </div>
+
+                        <div>
+                          <Label>Category</Label>
+                          <select 
+                            className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                            value={editMediaCategory} 
+                            onChange={e => setEditMediaCategory(e.target.value as any)}
+                          >
+                            <option value="Clinical Photos">Clinical Photos</option>
+                            <option value="X-rays">X-rays</option>
+                            <option value="Videos">Videos</option>
+                            <option value="Scans">Scans</option>
+                            <option value="Documents">Documents</option>
+                            <option value="Treatment Progress">Treatment Progress</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <Label>Link Tooth Number (Optional)</Label>
+                          <Input value={editMediaTooth} onChange={e => setEditMediaTooth(e.target.value)} placeholder="e.g. 16, 28" />
+                        </div>
+
+                        <div>
+                          <Label>Link Treatment (Optional)</Label>
+                          <Input value={editMediaTreatment} onChange={e => setEditMediaTreatment(e.target.value)} placeholder="e.g. Root Canal Therapy" />
+                        </div>
+
+                        <div>
+                          <Label>Link Appointment Date (Optional)</Label>
+                          <Input value={editMediaAppointment} onChange={e => setEditMediaAppointment(e.target.value)} placeholder="e.g. 12 Aug 2026" />
+                        </div>
+
+                        <div>
+                          <Label>Link Prescription (Optional)</Label>
+                          <Input value={editMediaPrescription} onChange={e => setEditMediaPrescription(e.target.value)} placeholder="e.g. Amoxicillin 500mg" />
+                        </div>
+
+                        <div>
+                          <Label>Uploaded By</Label>
+                          <select 
+                            className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                            value={editMediaUploadedBy} 
+                            onChange={e => setEditMediaUploadedBy(e.target.value)}
+                          >
+                            {doctors.map(d => (
+                              <option key={d.name} value={d.name}>{d.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 justify-end pt-3 border-t border-slate-100 dark:border-slate-850">
+                        <Button 
+                          type="button" 
+                          onClick={() => setMediaToEdit(null)}
+                          className="h-9 px-4 rounded border font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
+                        >
+                          Cancel
+                        </Button>
+                        <Button type="submit" className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold">
+                          Save Changes
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                )}
               </div>
             )}
           </div>
