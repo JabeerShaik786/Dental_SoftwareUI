@@ -2665,438 +2665,222 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     };
 
     return (
-      <div className="dashboard-container space-y-4 animate-fadeIn text-slate-700">
-        {/* SECTION 1 - Weekly Appointment Calendar (TOP CENTER) */}
-        <div className="calendar-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3 gap-3">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="font-semibold text-[18px] text-slate-900 dark:text-white">Weekly Appointment Calendar</span>
-              <span className="bg-blue-50 text-blue-755 dark:bg-blue-955/40 dark:text-blue-400 px-2.5 py-0.5 rounded-full text-[13px] font-semibold">
-                Total Appointments Today: {kpiCounts.todayAppointments}
-              </span>
-            </div>
-            <div className="text-xs font-black text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-lg">
-              {monthYearDisplay}
-            </div>
-          </div>
- 
-          {/* Day Selector Navigation Row */}
-          <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
-            <button
-              type="button"
-              onClick={handlePrevWeek}
-              className="h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-455 flex items-center justify-center transition-all cursor-pointer select-none active:scale-90 shrink-0"
-              title="Previous Week"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            
-            <div className="flex-1 grid grid-cols-7 gap-2">
-              {CALENDAR_DAYS.map((d) => {
-                const isActive = selectedCalendarDay === d.date;
-                const hasAppts = appointments.some(a => a.date === d.date && a.status !== "Cancelled");
-                return (
-                  <button
-                    key={d.date}
-                    type="button"
-                    onClick={() => setSelectedCalendarDay(d.date)}
-                    className={`day-btn flex flex-col items-center justify-center py-2.5 rounded-xl transition-all border outline-none cursor-pointer ${
-                      isActive
-                        ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-105"
-                        : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
-                    }`}
-                  >
-                    <span className="text-[12px] font-normal uppercase tracking-wider opacity-70 mb-0.5">{d.name}</span>
-                    <span className="text-[14px] font-medium flex items-center gap-1 leading-none">
-                      {parseInt(d.date.split(" ")[0])}
-                    </span>
-                    {hasAppts && (
-                      <span className={`h-1.5 w-1.5 rounded-full mt-1.5 ${isActive ? "bg-white" : "bg-blue-600"}`} />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            
-            <button
-              type="button"
-              onClick={handleNextWeek}
-              className="h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-455 flex items-center justify-center transition-all cursor-pointer select-none active:scale-90 shrink-0"
-              title="Next Week"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Time Slots Grid (Morning vs Evening) */}
-          <div className="flex flex-col lg:flex-row gap-6 mt-4 relative">
-            {/* Morning Column */}
-            <div className="flex-1 min-w-0 space-y-3">
-              <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-[14px] border-b pb-1.5">
-                <Sun className="h-4 w-4" />
-                <span>Morning Sessions (09:00 AM - 12:45 PM)</span>
+      <div className="dashboard-container space-y-6 animate-fadeIn text-slate-700">
+        {/* TOP SECTION - Calendar & Today's Schedule */}
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-stretch">
+          {/* Weekly Appointment Calendar (Left ~70%) */}
+          <div className="calendar-card lg:col-span-7 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3 gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="font-semibold text-[18px] text-slate-900 dark:text-white">Weekly Appointment Calendar</span>
+                <span className="bg-blue-50 text-blue-755 dark:bg-blue-955/40 dark:text-blue-400 px-2.5 py-0.5 rounded-full text-[13px] font-semibold">
+                  Total Appointments Today: {kpiCounts.todayAppointments}
+                </span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {MORNING_SLOTS.map((time) => {
-                  const appt = getApptForSlot(selectedCalendarDay, time);
-                  const isBlocked = blockedSlots[`${selectedCalendarDay}_${time}`];
-                  
-                  let btnStyle = "border-slate-100/70 hover:bg-slate-50/50 dark:border-slate-900/60 dark:hover:bg-slate-900/40";
-                  let statusText = "Available";
-                  let statusBadge = null;
-
-                  if (isBlocked) {
-                    btnStyle = "bg-slate-100/50 border-slate-100 text-slate-400 dark:bg-slate-900/40 dark:border-slate-900";
-                    statusText = "Blocked";
-                  } else if (appt) {
-                    statusText = appt.patientName;
-                    const st = appt.status;
-                    if (st === "Scheduled") statusBadge = "bg-blue-600 text-white";
-                    else if (st === "Checked In" || st === "Waiting") statusBadge = "bg-emerald-600 text-white";
-                    else if (st === "In Procedure") statusBadge = "bg-orange-500 text-white";
-                    else if (st === "In Consultation") statusBadge = "bg-purple-600 text-white";
-                    else if (st === "Completed") statusBadge = "bg-slate-500 text-white";
-                    else if (st === "Cancelled") statusBadge = "bg-red-600 text-white";
-                  }
-
-                  return (
-                    <button
-                      key={time}
-                      type="button"
-                      onClick={() => {
-                        setSlotPatientId("");
-                        setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
-                      }}
-                      className={`slot-btn ${!appt && !isBlocked ? "slot-btn-empty" : ""} p-2.5 rounded-xl border text-[10px] transition-all ${
-                        appt 
-                          ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800 flex flex-col justify-between items-start text-left" 
-                          : isBlocked
-                            ? "bg-slate-100/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-900 flex flex-col justify-between items-start text-left"
-                            : "bg-slate-50/20 border-dashed border-slate-200/60 dark:bg-slate-900/10 dark:border-slate-800/40 opacity-75 flex items-center justify-center text-center"
-                      } h-20 ${btnStyle}`}
-                    >
-                      {appt ? (
-                        <>
-                          <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
-                          <div className="w-full mt-1">
-                            <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
-                            <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
-                              {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
-                            </span>
-                          </div>
-                        </>
-                      ) : isBlocked ? (
-                        <>
-                          <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
-                          <span className="slot-open-label text-[9px] font-bold flex items-center gap-1 mt-1 text-slate-400">
-                            🔒 Blocked
-                          </span>
-                        </>
-                      ) : (
-                        <span className="slot-time">{formatTo24h(time)}</span>
-                      )}
-                    </button>
-                  );
-                })}
+              <div className="text-xs font-black text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-lg">
+                {monthYearDisplay}
               </div>
             </div>
 
-            {/* Vertical Divider */}
-            <div className="hidden lg:block w-[1px] bg-slate-200 dark:bg-slate-800 self-stretch" />
-
-            {/* Evening Column */}
-            <div className="flex-1 min-w-0 space-y-3">
-              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-[14px] border-b pb-1.5">
-                <Moon className="h-4 w-4" />
-                <span>Evening Sessions (04:30 PM - 08:15 PM)</span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {EVENING_SLOTS.map((time) => {
-                  const appt = getApptForSlot(selectedCalendarDay, time);
-                  const isBlocked = blockedSlots[`${selectedCalendarDay}_${time}`];
-                  
-                  let btnStyle = "border-slate-100/70 hover:bg-slate-50/50 dark:border-slate-900/60 dark:hover:bg-slate-900/40";
-                  let statusText = "Available";
-                  let statusBadge = null;
-
-                  if (isBlocked) {
-                    btnStyle = "bg-slate-100/50 border-slate-100 text-slate-400 dark:bg-slate-900/40 dark:border-slate-900";
-                    statusText = "Blocked";
-                  } else if (appt) {
-                    statusText = appt.patientName;
-                    const st = appt.status;
-                    if (st === "Scheduled") statusBadge = "bg-blue-600 text-white";
-                    else if (st === "Checked In" || st === "Waiting") statusBadge = "bg-emerald-600 text-white";
-                    else if (st === "In Procedure") statusBadge = "bg-orange-500 text-white";
-                    else if (st === "In Consultation") statusBadge = "bg-purple-600 text-white";
-                    else if (st === "Completed") statusBadge = "bg-slate-500 text-white";
-                    else if (st === "Cancelled") statusBadge = "bg-red-600 text-white";
-                  }
-
-                  return (
-                    <button
-                      key={time}
-                      type="button"
-                      onClick={() => {
-                        setSlotPatientId("");
-                        setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
-                      }}
-                      className={`slot-btn ${!appt && !isBlocked ? "slot-btn-empty" : ""} p-2.5 rounded-xl border text-[10px] transition-all ${
-                        appt 
-                          ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800 flex flex-col justify-between items-start text-left" 
-                          : isBlocked
-                            ? "bg-slate-100/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-900 flex flex-col justify-between items-start text-left"
-                            : "bg-slate-50/20 border-dashed border-slate-200/60 dark:bg-slate-900/10 dark:border-slate-800/40 opacity-75 flex items-center justify-center text-center"
-                      } h-20 ${btnStyle}`}
-                    >
-                      {appt ? (
-                        <>
-                          <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
-                          <div className="w-full mt-1">
-                            <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
-                            <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
-                              {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
-                            </span>
-                          </div>
-                        </>
-                      ) : isBlocked ? (
-                        <>
-                          <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
-                          <span className="slot-open-label text-[9px] font-bold flex items-center gap-1 mt-1 text-slate-400">
-                            🔒 Blocked
-                          </span>
-                        </>
-                      ) : (
-                        <span className="slot-time">{formatTo24h(time)}</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 3-Column Operational Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* SECTION 2 - Add Patient Panel (LEFT) */}
-          <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
-            <span className="font-semibold text-[18px] block mb-[22px] shrink-0">Patient Registration</span>
-            
-            <form onSubmit={handleSavePatientQuick} className="flex-grow flex flex-col justify-between overflow-hidden">
-              {/* Form Content Wrapper */}
-              <div className="flex-1 overflow-y-auto pr-1.5 scrollbar-thin space-y-4 pb-2.5">
-                {/* Row 1 */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="qPatID" className="form-label-custom">Patient ID</Label>
-                    <Input id="qPatID" value={`DS-${1000 + patients.length + 1}`} disabled className="form-field-custom bg-slate-50 dark:bg-slate-900 opacity-60 cursor-not-allowed font-bold" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="qMobile" className="form-label-custom">Mobile Number</Label>
-                    <Input id="qMobile" placeholder="e.g. +91 99000 11000" value={quickMobile} onChange={e => setQuickMobile(e.target.value)} required className="form-field-custom" />
-                  </div>
-                </div>
-
-                {/* Row 2 */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="qFirstName" className="form-label-custom">First Name</Label>
-                    <Input id="qFirstName" placeholder="e.g. Rahul" value={quickFirstName} onChange={e => setQuickFirstName(e.target.value)} required className="form-field-custom" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="qLastName" className="form-label-custom">Last Name</Label>
-                    <Input id="qLastName" placeholder="e.g. Verma" value={quickLastName} onChange={e => setQuickLastName(e.target.value)} required className="form-field-custom" />
-                  </div>
-                </div>
-
-                {/* Row 3 */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="qAge" className="form-label-custom">Age</Label>
-                    <Input id="qAge" type="number" min="0" value={quickAge || ""} onChange={e => setQuickAge(parseInt(e.target.value) || 30)} required className="form-field-custom" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="qGender" className="form-label-custom">Gender</Label>
-                    <select
-                      id="qGender"
-                      className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
-                      value={quickGender}
-                      onChange={e => setQuickGender(e.target.value as "Male" | "Female")}
-                    >
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Row 4 */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="qLocation" className="form-label-custom">Location</Label>
-                    <Input id="qLocation" placeholder="e.g. Jayanagar" value={quickLocation} onChange={e => setQuickLocation(e.target.value)} className="form-field-custom" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="qBloodGroup" className="form-label-custom">Blood Group (Optional)</Label>
-                    <select
-                      id="qBloodGroup"
-                      className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
-                      value={quickBloodGroup}
-                      onChange={e => setQuickBloodGroup(e.target.value)}
-                    >
-                      <option value="">-- Choose --</option>
-                      <option value="A+">A+</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B-">B-</option>
-                      <option value="AB+">AB+</option>
-                      <option value="AB-">AB-</option>
-                      <option value="O+">O+</option>
-                      <option value="O-">O-</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Row 5 */}
-                <div className="space-y-1">
-                  <Label htmlFor="qEmail" className="form-label-custom">Email (Optional)</Label>
-                  <Input id="qEmail" type="email" placeholder="e.g. email@domain.com" value={quickEmail} onChange={e => setQuickEmail(e.target.value)} className="form-field-custom" />
-                </div>
-
-                {/* Row 6 */}
-                <div className="space-y-1">
-                  <Label htmlFor="qNotes" className="form-label-custom">Notes / Remarks</Label>
-                  <textarea
-                    id="qNotes"
-                    value={quickNotes}
-                    onChange={e => setQuickNotes(e.target.value)}
-                    rows={2}
-                    className="form-field-custom py-2 h-16 resize-none block w-full outline-none focus:ring-1 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
-                  />
-                </div>
-              </div>
-              
-              {/* Fixed Bottom Action Buttons docked to bottom */}
-              <div className="flex gap-2 pt-3 border-t border-slate-100/60 dark:border-slate-800/60 mt-auto shrink-0">
-                <Button type="button" variant="outline" onClick={handleClearPatientForm} className="form-btn-custom flex-1 text-[14px] font-semibold h-9 rounded-lg">Clear</Button>
-                <Button type="submit" className="form-btn-custom flex-1 text-[14px] font-semibold h-9 bg-blue-600 hover:bg-blue-500 text-white shadow-xs rounded-lg">Save Patient</Button>
-              </div>
-            </form>
-          </div>
-
-          {/* SECTION 3 - Recently Added Patients (CENTER) */}
-          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
-            <div className="flex justify-between items-center mb-3 shrink-0">
-              <span className="font-semibold text-[18px] block">Recently Added Patients</span>
-            </div>
-            
-            {/* Search, Filter, Sort Inputs */}
-            <div className="grid gap-2.5 grid-cols-3 mb-4 shrink-0">
-              <div className="col-span-3 relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search name, ID..."
-                  value={patientSearchQuery}
-                  onChange={e => setPatientSearchQuery(e.target.value)}
-                  className="h-8 pl-8 pr-2 w-full rounded-lg bg-slate-50 border border-slate-100 text-[14px] font-medium outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 dark:bg-slate-900 dark:border-slate-900/60"
-                />
-              </div>
-              <div className="relative col-span-1">
-                <select
-                  value={patientFilterGender}
-                  onChange={e => setPatientFilterGender(e.target.value)}
-                  className="h-8 w-full appearance-none rounded-lg border border-slate-100 bg-white pl-2.5 pr-8 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-900/60"
-                >
-                  <option value="All">Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none text-slate-450 dark:text-slate-400" />
-              </div>
-              <div className="relative col-span-2">
-                <select
-                  value={patientSortBy}
-                  onChange={e => setPatientSortBy(e.target.value)}
-                  className="h-8 w-full appearance-none rounded-lg border border-slate-100 bg-white pl-2.5 pr-8 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-900/60"
-                >
-                  <option value="Name-ASC">Sort: Name (A-Z)</option>
-                  <option value="Name-DESC">Sort: Name (Z-A)</option>
-                          <option value="ID-DESC">Sort: ID (Desc)</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none text-slate-450 dark:text-slate-400" />
-              </div>
-            </div>
-
-            {/* Patient List container with simulated Infinite Scroll */}
-            <div className="flex-1 overflow-y-auto pr-1 flex flex-col">
-              {displayedPatients.length > 0 ? (
-                <div className="space-y-2.5 flex-1">
-                  {displayedPatients.map((pat) => (
-                    <div key={pat.id} className="patient-row py-2.5 flex justify-between items-center transition-all group border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
-                      <div className="min-w-0 flex-1 cursor-pointer" onClick={() => { setSelectedPatientId(pat.id); setActiveTab("Patients"); }}>
-                        <span className="patient-name-txt text-[16px] font-semibold text-slate-808 dark:text-slate-200 hover:text-blue-600 block truncate">{pat.name}</span>
-                        <p className="patient-sub-txt text-[12px] font-normal text-slate-455 mt-0.5">{pat.id} • {pat.phone}</p>
-                      </div>
-                      {/* Action Icons */}
-                      <div className="flex gap-1.5 ml-2">
-                        <button
-                          type="button"
-                          title="Book Appointment"
-                          onClick={() => {
-                            setSlotPatientId(pat.id);
-                            setSelectedSlotData({ date: selectedCalendarDay, time: "09:00 AM" });
-                          }}
-                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-blue-650 hover:bg-blue-50/50 dark:hover:bg-blue-955/30 transition-colors"
-                        >
-                          <CalendarDays className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          title="Dental Chart"
-                          onClick={() => {
-                            setSelectedPatientId(pat.id);
-                            setProfileSubTab("Dental Chart");
-                            setActiveTab("Patients");
-                          }}
-                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-purple-605 hover:bg-purple-50/50 dark:hover:bg-purple-955/30"
-                        >
-                          <Activity className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          title="Generate Bill"
-                          onClick={() => handleQuickGenerateBill(pat)}
-                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-emerald-605 hover:bg-emerald-50/50 dark:hover:bg-emerald-955/30"
-                        >
-                          <Receipt className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <p className="text-xs text-slate-400 py-6 text-center">No patients found</p>
-                </div>
-              )}
-            </div>
-
-            {/* Load More Button */}
-            {filteredPatients.length > patientVisibleCount && (
+            {/* Day Selector Navigation Row */}
+            <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
               <button
                 type="button"
-                onClick={() => setPatientVisibleCount(prev => prev + 5)}
-                className="w-full h-8 mt-3 rounded-lg border border-dashed border-slate-300 text-slate-455 hover:bg-slate-50 text-[14px] font-bold shrink-0"
+                onClick={handlePrevWeek}
+                className="h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-455 flex items-center justify-center transition-all cursor-pointer select-none active:scale-90 shrink-0"
+                title="Previous Week"
               >
-                Load More Patients
+                <ChevronLeft className="h-4 w-4" />
               </button>
-            )}
+              
+              <div className="flex-1 grid grid-cols-7 gap-2">
+                {CALENDAR_DAYS.map((d) => {
+                  const isActive = selectedCalendarDay === d.date;
+                  const hasAppts = appointments.some(a => a.date === d.date && a.status !== "Cancelled");
+                  return (
+                    <button
+                      key={d.date}
+                      type="button"
+                      onClick={() => setSelectedCalendarDay(d.date)}
+                      className={`day-btn flex flex-col items-center justify-center py-2.5 rounded-xl transition-all border outline-none cursor-pointer ${
+                        isActive
+                          ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-105"
+                          : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
+                      }`}
+                    >
+                      <span className="text-[12px] font-normal uppercase tracking-wider opacity-70 mb-0.5">{d.name}</span>
+                      <span className="text-[14px] font-medium flex items-center gap-1 leading-none">
+                        {parseInt(d.date.split(" ")[0])}
+                      </span>
+                      {hasAppts && (
+                        <span className={`h-1.5 w-1.5 rounded-full mt-1.5 ${isActive ? "bg-white" : "bg-blue-600"}`} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <button
+                type="button"
+                onClick={handleNextWeek}
+                className="h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-455 flex items-center justify-center transition-all cursor-pointer select-none active:scale-90 shrink-0"
+                title="Next Week"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Time Slots Grid (Morning vs Evening) */}
+            <div className="flex flex-col lg:flex-row gap-6 mt-4 relative">
+              {/* Morning Column */}
+              <div className="flex-1 min-w-0 space-y-3">
+                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-[14px] border-b pb-1.5">
+                  <Sun className="h-4 w-4" />
+                  <span>Morning Sessions (09:00 AM - 12:45 PM)</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {MORNING_SLOTS.map((time) => {
+                    const appt = getApptForSlot(selectedCalendarDay, time);
+                    const isBlocked = blockedSlots[`${selectedCalendarDay}_${time}`];
+                    
+                    let btnStyle = "border-slate-100/70 hover:bg-slate-50/50 dark:border-slate-900/60 dark:hover:bg-slate-900/40";
+                    let statusText = "Available";
+                    let statusBadge = null;
+
+                    if (isBlocked) {
+                      btnStyle = "bg-slate-100/50 border-slate-100 text-slate-400 dark:bg-slate-900/40 dark:border-slate-900";
+                      statusText = "Blocked";
+                    } else if (appt) {
+                      statusText = appt.patientName;
+                      const st = appt.status;
+                      if (st === "Scheduled") statusBadge = "bg-blue-600 text-white";
+                      else if (st === "Checked In" || st === "Waiting") statusBadge = "bg-emerald-600 text-white";
+                      else if (st === "In Procedure") statusBadge = "bg-orange-500 text-white";
+                      else if (st === "In Consultation") statusBadge = "bg-purple-600 text-white";
+                      else if (st === "Completed") statusBadge = "bg-slate-500 text-white";
+                      else if (st === "Cancelled") statusBadge = "bg-red-600 text-white";
+                    }
+
+                    return (
+                      <button
+                        key={time}
+                        type="button"
+                        onClick={() => {
+                          setSlotPatientId("");
+                          setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
+                        }}
+                        className={`slot-btn ${!appt && !isBlocked ? "slot-btn-empty" : ""} p-2.5 rounded-xl border text-[10px] transition-all ${
+                          appt 
+                            ? "bg-white shadow-xs border-slate-205 dark:bg-slate-955 dark:border-slate-800 flex flex-col justify-between items-start text-left" 
+                            : isBlocked
+                              ? "bg-slate-100/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-900 flex flex-col justify-between items-start text-left"
+                              : "bg-slate-50/20 border-dashed border-slate-202/60 dark:bg-slate-900/10 dark:border-slate-800/40 opacity-75 flex items-center justify-center text-center"
+                        } h-20 ${btnStyle}`}
+                      >
+                        {appt ? (
+                          <>
+                            <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
+                            <div className="w-full mt-1">
+                              <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
+                              <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
+                                {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
+                              </span>
+                            </div>
+                          </>
+                        ) : isBlocked ? (
+                          <>
+                            <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
+                            <span className="slot-open-label text-[9px] font-bold flex items-center gap-1 mt-1 text-slate-400">
+                              🔒 Blocked
+                            </span>
+                          </>
+                        ) : (
+                          <span className="slot-time">{formatTo24h(time)}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Vertical Divider */}
+              <div className="hidden lg:block w-[1px] bg-slate-200 dark:bg-slate-800 self-stretch" />
+
+              {/* Evening Column */}
+              <div className="flex-1 min-w-0 space-y-3">
+                <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-[14px] border-b pb-1.5">
+                  <Moon className="h-4 w-4" />
+                  <span>Evening Sessions (04:30 PM - 08:15 PM)</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {EVENING_SLOTS.map((time) => {
+                    const appt = getApptForSlot(selectedCalendarDay, time);
+                    const isBlocked = blockedSlots[`${selectedCalendarDay}_${time}`];
+                    
+                    let btnStyle = "border-slate-100/70 hover:bg-slate-50/50 dark:border-slate-900/60 dark:hover:bg-slate-900/40";
+                    let statusText = "Available";
+                    let statusBadge = null;
+
+                    if (isBlocked) {
+                      btnStyle = "bg-slate-100/50 border-slate-100 text-slate-400 dark:bg-slate-900/40 dark:border-slate-900";
+                      statusText = "Blocked";
+                    } else if (appt) {
+                      statusText = appt.patientName;
+                      const st = appt.status;
+                      if (st === "Scheduled") statusBadge = "bg-blue-600 text-white";
+                      else if (st === "Checked In" || st === "Waiting") statusBadge = "bg-emerald-600 text-white";
+                      else if (st === "In Procedure") statusBadge = "bg-orange-500 text-white";
+                      else if (st === "In Consultation") statusBadge = "bg-purple-600 text-white";
+                      else if (st === "Completed") statusBadge = "bg-slate-500 text-white";
+                      else if (st === "Cancelled") statusBadge = "bg-red-600 text-white";
+                    }
+
+                    return (
+                      <button
+                        key={time}
+                        type="button"
+                        onClick={() => {
+                          setSlotPatientId("");
+                          setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
+                        }}
+                        className={`slot-btn ${!appt && !isBlocked ? "slot-btn-empty" : ""} p-2.5 rounded-xl border text-[10px] transition-all ${
+                          appt 
+                            ? "bg-white shadow-xs border-slate-205 dark:bg-slate-955 dark:border-slate-800 flex flex-col justify-between items-start text-left" 
+                            : isBlocked
+                              ? "bg-slate-100/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-900 flex flex-col justify-between items-start text-left"
+                              : "bg-slate-50/20 border-dashed border-slate-202/60 dark:bg-slate-900/10 dark:border-slate-800/40 opacity-75 flex items-center justify-center text-center"
+                        } h-20 ${btnStyle}`}
+                      >
+                        {appt ? (
+                          <>
+                            <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
+                            <div className="w-full mt-1">
+                              <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
+                              <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
+                                {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
+                              </span>
+                            </div>
+                          </>
+                        ) : isBlocked ? (
+                          <>
+                            <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
+                            <span className="slot-open-label text-[9px] font-bold flex items-center gap-1 mt-1 text-slate-400">
+                              🔒 Blocked
+                            </span>
+                          </>
+                        ) : (
+                          <span className="slot-time">{formatTo24h(time)}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* SECTION 4 - Today's Schedule (RIGHT) */}
-          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
+          {/* Today's Schedule (Right ~30%) */}
+          <div className="list-card lg:col-span-3 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col min-h-[400px]">
             <div className="flex justify-between items-center mb-3 shrink-0">
               <span className="font-semibold text-[18px] block">Today's Schedule</span>
               <span className="text-[12px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-bold">
@@ -3234,235 +3018,468 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
         </div>
 
-        {/* 15-DAY PERFORMANCE TRACKER */}
-        <div className="mt-4">
-          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[340px] relative">
-            {/* Header */}
-            <div className="flex justify-between items-start mb-3 shrink-0">
-              <div>
-                <span className="font-semibold text-[18px] block">15-Day Performance Tracker</span>
-                <span className="text-[12px] text-slate-400 dark:text-slate-550 mt-0.5 block">Clinic activity over the last 15 days</span>
-              </div>
-              <span className="text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-300 px-2.5 py-1 rounded-full uppercase tracking-wider">
-                Last 15 Days
-              </span>
-            </div>
-
-            {/* Statistics Row */}
-            <div className="flex flex-wrap gap-2.5 mb-3.5 shrink-0">
-              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-850 px-3 py-1 rounded-full text-xs">
-                <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                <span className="text-slate-455">Total Consultations:</span>
-                <span className="font-bold text-slate-808 dark:text-slate-200">228</span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-850 px-3 py-1 rounded-full text-xs">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span className="text-slate-455">Total Appointments:</span>
-                <span className="font-bold text-slate-808 dark:text-slate-200">169</span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-850 px-3 py-1 rounded-full text-xs">
-                <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-                <span className="text-slate-455">New Patients:</span>
-                <span className="font-bold text-slate-808 dark:text-slate-200">57</span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 px-3 py-1 rounded-full text-xs">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span className="text-emerald-700 dark:text-emerald-400 font-bold">Appointment Growth:</span>
-                <span className="font-extrabold text-emerald-600 dark:text-emerald-400">+14.8%</span>
-              </div>
-            </div>
-
-            {/* Chart Container */}
-            <div className="flex-1 min-h-0 flex flex-col justify-between relative">
-              {/* Inline Legend */}
-              <div className="flex justify-end gap-4 text-[11px] mb-2 shrink-0 pr-2">
-                <div className="flex items-center gap-1">
-                  <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
-                  <span className="text-slate-455 dark:text-slate-350 font-medium">Consultations</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                  <span className="text-slate-455 dark:text-slate-350 font-medium">Appointments</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="h-2.5 w-2.5 rounded-full bg-indigo-500" />
-                  <span className="text-slate-455 dark:text-slate-350 font-medium">New Patients</span>
-                </div>
-              </div>
-
-              {/* Chart SVG wrapper */}
-              <div className="flex-1 min-h-0 relative">
-                <svg className="w-full h-full" viewBox="0 0 1000 240" preserveAspectRatio="none">
-                  {/* Style for animation */}
-                  <style>{`
-                    @keyframes lineDraw {
-                      to { stroke-dashoffset: 0; }
-                    }
-                    .chart-path-anim {
-                      stroke-dasharray: 1500;
-                      stroke-dashoffset: 1500;
-                      animation: lineDraw 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-                    }
-                  `}</style>
-
-                  {/* Horizontal grid lines */}
-                  {[0, 5, 10, 15, 20, 25].map((yVal, idx) => {
-                    const y = 210 - yVal * 7.6;
-                    return (
-                      <g key={idx}>
-                        <line x1="40" y1={y} x2="980" y2={y} stroke="rgba(148, 163, 184, 0.08)" strokeWidth="1" />
-                        <text x="30" y={y + 3} textAnchor="end" className="text-[9px] font-medium fill-slate-400 dark:fill-slate-500">{yVal}</text>
-                      </g>
-                    );
-                  })}
-
-                  {/* Bezier paths for metrics */}
-                  <path
-                    d={bezierConsultations}
-                    fill="none"
-                    stroke="#3B82F6"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    className="chart-path-anim"
-                  />
-                  <path
-                    d={bezierAppointments}
-                    fill="none"
-                    stroke="#10B981"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    className="chart-path-anim"
-                  />
-                  <path
-                    d={bezierNewPatients}
-                    fill="none"
-                    stroke="#6366F1"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    className="chart-path-anim"
-                  />
-
-                  {/* Data Point Circles */}
-                  {performanceData.map((d, i) => {
-                    const x = 40 + i * 67.14;
-                    const yC = 210 - d.consultations * 7.6;
-                    const yA = 210 - d.appointments * 7.6;
-                    const yN = 210 - d.newPatients * 7.6;
-                    const isHovered = hoveredIndex === i;
-
-                    return (
-                      <g key={i}>
-                        {/* Consultation Circle */}
-                        <circle
-                          cx={x}
-                          cy={yC}
-                          r={isHovered ? 5.5 : 3.5}
-                          fill={isHovered ? "#3B82F6" : "#ffffff"}
-                          stroke="#3B82F6"
-                          strokeWidth={isHovered ? 2.5 : 1.5}
-                          className="transition-all duration-100"
-                        />
-                        {/* Appointment Circle */}
-                        <circle
-                          cx={x}
-                          cy={yA}
-                          r={isHovered ? 5.5 : 3.5}
-                          fill={isHovered ? "#10B981" : "#ffffff"}
-                          stroke="#10B981"
-                          strokeWidth={isHovered ? 2.5 : 1.5}
-                          className="transition-all duration-100"
-                        />
-                        {/* New Patient Circle */}
-                        <circle
-                          cx={x}
-                          cy={yN}
-                          r={isHovered ? 5.5 : 3.5}
-                          fill={isHovered ? "#6366F1" : "#ffffff"}
-                          stroke="#6366F1"
-                          strokeWidth={isHovered ? 2.5 : 1.5}
-                          className="transition-all duration-100"
-                        />
-                      </g>
-                    );
-                  })}
-
-                  {/* X Axis Day ticks and labels */}
-                  {performanceData.map((d, i) => {
-                    const x = 40 + i * 67.14;
-                    // Render alternate labels to prevent overlap
-                    const showLabel = i % 2 === 0;
-
-                    return (
-                      <g key={i}>
-                        <line x1={x} y1="210" x2={x} y2="214" stroke="rgba(148, 163, 184, 0.2)" strokeWidth="1" />
-                        {showLabel && (
-                          <text x={x} y="228" textAnchor="middle" className="text-[9.5px] font-medium fill-slate-400 dark:fill-slate-500">
-                            {d.date}
-                          </text>
-                        )}
-                      </g>
-                    );
-                  })}
-
-                  {/* Vertical Hover Line Guide */}
-                  {hoveredIndex !== null && (
-                    <line
-                      x1={40 + hoveredIndex * 67.14}
-                      y1="20"
-                      x2={40 + hoveredIndex * 67.14}
-                      y2="210"
-                      stroke="rgba(99, 102, 241, 0.2)"
-                      strokeWidth="1.5"
-                      strokeDasharray="4 2"
-                    />
-                  )}
-
-                  {/* Interactive Transparent Hover rect areas */}
-                  {performanceData.map((d, i) => {
-                    const x = 40 + i * 67.14;
-                    return (
-                      <rect
-                        key={i}
-                        x={x - 33.5}
-                        y={0}
-                        width={67}
-                        height={240}
-                        fill="transparent"
-                        className="cursor-crosshair"
-                        onMouseEnter={() => setHoveredIndex(i)}
-                        onMouseLeave={() => setHoveredIndex(null)}
-                      />
-                    );
-                  })}
-                </svg>
-
-                {/* Floating Interactive Tooltip */}
-                {hoveredIndex !== null && (
-                  <div
-                    className="absolute bg-slate-900/95 dark:bg-slate-955/95 text-white p-3 rounded-lg shadow-xl border border-slate-800 dark:border-slate-800 text-[11px] pointer-events-none z-10 space-y-1 transition-all duration-100"
-                    style={{
-                      left: `${((40 + hoveredIndex * 67.14) / 1000) * 100}%`,
-                      transform: 'translateX(-50%)',
-                      top: '20px'
-                    }}
-                  >
-                    <p className="font-bold text-slate-300 dark:text-slate-300 border-b border-slate-800 pb-0.5 mb-1">{performanceData[hoveredIndex].fullDate}</p>
-                    <div className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-blue-500" />
-                      <span>Consultations: <span className="font-bold">{performanceData[hoveredIndex].consultations}</span></span>
+        {/* LOWER SECTION - 2-Column Operational Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
+          {/* LEFT COLUMN (~70%) */}
+          <div className="lg:col-span-7 flex flex-col gap-6">
+            {/* Patient Registration Card */}
+            <div className="form-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
+              <span className="font-semibold text-[18px] block mb-[22px] shrink-0">Patient Registration</span>
+              
+              <form onSubmit={handleSavePatientQuick} className="flex-grow flex flex-col justify-between overflow-hidden">
+                {/* Form Content Wrapper */}
+                <div className="flex-1 overflow-y-auto pr-1.5 scrollbar-thin space-y-4 pb-2.5">
+                  {/* Row 1 */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="qPatID" className="form-label-custom">Patient ID</Label>
+                      <Input id="qPatID" value={`DS-${1000 + patients.length + 1}`} disabled className="form-field-custom bg-slate-50 dark:bg-slate-900 opacity-60 cursor-not-allowed font-bold" />
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                      <span>Appointments: <span className="font-bold">{performanceData[hoveredIndex].appointments}</span></span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-indigo-500" />
-                      <span>New Patients: <span className="font-bold">{performanceData[hoveredIndex].newPatients}</span></span>
+                    <div className="space-y-1">
+                      <Label htmlFor="qMobile" className="form-label-custom">Mobile Number</Label>
+                      <Input id="qMobile" placeholder="e.g. +91 99000 11000" value={quickMobile} onChange={e => setQuickMobile(e.target.value)} required className="form-field-custom" />
                     </div>
                   </div>
-                )}
+
+                  {/* Row 2 */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="qFirstName" className="form-label-custom">First Name</Label>
+                      <Input id="qFirstName" placeholder="e.g. Rahul" value={quickFirstName} onChange={e => setQuickFirstName(e.target.value)} required className="form-field-custom" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="qLastName" className="form-label-custom">Last Name</Label>
+                      <Input id="qLastName" placeholder="e.g. Verma" value={quickLastName} onChange={e => setQuickLastName(e.target.value)} required className="form-field-custom" />
+                    </div>
+                  </div>
+
+                  {/* Row 3 */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="qAge" className="form-label-custom">Age</Label>
+                      <Input id="qAge" type="number" min="0" value={quickAge || ""} onChange={e => setQuickAge(parseInt(e.target.value) || 30)} required className="form-field-custom" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="qGender" className="form-label-custom">Gender</Label>
+                      <select
+                        id="qGender"
+                        className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                        value={quickGender}
+                        onChange={e => setQuickGender(e.target.value as "Male" | "Female")}
+                      >
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Row 4 */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="qLocation" className="form-label-custom">Location</Label>
+                      <Input id="qLocation" placeholder="e.g. Jayanagar" value={quickLocation} onChange={e => setQuickLocation(e.target.value)} className="form-field-custom" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="qBloodGroup" className="form-label-custom">Blood Group (Optional)</Label>
+                      <select
+                        id="qBloodGroup"
+                        className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                        value={quickBloodGroup}
+                        onChange={e => setQuickBloodGroup(e.target.value)}
+                      >
+                        <option value="">-- Choose --</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Row 5 */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="qEmail" className="form-label-custom">Email Address (Optional)</Label>
+                      <Input id="qEmail" type="email" placeholder="e.g. patient@example.com" value={quickEmail} onChange={e => setQuickEmail(e.target.value)} className="form-field-custom" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="qDOB" className="form-label-custom">Date of Birth (Optional)</Label>
+                      <Input id="qDOB" type="date" value={quickDOB} onChange={e => setQuickDOB(e.target.value)} className="form-field-custom text-slate-800 dark:text-slate-200" />
+                    </div>
+                  </div>
+
+                  {/* Row 6 - Notes Field */}
+                  <div className="space-y-1">
+                    <Label htmlFor="qNotes" className="form-label-custom">Notes / Remarks</Label>
+                    <textarea
+                      id="qNotes"
+                      rows={3}
+                      value={quickNotes}
+                      onChange={e => setQuickNotes(e.target.value)}
+                      className="form-field-custom flex w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800 resize-none font-medium text-slate-808 dark:text-slate-200"
+                    />
+                  </div>
+                </div>
+
+                {/* Clear & Save Row */}
+                <div className="flex gap-2 pt-3 border-t border-slate-100/60 dark:border-slate-800/60 mt-auto shrink-0">
+                  <Button type="button" variant="outline" onClick={handleClearPatientForm} className="form-btn-custom flex-1 text-[14px] font-semibold h-9 rounded-lg">Clear</Button>
+                  <Button type="submit" className="form-btn-custom flex-1 text-[14px] font-semibold h-9 bg-blue-600 hover:bg-blue-500 text-white shadow-xs rounded-lg">Save Patient</Button>
+                </div>
+              </form>
+            </div>
+
+            {/* 15-Day Performance Tracker Card */}
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[340px] relative">
+              {/* Header */}
+              <div className="flex justify-between items-start mb-3 shrink-0">
+                <div>
+                  <span className="font-semibold text-[18px] block">15-Day Performance Tracker</span>
+                  <span className="text-[12px] text-slate-400 dark:text-slate-550 mt-0.5 block">Clinic activity over the last 15 days</span>
+                </div>
+                <span className="text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-300 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                  Last 15 Days
+                </span>
+              </div>
+
+              {/* Statistics Row */}
+              <div className="flex flex-wrap gap-2.5 mb-3.5 shrink-0">
+                <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-850 px-3 py-1 rounded-full text-xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                  <span className="text-slate-455">Total Consultations:</span>
+                  <span className="font-bold text-slate-808 dark:text-slate-200">228</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-850 px-3 py-1 rounded-full text-xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  <span className="text-slate-455">Total Appointments:</span>
+                  <span className="font-bold text-slate-808 dark:text-slate-200">169</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-850 px-3 py-1 rounded-full text-xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                  <span className="text-slate-455">New Patients:</span>
+                  <span className="font-bold text-slate-808 dark:text-slate-200">57</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-emerald-50/50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900/30 px-3 py-1 rounded-full text-xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  <span className="text-emerald-700 dark:text-emerald-400 font-bold">Appointment Growth:</span>
+                  <span className="font-extrabold text-emerald-600 dark:text-emerald-400">+14.8%</span>
+                </div>
+              </div>
+
+              {/* Chart Container */}
+              <div className="flex-1 min-h-0 flex flex-col justify-between relative">
+                {/* Inline Legend */}
+                <div className="flex justify-end gap-4 text-[11px] mb-2 shrink-0 pr-2">
+                  <div className="flex items-center gap-1">
+                    <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+                    <span className="text-slate-455 dark:text-slate-350 font-medium">Consultations</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                    <span className="text-slate-455 dark:text-slate-350 font-medium">Appointments</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="h-2.5 w-2.5 rounded-full bg-indigo-500" />
+                    <span className="text-slate-455 dark:text-slate-350 font-medium">New Patients</span>
+                  </div>
+                </div>
+
+                {/* Chart SVG wrapper */}
+                <div className="flex-1 min-h-0 relative">
+                  <svg className="w-full h-full" viewBox="0 0 1000 240" preserveAspectRatio="none">
+                    {/* Style for animation */}
+                    <style>{`
+                      @keyframes lineDraw {
+                        to { stroke-dashoffset: 0; }
+                      }
+                      .chart-path-anim {
+                        stroke-dasharray: 1500;
+                        stroke-dashoffset: 1500;
+                        animation: lineDraw 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+                      }
+                    `}</style>
+
+                    {/* Horizontal grid lines */}
+                    {[0, 5, 10, 15, 20, 25].map((yVal, idx) => {
+                      const y = 210 - yVal * 7.6;
+                      return (
+                        <g key={idx}>
+                          <line x1="40" y1={y} x2="980" y2={y} stroke="rgba(148, 163, 184, 0.08)" strokeWidth="1" />
+                          <text x="30" y={y + 3} textAnchor="end" className="text-[9px] font-medium fill-slate-400 dark:fill-slate-500">{yVal}</text>
+                        </g>
+                      );
+                    })}
+
+                    {/* Bezier paths for metrics */}
+                    <path
+                      d={bezierConsultations}
+                      fill="none"
+                      stroke="#3B82F6"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      className="chart-path-anim"
+                    />
+                    <path
+                      d={bezierAppointments}
+                      fill="none"
+                      stroke="#10B981"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      className="chart-path-anim"
+                    />
+                    <path
+                      d={bezierNewPatients}
+                      fill="none"
+                      stroke="#6366F1"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      className="chart-path-anim"
+                    />
+
+                    {/* Data Point Circles */}
+                    {performanceData.map((d, i) => {
+                      const x = 40 + i * 67.14;
+                      const yC = 210 - d.consultations * 7.6;
+                      const yA = 210 - d.appointments * 7.6;
+                      const yN = 210 - d.newPatients * 7.6;
+                      const isHovered = hoveredIndex === i;
+
+                      return (
+                        <g key={i}>
+                          {/* Consultation Circle */}
+                          <circle
+                            cx={x}
+                            cy={yC}
+                            r={isHovered ? 5.5 : 3.5}
+                            fill={isHovered ? "#3B82F6" : "#ffffff"}
+                            stroke="#3B82F6"
+                            strokeWidth={isHovered ? 2.5 : 1.5}
+                            className="transition-all duration-100"
+                          />
+                          {/* Appointment Circle */}
+                          <circle
+                            cx={x}
+                            cy={yA}
+                            r={isHovered ? 5.5 : 3.5}
+                            fill={isHovered ? "#10B981" : "#ffffff"}
+                            stroke="#10B981"
+                            strokeWidth={isHovered ? 2.5 : 1.5}
+                            className="transition-all duration-100"
+                          />
+                          {/* New Patient Circle */}
+                          <circle
+                            cx={x}
+                            cy={yN}
+                            r={isHovered ? 5.5 : 3.5}
+                            fill={isHovered ? "#6366F1" : "#ffffff"}
+                            stroke="#6366F1"
+                            strokeWidth={isHovered ? 2.5 : 1.5}
+                            className="transition-all duration-100"
+                          />
+                        </g>
+                      );
+                    })}
+
+                    {/* X Axis Day ticks and labels */}
+                    {performanceData.map((d, i) => {
+                      const x = 40 + i * 67.14;
+                      // Render alternate labels to prevent overlap
+                      const showLabel = i % 2 === 0;
+
+                      return (
+                        <g key={i}>
+                          <line x1={x} y1="210" x2={x} y2="214" stroke="rgba(148, 163, 184, 0.2)" strokeWidth="1" />
+                          {showLabel && (
+                            <text x={x} y="228" textAnchor="middle" className="text-[9.5px] font-medium fill-slate-400 dark:fill-slate-500">
+                              {d.date}
+                            </text>
+                          )}
+                        </g>
+                      );
+                    })}
+
+                    {/* Vertical Hover Line Guide */}
+                    {hoveredIndex !== null && (
+                      <line
+                        x1={40 + hoveredIndex * 67.14}
+                        y1="20"
+                        x2={40 + hoveredIndex * 67.14}
+                        y2="210"
+                        stroke="rgba(99, 102, 241, 0.2)"
+                        strokeWidth="1.5"
+                        strokeDasharray="4 2"
+                      />
+                    )}
+
+                    {/* Interactive Transparent Hover rect areas */}
+                    {performanceData.map((d, i) => {
+                      const x = 40 + i * 67.14;
+                      return (
+                        <rect
+                          key={i}
+                          x={x - 33.5}
+                          y={0}
+                          width={67}
+                          height={240}
+                          fill="transparent"
+                          className="cursor-crosshair"
+                          onMouseEnter={() => setHoveredIndex(i)}
+                          onMouseLeave={() => setHoveredIndex(null)}
+                        />
+                      );
+                    })}
+                  </svg>
+
+                  {/* Floating Interactive Tooltip */}
+                  {hoveredIndex !== null && (
+                    <div
+                      className="absolute bg-slate-900/95 dark:bg-slate-955/95 text-white p-3 rounded-lg shadow-xl border border-slate-800 dark:border-slate-800 text-[11px] pointer-events-none z-10 space-y-1 transition-all duration-100"
+                      style={{
+                        left: `${((40 + hoveredIndex * 67.14) / 1000) * 100}%`,
+                        transform: 'translateX(-50%)',
+                        top: '20px'
+                      }}
+                    >
+                      <p className="font-bold text-slate-300 dark:text-slate-300 border-b border-slate-800 pb-0.5 mb-1">{performanceData[hoveredIndex].fullDate}</p>
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-blue-500" />
+                        <span>Consultations: <span className="font-bold">{performanceData[hoveredIndex].consultations}</span></span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                        <span>Appointments: <span className="font-bold">{performanceData[hoveredIndex].appointments}</span></span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-indigo-500" />
+                        <span>New Patients: <span className="font-bold">{performanceData[hoveredIndex].newPatients}</span></span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+          </div>
+
+          {/* RIGHT COLUMN (~30%) - Recently Added Patients */}
+          <div className="list-card lg:col-span-3 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px] lg:h-[894px]">
+            <div className="flex justify-between items-center mb-3 shrink-0">
+              <span className="font-semibold text-[18px] block">Recently Added Patients</span>
+            </div>
+            
+            {/* Search, Filter, Sort Inputs */}
+            <div className="grid gap-2.5 grid-cols-3 mb-4 shrink-0">
+              <div className="col-span-3 relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search name, ID..."
+                  value={patientSearchQuery}
+                  onChange={e => setPatientSearchQuery(e.target.value)}
+                  className="h-8 pl-8 pr-2 w-full rounded-lg bg-slate-50 border border-slate-100 text-[14px] font-medium outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 dark:bg-slate-900 dark:border-slate-900/60"
+                />
+              </div>
+              <div className="relative col-span-1">
+                <select
+                  value={patientFilterGender}
+                  onChange={e => setPatientFilterGender(e.target.value)}
+                  className="h-8 w-full appearance-none rounded-lg border border-slate-100 bg-white pl-2.5 pr-8 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-900/60"
+                >
+                  <option value="All">Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none text-slate-450 dark:text-slate-400" />
+              </div>
+              <div className="relative col-span-2">
+                <select
+                  value={patientSortBy}
+                  onChange={e => setPatientSortBy(e.target.value)}
+                  className="h-8 w-full appearance-none rounded-lg border border-slate-100 bg-white pl-2.5 pr-8 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-900/60"
+                >
+                  <option value="ID-DESC">Sort: Newest</option>
+                  <option value="ID-ASC">Sort: Oldest</option>
+                  <option value="Name-ASC">Sort: Name (A-Z)</option>
+                  <option value="Name-DESC">Sort: Name (Z-A)</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none text-slate-450 dark:text-slate-400" />
+              </div>
+            </div>
+
+            {/* Patients list container */}
+            <div className="flex-grow overflow-y-auto pr-1.5 scrollbar-thin flex flex-col">
+              {displayedPatients.length > 0 ? (
+                <div className="space-y-2 flex-grow">
+                  {displayedPatients.map((pat) => (
+                    <div
+                      key={pat.id}
+                      className="p-3 border border-slate-100 dark:border-slate-900 rounded-xl bg-slate-50/10 hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-all flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <span className="font-semibold text-[16px] text-slate-805 dark:text-slate-205 block truncate leading-tight">{pat.name}</span>
+                        <p className="text-[12px] text-slate-400 dark:text-slate-500 font-normal leading-normal mt-0.5">
+                          ID: {pat.id} • Age: {pat.age} • Gender: {pat.gender}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          title="Book Appointment"
+                          onClick={() => {
+                            setSlotPatientId(pat.id);
+                            const todayStr = "12 Aug 2026";
+                            const firstEmptyTime = MORNING_SLOTS.find(t => !getApptForSlot(todayStr, t) && !blockedSlots[`${todayStr}_${t}`]) || "09:00 AM";
+                            setSelectedSlotData({ date: todayStr, time: firstEmptyTime, appointment: undefined });
+                          }}
+                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-blue-650 hover:bg-blue-50/50 dark:hover:bg-blue-955/30 transition-colors"
+                        >
+                          <CalendarDays className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Dental Chart"
+                          onClick={() => {
+                            setSelectedPatientId(pat.id);
+                            setProfileSubTab("Dental Chart");
+                            setActiveTab("Patients");
+                          }}
+                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-purple-605 hover:bg-purple-50/50 dark:hover:bg-purple-955/30"
+                        >
+                          <Activity className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Generate Bill"
+                          onClick={() => handleQuickGenerateBill(pat)}
+                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-emerald-605 hover:bg-emerald-50/50 dark:hover:bg-emerald-955/30"
+                        >
+                          <Receipt className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-xs text-slate-400 py-6 text-center">No patients found</p>
+                </div>
+              )}
+            </div>
+
+            {/* Load More Button */}
+            {filteredPatients.length > patientVisibleCount && (
+              <button
+                type="button"
+                onClick={() => setPatientVisibleCount(prev => prev + 5)}
+                className="w-full h-8 mt-3 rounded-lg border border-dashed border-slate-300 text-slate-455 hover:bg-slate-50 text-[14px] font-bold shrink-0"
+              >
+                Load More Patients
+              </button>
+            )}
           </div>
         </div>
       </div>
