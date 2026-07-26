@@ -50,7 +50,11 @@ import {
   Sun,
   Moon,
   Upload,
-  Play
+  Play,
+  Pause,
+  Square,
+  RefreshCw,
+  Save
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -340,7 +344,7 @@ interface ClinicalMedia {
   patientId: string;
   name: string;
   type: string;
-  category: "Clinical Photos" | "X-rays" | "Videos" | "Scans" | "Documents" | "Treatment Progress";
+  category: "Clinical Photos" | "X-rays" | "Videos" | "Scans" | "Documents" | "Treatment Progress" | "Consent Videos";
   url: string;
   uploadDate: string;
   uploadedBy: string;
@@ -348,6 +352,7 @@ interface ClinicalMedia {
   treatment?: string;
   appointment?: string;
   prescription?: string;
+  duration?: string;
 }
 
 const parseClinicalNote = (noteStr: string) => {
@@ -543,6 +548,341 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [mediaFilter, setMediaFilter] = useState("All");
   const [selectedMediaForPreview, setSelectedMediaForPreview] = useState<ClinicalMedia | null>(null);
   const [mediaToEdit, setMediaToEdit] = useState<ClinicalMedia | null>(null);
+
+  // Consent Video Recorder states
+  const [recordingState, setRecordingState] = useState<"idle" | "recording" | "paused" | "stopped">("idle");
+  const [recordedBlobUrl, setRecordedBlobUrl] = useState<string | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedVideoDeviceId, setSelectedVideoDeviceId] = useState("");
+  const [cameraStatus, setCameraStatus] = useState<"active" | "inactive">("inactive");
+  const [micStatus, setMicStatus] = useState<"active" | "inactive">("inactive");
+  const [timeLimitNotice, setTimeLimitNotice] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState("");
+
+  // Refs for recording
+  const webcamStreamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<any>(null);
+
+  // Current Time live clock
+  useEffect(() => {
+    const updateTime = () => {
+      setCurrentTime(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Media sub-tab cleanup and enumeration
+  useEffect(() => {
+    if (profileSubTab === "Media") {
+      navigator.mediaDevices.enumerateDevices()
+        .then(devices => {
+          const videoDevs = devices.filter(device => device.kind === "videoinput");
+          setVideoDevices(videoDevs);
+          if (videoDevs.length > 0 && !selectedVideoDeviceId) {
+            setSelectedVideoDeviceId(videoDevs[0].deviceId);
+          }
+        })
+        .catch(err => console.error("Error listing devices:", err));
+    } else {
+      if (webcamStreamRef.current) {
+        webcamStreamRef.current.getTracks().forEach(track => track.stop());
+        webcamStreamRef.current = null;
+      }
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      setRecordingState("idle");
+      setRecordedBlobUrl(null);
+      setRecordingDuration(0);
+      setCameraStatus("inactive");
+      setMicStatus("inactive");
+      setTimeLimitNotice(null);
+    }
+  }, [profileSubTab]);
+
+  // Overall cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (webcamStreamRef.current) {
+        webcamStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Helper to format duration in MM:SS
+  const formatTimer = (seconds: number) => {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return `${min < 10 ? '0' : ''}${min}:${sec < 10 ? '0' : ''}${sec}`;
+  };
+
+  // Switch camera when device changes
+  const handleDeviceChange = (deviceId: string) => {
+    setSelectedVideoDeviceId(deviceId);
+    if (recordingState === "idle") {
+      startWebcamPreview(deviceId);
+    }
+  };
+
+  // Start webcam preview stream
+  const startWebcamPreview = async (deviceId?: string) => {
+    try {
+      const constraints: MediaStreamConstraints = {
+        video: deviceId ? { deviceId: { exact: deviceId } } : true,
+        audio: true
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      webcamStreamRef.current = stream;
+
+      const videoTracks = stream.getVideoTracks();
+      const audioTracks = stream.getAudioTracks();
+      setCameraStatus(videoTracks.length > 0 && videoTracks[0].enabled ? "active" : "inactive");
+      setMicStatus(audioTracks.length > 0 && audioTracks[0].enabled ? "active" : "inactive");
+
+      const videoEl = document.getElementById("webcam-preview-video") as HTMLVideoElement;
+      if (videoEl) {
+        videoEl.srcObject = stream;
+        videoEl.muted = true;
+        videoEl.play().catch(e => console.error("Error playing video:", e));
+      }
+    } catch (err) {
+      console.error("Error starting preview:", err);
+      setCameraStatus("inactive");
+      setMicStatus("inactive");
+    }
+  };
+
+  // Start Recording
+  const startRecording = async () => {
+    try {
+      const constraints: MediaStreamConstraints = {
+        video: selectedVideoDeviceId ? { deviceId: { exact: selectedVideoDeviceId } } : true,
+        audio: true
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      webcamStreamRef.current = stream;
+
+      const videoTracks = stream.getVideoTracks();
+      const audioTracks = stream.getAudioTracks();
+      setCameraStatus(videoTracks.length > 0 && videoTracks[0].enabled ? "active" : "inactive");
+      setMicStatus(audioTracks.length > 0 && audioTracks[0].enabled ? "active" : "inactive");
+
+      const videoEl = document.getElementById("webcam-preview-video") as HTMLVideoElement;
+      if (videoEl) {
+        videoEl.srcObject = stream;
+        videoEl.muted = true;
+        videoEl.play().catch(e => console.error("Error playing preview:", e));
+      }
+
+      navigator.mediaDevices.enumerateDevices().then(devices => {
+        const videoDevs = devices.filter(device => device.kind === "videoinput");
+        setVideoDevices(videoDevs);
+        if (videoDevs.length > 0 && !selectedVideoDeviceId) {
+          setSelectedVideoDeviceId(videoDevs[0].deviceId);
+        }
+      });
+
+      recordedChunksRef.current = [];
+      const options = { mimeType: "video/webm;codecs=vp9,opus" };
+      let recorder: MediaRecorder;
+      try {
+        recorder = new MediaRecorder(stream, options);
+      } catch (e) {
+        recorder = new MediaRecorder(stream);
+      }
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        setRecordedBlobUrl(url);
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start(100);
+
+      setRecordingDuration(0);
+      setRecordingState("recording");
+      setRecordedBlobUrl(null);
+      setTimeLimitNotice("Please record at least 20 seconds of patient consent.");
+
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration(prev => {
+          const next = prev + 1;
+          if (next >= 20) {
+            setTimeLimitNotice(null);
+          }
+          if (next >= 90) {
+            clearInterval(recordingTimerRef.current);
+            stopRecording(true);
+            return 90;
+          }
+          return next;
+        });
+      }, 1000);
+    } catch (err) {
+      console.error("Error starting recording:", err);
+      showToast("Could not access camera or microphone.", "error");
+      setCameraStatus("inactive");
+      setMicStatus("inactive");
+    }
+  };
+
+  // Pause Recording
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      mediaRecorderRef.current.pause();
+      setRecordingState("paused");
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+    }
+  };
+
+  // Resume Recording
+  const resumeRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "paused") {
+      mediaRecorderRef.current.resume();
+      setRecordingState("recording");
+
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration(prev => {
+          const next = prev + 1;
+          if (next >= 20) {
+            setTimeLimitNotice(null);
+          }
+          if (next >= 90) {
+            clearInterval(recordingTimerRef.current);
+            stopRecording(true);
+            return 90;
+          }
+          return next;
+        });
+      }, 1000);
+    }
+  };
+
+  // Stop Recording
+  const stopRecording = (autoStop = false) => {
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+    }
+
+    if (mediaRecorderRef.current && (mediaRecorderRef.current.state === "recording" || mediaRecorderRef.current.state === "paused")) {
+      mediaRecorderRef.current.stop();
+    }
+
+    if (webcamStreamRef.current) {
+      webcamStreamRef.current.getTracks().forEach(track => track.stop());
+      webcamStreamRef.current = null;
+    }
+
+    setRecordingState("stopped");
+    setCameraStatus("inactive");
+    setMicStatus("inactive");
+
+    if (autoStop) {
+      setTimeLimitNotice("Maximum recording time (90 seconds) reached.");
+    } else {
+      setRecordingDuration(prev => {
+        if (prev < 20) {
+          setTimeLimitNotice("Please record at least 20 seconds of patient consent.");
+        } else {
+          setTimeLimitNotice(null);
+        }
+        return prev;
+      });
+    }
+  };
+
+  // Retake Recording
+  const retakeRecording = () => {
+    if (recordedBlobUrl) {
+      URL.revokeObjectURL(recordedBlobUrl);
+    }
+    setRecordedBlobUrl(null);
+    setRecordingDuration(0);
+    setRecordingState("idle");
+    setTimeLimitNotice(null);
+    startWebcamPreview(selectedVideoDeviceId);
+  };
+
+  // Save Recording
+  const saveRecording = () => {
+    if (recordingDuration < 20) {
+      showToast("Recording must be at least 20 seconds long.", "error");
+      return;
+    }
+    if (!recordedBlobUrl) {
+      showToast("No recorded video found.", "error");
+      return;
+    }
+
+    const dateNow = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    const docName = prescDoctor || (doctors[0]?.name || "Dr. Deepa Kodali");
+
+    const newMedia: ClinicalMedia = {
+      id: `media-${Date.now()}`,
+      patientId: selectedPatientId || "",
+      name: `consent_video_${Date.now()}.webm`,
+      type: "video/webm",
+      category: "Consent Videos",
+      url: recordedBlobUrl,
+      uploadDate: dateNow,
+      uploadedBy: docName,
+      duration: formatTimer(recordingDuration)
+    };
+
+    setPatientMedia(prev => [newMedia, ...prev]);
+    showToast("Consent video saved successfully.", "success");
+
+    setRecordedBlobUrl(null);
+    setRecordingDuration(0);
+    setRecordingState("idle");
+    setTimeLimitNotice(null);
+  };
+
+  // Photo Upload Handler (strictly clinical photos only)
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const filesArray = Array.from(e.target.files);
+    const imageFiles = filesArray.filter(file => file.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      showToast("Only clinical photographs (images) can be uploaded manually.", "error");
+      return;
+    }
+
+    const newMediaItems: ClinicalMedia[] = imageFiles.map((file, idx) => {
+      return {
+        id: `media-${Date.now()}-${idx}`,
+        patientId: selectedPatientId || "",
+        name: file.name,
+        type: file.type || "image/png",
+        category: "Clinical Photos",
+        url: URL.createObjectURL(file),
+        uploadDate: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+        uploadedBy: prescDoctor || (doctors[0]?.name || "Dr. Deepa Kodali")
+      };
+    });
+
+    setPatientMedia(prev => [...newMediaItems, ...prev]);
+    showToast(`${imageFiles.length} clinical photo(s) uploaded.`, "success");
+  };
 
   // Edit/Rename media form fields
   const [editMediaName, setEditMediaName] = useState("");
@@ -5127,37 +5467,221 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               <div className="space-y-6 animate-fadeIn">
                 {/* Header Title */}
                 <div className="flex justify-between items-center border-b pb-3 mb-4 shrink-0">
-                  <span className="text-[18px] font-semibold text-slate-900 dark:text-white">Patient Media Gallery</span>
+                  <span className="text-[18px] font-semibold text-slate-900 dark:text-white">Patient Consent & Media</span>
                 </div>
 
-                {/* Upload Card */}
+                {/* Patient Consent Video Card */}
+                <div className="bg-white dark:bg-slate-955 border border-slate-205 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
+                  <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-850">
+                    <span className="font-bold text-slate-805 dark:text-white text-xs uppercase tracking-wider">Patient Consent Video</span>
+                  </div>
+
+                  {/* Recording Information Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 border-b border-slate-100 dark:border-slate-850 pb-3 text-xs font-semibold text-slate-600 dark:text-slate-400">
+                    <div>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase block">Patient Name</span>
+                      <strong className="text-slate-800 dark:text-white font-bold">{patientItem?.name || "N/A"}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase block">Patient ID</span>
+                      <strong className="text-slate-800 dark:text-white font-bold">{patientItem?.id || "N/A"}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase block">Doctor Name</span>
+                      <strong className="text-slate-800 dark:text-white font-bold">{prescDoctor || (doctors[0]?.name || "Dr. Deepa Kodali")}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase block">Current Date</span>
+                      <strong className="text-slate-800 dark:text-white font-bold">{new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase block">Current Time</span>
+                      <strong className="text-slate-800 dark:text-white font-bold">{currentTime}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase block">Recording Timer</span>
+                      <strong className={`text-[13px] font-bold ${recordingState === 'recording' ? 'text-red-650 animate-pulse' : 'text-slate-800 dark:text-white'}`}>
+                        {formatTimer(recordingDuration)}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Device selectors & status indicators */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-semibold">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`h-2 w-2 rounded-full ${cameraStatus === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                        <span className="text-slate-500 dark:text-slate-400">Camera: <span className="font-bold">{cameraStatus === 'active' ? 'Active' : 'Inactive'}</span></span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`h-2 w-2 rounded-full ${micStatus === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                        <span className="text-slate-500 dark:text-slate-400">Microphone: <span className="font-bold">{micStatus === 'active' ? 'Active' : 'Inactive'}</span></span>
+                      </div>
+                    </div>
+
+                    {videoDevices.length > 1 && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-500 dark:text-slate-400">Select Camera:</span>
+                        <select
+                          value={selectedVideoDeviceId}
+                          onChange={(e) => handleDeviceChange(e.target.value)}
+                          className="h-8 px-2 rounded-lg border border-slate-200 bg-white text-xs font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-805 text-slate-700 dark:text-slate-300"
+                        >
+                          {videoDevices.map(device => (
+                            <option key={device.deviceId} value={device.deviceId}>
+                              {device.label || `Camera ${videoDevices.indexOf(device) + 1}`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Webcam / Playback Container */}
+                  <div className="relative aspect-video w-full bg-slate-900 rounded-xl overflow-hidden shadow-inner border border-slate-205 dark:border-slate-800 flex items-center justify-center">
+                    {recordingState !== 'stopped' ? (
+                      <>
+                        <video
+                          id="webcam-preview-video"
+                          autoPlay
+                          muted
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                        {recordingState === 'idle' && (
+                          <div className="absolute inset-0 bg-slate-900/80 flex flex-col items-center justify-center text-center p-4">
+                            <div className="text-4xl mb-2">📹</div>
+                            <span className="text-white font-bold text-sm">Consent Recorder Offline</span>
+                            <p className="text-xs text-slate-400 mt-1 max-w-xs leading-normal">
+                              Click "Start Recording" below to request camera and microphone permissions and begin.
+                            </p>
+                          </div>
+                        )}
+                        {recordingState === 'recording' && (
+                          <div className="absolute top-3 left-3 bg-red-655/90 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded flex items-center gap-1 shadow backdrop-blur-xs">
+                            <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping" />
+                            Recording
+                          </div>
+                        )}
+                        {recordingState === 'paused' && (
+                          <div className="absolute top-3 left-3 bg-amber-600/90 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded flex items-center gap-1 shadow backdrop-blur-xs">
+                            <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                            Paused
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <video
+                        src={recordedBlobUrl || ""}
+                        controls
+                        autoPlay
+                        className="w-full h-full object-contain"
+                      />
+                    )}
+                  </div>
+
+                  {/* Warning Notice Message Banner */}
+                  {timeLimitNotice && (
+                    <div className={`p-2.5 rounded-lg border text-center text-xs font-bold leading-none ${
+                      recordingDuration < 20 
+                        ? 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-955/20 dark:border-amber-900 dark:text-amber-400' 
+                        : 'bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-955/20 dark:border-blue-900 dark:text-blue-400'
+                    }`}>
+                      {timeLimitNotice}
+                    </div>
+                  )}
+
+                  {/* Recording controls buttons */}
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                    {recordingState === "idle" && (
+                      <Button
+                        onClick={startRecording}
+                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-10 px-5 rounded-lg flex items-center gap-2"
+                      >
+                        <Play className="h-4 w-4" /> Start Recording
+                      </Button>
+                    )}
+
+                    {(recordingState === "recording" || recordingState === "paused") && (
+                      <>
+                        {recordingState === "recording" ? (
+                          <Button
+                            onClick={pauseRecording}
+                            className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs h-10 px-5 rounded-lg flex items-center gap-2"
+                          >
+                            <Pause className="h-4 w-4" /> Pause
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={resumeRecording}
+                            className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-10 px-5 rounded-lg flex items-center gap-2"
+                          >
+                            <Play className="h-4 w-4" /> Resume
+                          </Button>
+                        )}
+                        <Button
+                          onClick={() => stopRecording(false)}
+                          className="bg-red-650 hover:bg-red-500 text-white font-bold text-xs h-10 px-5 rounded-lg flex items-center gap-2"
+                        >
+                          <Square className="h-4 w-4" /> Stop
+                        </Button>
+                      </>
+                    )}
+
+                    {recordingState === "stopped" && (
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={retakeRecording}
+                          className="border border-slate-205 hover:bg-slate-50 text-slate-700 font-bold text-xs h-10 px-5 rounded-lg flex items-center gap-2 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
+                        >
+                          <RefreshCw className="h-4 w-4" /> Retake
+                        </Button>
+                        <Button
+                          onClick={saveRecording}
+                          disabled={recordingDuration < 20}
+                          className={`font-bold text-xs h-10 px-5 rounded-lg flex items-center gap-2 shadow-xs ${
+                            recordingDuration < 20 
+                              ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed dark:bg-slate-850 dark:border-slate-800 dark:text-slate-500" 
+                              : "bg-emerald-600 hover:bg-emerald-500 text-white"
+                          }`}
+                        >
+                          <Save className="h-4 w-4" /> Save Recording
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Upload & Filters card (only for photos) */}
                 <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col md:flex-row justify-between items-center gap-4">
                   <div className="space-y-1">
-                    <span className="font-bold text-slate-805 dark:text-white text-xs block">Clinical Repository</span>
+                    <span className="font-bold text-slate-855 dark:text-white text-xs block">Upload Patient Photo</span>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                      Supported file types: Photos, X-rays, Smile Photos, Scans, PDF Clinical Reports, and Videos.
+                      Select image files to add to the Patient's Clinical Photos gallery.
                     </p>
                   </div>
                   <div>
                     <input 
                       type="file" 
-                      id="media-file-upload-input" 
+                      id="photo-upload-input" 
+                      accept="image/*"
                       multiple 
                       className="hidden" 
-                      onChange={handleMockMediaUpload} 
+                      onChange={handlePhotoUpload} 
                     />
                     <Button 
-                      onClick={() => document.getElementById("media-file-upload-input")?.click()}
+                      onClick={() => document.getElementById("photo-upload-input")?.click()}
                       className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-9 rounded-lg px-4 flex items-center gap-2"
                     >
-                      <Upload className="h-4 w-4" /> Upload Files
+                      <Upload className="h-4 w-4" /> Upload Clinical Photo
                     </Button>
                   </div>
                 </div>
 
                 {/* Media Filter Tabs */}
                 <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none border-b border-slate-100 dark:border-slate-800 pb-2.5 shrink-0 text-[11px] font-semibold">
-                  {["All", "Clinical Photos", "X-rays", "Videos", "Scans", "Documents", "Treatment Progress"].map((cat) => {
+                  {["All", "Clinical Photos", "Consent Videos"].map((cat) => {
                     const active = mediaFilter === cat;
                     return (
                       <button
@@ -5176,131 +5700,93 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 </div>
 
                 {/* Media Cards Grid or Empty State */}
-                {patientMedia.filter(m => m.patientId === selectedPatientId && (mediaFilter === "All" || m.category === mediaFilter)).length === 0 ? (
+                {patientMedia.filter(m => m.patientId === selectedPatientId && (m.category === "Clinical Photos" || m.category === "Consent Videos") && (mediaFilter === "All" || m.category === mediaFilter)).length === 0 ? (
                   <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-10 shadow-xs flex flex-col items-center justify-center text-center">
-                    <div className="text-3xl mb-3">🦷</div>
+                    <div className="text-3xl mb-3">📸</div>
                     <span className="font-bold text-slate-850 dark:text-white text-sm block mb-1">No Clinical Media Available</span>
                     <p className="max-w-md text-xs text-slate-400 dark:text-slate-550 mb-4 leading-normal font-medium">
-                      Upload patient photos, X-rays, videos, or treatment documents to build the patient's clinical history.
+                      Record a patient consent video or add clinical photographs.
                     </p>
                     <Button 
-                      onClick={() => document.getElementById("media-file-upload-input")?.click()}
+                      onClick={() => document.getElementById("photo-upload-input")?.click()}
                       className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-9 rounded-lg px-4"
                     >
-                      <Upload className="h-4 w-4 mr-1.5" /> Upload Media
+                      <Upload className="h-4 w-4 mr-1.5" /> Upload Clinical Photo
                     </Button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
                     {patientMedia
-                      .filter(m => m.patientId === selectedPatientId && (mediaFilter === "All" || m.category === mediaFilter))
+                      .filter(m => m.patientId === selectedPatientId && (m.category === "Clinical Photos" || m.category === "Consent Videos") && (mediaFilter === "All" || m.category === mediaFilter))
                       .slice()
                       .reverse()
-                      .map((media) => (
-                        <div key={media.id} className="group bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
-                          {/* Thumbnail Area */}
-                          <div 
-                            onClick={() => setSelectedMediaForPreview(media)}
-                            className="relative aspect-video bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center overflow-hidden cursor-pointer"
-                          >
-                            {media.type.startsWith("image/") ? (
-                              <img src={media.url} alt={media.name} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300" />
-                            ) : media.type.startsWith("video/") ? (
-                              <div className="flex flex-col items-center gap-1.5 text-slate-400">
-                                <Play className="h-8 w-8 text-blue-500 animate-pulse" />
-                                <span className="text-[10px] font-semibold uppercase tracking-wider">Video Clip</span>
-                              </div>
-                            ) : (
-                              <div className="flex flex-col items-center gap-1.5 text-slate-400">
-                                <FileText className="h-8 w-8 text-rose-500" />
-                                <span className="text-[10px] font-semibold uppercase tracking-wider">PDF Document</span>
-                              </div>
-                            )}
+                      .map((media) => {
+                        const isVideo = media.category === "Consent Videos";
+                        return (
+                          <div key={media.id} className="group bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+                            {/* Thumbnail Area */}
+                            <div 
+                              onClick={() => setSelectedMediaForPreview(media)}
+                              className="relative aspect-video bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center overflow-hidden cursor-pointer"
+                            >
+                              {isVideo ? (
+                                <div className="flex flex-col items-center gap-1.5 text-slate-400">
+                                  <Play className="h-8 w-8 text-blue-500 animate-pulse" />
+                                  <span className="text-[10px] font-semibold uppercase tracking-wider">Video Clip</span>
+                                  {media.duration && (
+                                    <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-white text-[9px] font-bold">
+                                      {media.duration}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <img src={media.url} alt={media.name} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300" />
+                              )}
 
-                            {/* Category Badge Overlay */}
-                            <span className="absolute top-2 left-2 px-2 py-0.5 rounded-[4px] bg-slate-900/80 text-white text-[8.5px] font-extrabold uppercase tracking-wider backdrop-blur-xs">
-                              {media.category}
-                            </span>
-                          </div>
-
-                          {/* Info Area */}
-                          <div className="p-4 flex-1 flex flex-col justify-between gap-3 text-xs font-semibold">
-                            <div className="space-y-1">
-                              <span 
-                                onClick={() => setSelectedMediaForPreview(media)}
-                                className="font-bold text-slate-855 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer block truncate text-xs"
-                                title={media.name}
-                              >
-                                {media.name}
+                              {/* Category Badge Overlay */}
+                              <span className="absolute top-2 left-2 px-2 py-0.5 rounded-[4px] bg-slate-900/80 text-white text-[8.5px] font-extrabold uppercase tracking-wider backdrop-blur-xs">
+                                {media.category}
                               </span>
-                              <div className="flex justify-between items-center text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                                <span>{media.uploadDate}</span>
-                                <span>By {media.uploadedBy}</span>
-                              </div>
                             </div>
 
-                            {/* Linked Associations Tags */}
-                            {(media.toothNumber || media.treatment || media.appointment || media.prescription) && (
-                              <div className="pt-2.5 border-t border-slate-50 dark:border-slate-905 flex flex-wrap gap-1">
-                                {media.toothNumber && (
-                                  <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-705 dark:bg-blue-955/30 dark:text-blue-400 text-[9px] font-extrabold">
-                                    Tooth #{media.toothNumber}
-                                  </span>
-                                )}
-                                {media.treatment && (
-                                  <span className="px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-705 dark:bg-cyan-955/30 dark:text-cyan-400 text-[9px] font-extrabold truncate max-w-[120px]" title={media.treatment}>
-                                    {media.treatment}
-                                  </span>
-                                )}
-                                {media.appointment && (
-                                  <span className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-705 dark:bg-purple-955/30 dark:text-purple-400 text-[9px] font-extrabold truncate max-w-[120px]" title={media.appointment}>
-                                    {media.appointment}
-                                  </span>
-                                )}
-                                {media.prescription && (
-                                  <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-705 dark:bg-emerald-955/30 dark:text-emerald-400 text-[9px] font-extrabold truncate max-w-[120px]" title={media.prescription}>
-                                    {media.prescription}
-                                  </span>
-                                )}
+                            {/* Info Area */}
+                            <div className="p-4 flex-1 flex flex-col justify-between gap-3 text-xs font-semibold">
+                              <div className="space-y-1">
+                                <span 
+                                  onClick={() => setSelectedMediaForPreview(media)}
+                                  className="font-bold text-slate-855 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer block truncate text-xs"
+                                  title={media.name}
+                                >
+                                  {media.name}
+                                </span>
+                                <div className="flex justify-between items-center text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                                  <span>{media.uploadDate}</span>
+                                  <span>By {media.uploadedBy}</span>
+                                </div>
                               </div>
-                            )}
 
-                            {/* Actions Footer */}
-                            <div className="pt-2 border-t border-slate-100 dark:border-slate-850 flex justify-between items-center gap-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                              <button 
-                                onClick={() => setSelectedMediaForPreview(media)}
-                                className="hover:text-slate-800 dark:hover:text-white"
-                              >
-                                View
-                              </button>
-                              <a 
-                                href={media.url}
-                                download={media.name}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="hover:text-slate-800 dark:hover:text-white"
-                              >
-                                Download
-                              </a>
-                              <button 
-                                onClick={() => setMediaToEdit(media)}
-                                className="hover:text-slate-800 dark:hover:text-white"
-                              >
-                                Rename
-                              </button>
-                              <button 
-                                onClick={() => {
-                                  setPatientMedia(prev => prev.filter(m => m.id !== media.id));
-                                  showToast("Clinical media file deleted.", "success");
-                                }}
-                                className="text-red-505 hover:underline"
-                              >
-                                Delete
-                              </button>
+                              {/* Actions Footer */}
+                              <div className="pt-2 border-t border-slate-100 dark:border-slate-850 flex justify-between items-center gap-2 text-[11px] font-bold text-slate-505 dark:text-slate-400">
+                                <button 
+                                  onClick={() => setSelectedMediaForPreview(media)}
+                                  className="hover:text-slate-800 dark:hover:text-white"
+                                >
+                                  View
+                                </button>
+                                <button 
+                                  onClick={() => {
+                                    setPatientMedia(prev => prev.filter(m => m.id !== media.id));
+                                    showToast("Clinical media file deleted.", "success");
+                                  }}
+                                  className="text-red-505 hover:underline"
+                                >
+                                  Delete
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                   </div>
                 )}
 
