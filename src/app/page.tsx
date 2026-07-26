@@ -2666,8 +2666,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     return (
       <div className="dashboard-container space-y-4 animate-fadeIn text-slate-700">
-        {/* SECTION 1 - Weekly Appointment Calendar (TOP CENTER) */}
-        <div className="calendar-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        {/* TOP SECTION: Calendar & Today's Schedule side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* SECTION 1 - Weekly Appointment Calendar (Left ~66.6%) */}
+          <div className="calendar-card lg:col-span-8 bg-white dark:bg-slate-955 border border-slate-205 dark:border-slate-800 rounded-xl p-5 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3 gap-3">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="font-semibold text-[18px] text-slate-900 dark:text-white">Weekly Appointment Calendar</span>
@@ -2851,7 +2853,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     >
                       {appt ? (
                         <>
-                          <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
+                          <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
                           <div className="w-full mt-1">
                             <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
                             <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
@@ -2877,8 +2879,147 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
         </div>
 
-        {/* 3-Column Operational Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* SECTION 4 - Today's Schedule (RIGHT) */}
+        <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
+          <div className="flex justify-between items-center mb-3 shrink-0">
+            <span className="font-semibold text-[18px] block">Today's Schedule</span>
+            <span className="text-[12px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-bold">
+              {todayApptsList.length} {todayApptsList.length === 1 ? "Appointment" : "Appointments"}
+            </span>
+          </div>
+
+          <div className="flex-grow overflow-y-auto pr-1 scrollbar-thin flex flex-col">
+            {todayApptsList.length > 0 ? (
+              <div className="space-y-3 flex-grow">
+                {todayApptsList.map((app) => {
+                  const patientPhone = patients.find((p) => p.id === app.patientId)?.phone || "+91 99000 11000";
+
+                  return (
+                    <div
+                      key={app.id}
+                      className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/20 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-all shadow-2xs space-y-2 flex flex-col justify-between"
+                    >
+                      {/* First Line: Patient Name & Appt Time */}
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center min-w-0 pr-2">
+                          {/* Status Indicator Dot */}
+                          {app.status === "Scheduled" && <span className="h-2 w-2 rounded-full bg-blue-500 mr-2 shrink-0" title="Scheduled" />}
+                          {(app.status === "Checked In" || app.status === "Waiting") && <span className="h-2 w-2 rounded-full bg-emerald-500 mr-2 shrink-0" title="Checked In" />}
+                          {app.status === "In Procedure" && <span className="h-2 w-2 rounded-full bg-orange-500 mr-2 shrink-0 animate-pulse" title="In Procedure" />}
+                          {app.status === "Completed" && <span className="h-2 w-2 rounded-full bg-slate-400 mr-2 shrink-0" title="Completed" />}
+                          <span className="font-semibold text-[16px] text-slate-808 dark:text-slate-200 truncate leading-none">{app.patientName}</span>
+                        </div>
+                        <span className="text-[13px] font-semibold text-slate-650 dark:text-slate-400 shrink-0 leading-none">{app.time}</span>
+                      </div>
+
+                      {/* Second Line: Doctor Name */}
+                      <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
+                        {app.doctor}
+                      </p>
+
+                      {/* Third Line: Treatment */}
+                      <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
+                        {app.treatment}
+                      </p>
+
+                      {/* Fourth Line: Phone Number */}
+                      <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
+                        {patientPhone}
+                      </p>
+
+                      {/* Bottom Row: Actions */}
+                      <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100/60 dark:border-slate-800/65">
+                        {/* ✓ Check In / Action Button */}
+                        {app.status === "Scheduled" ? (
+                          <button
+                            type="button"
+                            onClick={() => handleApptCheckIn(app.id)}
+                            className="flex-grow h-[34px] rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            ✓ Check In
+                          </button>
+                        ) : app.status === "Checked In" || app.status === "Waiting" ? (
+                          <button
+                            type="button"
+                            onClick={() => handleApptStartProcedure(app.id)}
+                            className="flex-grow h-[34px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            ✓ Start
+                          </button>
+                        ) : app.status === "In Procedure" ? (
+                          <button
+                            type="button"
+                            onClick={() => handleApptCompleteProcedure(app.id)}
+                            className="flex-grow h-[34px] rounded-lg bg-orange-500 hover:bg-orange-455 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            ✓ Complete
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled
+                            className="flex-grow h-[34px] rounded-lg bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-slate-400 font-medium text-[11.5px] flex items-center justify-center gap-1 cursor-not-allowed"
+                          >
+                            ✓ Completed
+                          </button>
+                        )}
+
+                        {/* Reschedule Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newDate = prompt("Enter new date (e.g. 12 Aug 2026):", app.date);
+                            const newTime = prompt("Enter new time (e.g. 09:30 AM):", app.time);
+                            if (newDate && newTime) {
+                               setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, date: newDate, time: newTime } : a));
+                               pushActivity("Appointment", `Rescheduled ${app.patientName} to ${newDate} at ${newTime}.`);
+                               showToast("Appointment rescheduled.", "success");
+                            }
+                          }}
+                          className="flex-1 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          Reschedule
+                        </button>
+
+                        {/* ₹ Billing Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleApptGenerateBill(app.id)}
+                          className="flex-1 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          ₹ Billing
+                        </button>
+
+                        {/* WhatsApp Communication Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            console.log("Open WhatsApp communication workflow");
+                            alert(`Opening WhatsApp chat communication workflow with ${app.patientName} (${patientPhone}).`);
+                          }}
+                          className="h-[34px] w-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-[#25D366]/10 hover:text-[#25D366] hover:border-[#25D366]/20 flex items-center justify-center transition-colors shrink-0 cursor-pointer duration-200"
+                          title="WhatsApp Communication"
+                        >
+                          <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] fill-current" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.45 5.426-.003 9.84-4.42 9.843-9.848.002-2.63-1.02-5.101-2.879-6.963-1.859-1.862-4.332-2.887-6.965-2.888-5.432 0-9.85 4.417-9.853 9.848-.001 1.554.385 3.078 1.121 4.426l-.995 3.636 3.728-.977zm11.391-7.054c-.302-.152-1.792-.884-2.07-.984-.277-.101-.48-.152-.68.152-.2.302-.777.983-.952 1.185-.176.202-.351.227-.653.076-.302-.152-1.275-.47-2.428-1.499-.896-.8-1.5-.189-1.782-.416-.282-.227-.302-.352-.453-.503-.151-.152-.227-.253-.34-.48-.113-.227-.057-.428.028-.58.085-.152.68-.783.82-.983.14-.202.188-.34.283-.567.094-.227.047-.428-.028-.58-.076-.152-.68-1.638-.932-2.247-.246-.59-.496-.51-.68-.518-.176-.008-.377-.01-.58-.01-.202 0-.53.076-.807.38-.277.302-1.057 1.033-1.057 2.52 0 1.488 1.082 2.923 1.232 3.125.151.202 2.13 3.253 5.16 4.561.72.311 1.282.497 1.72.637.723.23 1.381.197 1.901.12.58-.087 1.792-.733 2.046-1.439.253-.706.253-1.312.176-1.439-.076-.126-.277-.202-.58-.352z"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                <p className="text-xs text-slate-400 py-8 text-center">No appointments scheduled for today</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div> {/* Closes TOP SECTION grid container */}
+
+      {/* 3-Column Operational Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* SECTION 2 - Add Patient Panel (LEFT) */}
           <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
             <span className="font-semibold text-[18px] block mb-[22px] shrink-0">Patient Registration</span>
@@ -3083,7 +3224,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               )}
             </div>
 
-            {/* Load More Button */}
             {filteredPatients.length > patientVisibleCount && (
               <button
                 type="button"
@@ -3093,144 +3233,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 Load More Patients
               </button>
             )}
-          </div>
-
-          {/* SECTION 4 - Today's Schedule (RIGHT) */}
-          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
-            <div className="flex justify-between items-center mb-3 shrink-0">
-              <span className="font-semibold text-[18px] block">Today's Schedule</span>
-              <span className="text-[12px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-bold">
-                {todayApptsList.length} {todayApptsList.length === 1 ? "Appointment" : "Appointments"}
-              </span>
-            </div>
-
-            <div className="flex-grow overflow-y-auto pr-1 scrollbar-thin flex flex-col">
-              {todayApptsList.length > 0 ? (
-                <div className="space-y-3 flex-grow">
-                  {todayApptsList.map((app) => {
-                    const patientPhone = patients.find((p) => p.id === app.patientId)?.phone || "+91 99000 11000";
-
-                    return (
-                      <div
-                        key={app.id}
-                        className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/20 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-all shadow-2xs space-y-2 flex flex-col justify-between"
-                      >
-                        {/* First Line: Patient Name & Appt Time */}
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center min-w-0 pr-2">
-                            {/* Status Indicator Dot */}
-                            {app.status === "Scheduled" && <span className="h-2 w-2 rounded-full bg-blue-500 mr-2 shrink-0" title="Scheduled" />}
-                            {(app.status === "Checked In" || app.status === "Waiting") && <span className="h-2 w-2 rounded-full bg-emerald-500 mr-2 shrink-0" title="Checked In" />}
-                            {app.status === "In Procedure" && <span className="h-2 w-2 rounded-full bg-orange-500 mr-2 shrink-0 animate-pulse" title="In Procedure" />}
-                            {app.status === "Completed" && <span className="h-2 w-2 rounded-full bg-slate-400 mr-2 shrink-0" title="Completed" />}
-                            <span className="font-semibold text-[16px] text-slate-800 dark:text-slate-200 truncate leading-none">{app.patientName}</span>
-                          </div>
-                          <span className="text-[13px] font-semibold text-slate-650 dark:text-slate-400 shrink-0 leading-none">{app.time}</span>
-                        </div>
-
-                        {/* Second Line: Doctor Name */}
-                        <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
-                          {app.doctor}
-                        </p>
-
-                        {/* Third Line: Treatment */}
-                        <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
-                          {app.treatment}
-                        </p>
-
-                        {/* Fourth Line: Phone Number */}
-                        <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
-                          {patientPhone}
-                        </p>
-
-                        {/* Bottom Row: Actions */}
-                        <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100/60 dark:border-slate-800/65">
-                          {/* ✓ Check In / Action Button */}
-                          {app.status === "Scheduled" ? (
-                            <button
-                              type="button"
-                              onClick={() => handleApptCheckIn(app.id)}
-                              className="flex-grow h-[34px] rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                            >
-                              ✓ Check In
-                            </button>
-                          ) : app.status === "Checked In" || app.status === "Waiting" ? (
-                            <button
-                              type="button"
-                              onClick={() => handleApptStartProcedure(app.id)}
-                              className="flex-grow h-[34px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                            >
-                              ✓ Start
-                            </button>
-                          ) : app.status === "In Procedure" ? (
-                            <button
-                              type="button"
-                              onClick={() => handleApptCompleteProcedure(app.id)}
-                              className="flex-grow h-[34px] rounded-lg bg-orange-500 hover:bg-orange-455 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                            >
-                              ✓ Complete
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled
-                              className="flex-grow h-[34px] rounded-lg bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-slate-400 font-medium text-[11.5px] flex items-center justify-center gap-1 cursor-not-allowed"
-                            >
-                              ✓ Completed
-                            </button>
-                          )}
-
-                          {/* Reschedule Button */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newDate = prompt("Enter new date (e.g. 12 Aug 2026):", app.date);
-                              const newTime = prompt("Enter new time (e.g. 09:30 AM):", app.time);
-                              if (newDate && newTime) {
-                                setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, date: newDate, time: newTime } : a));
-                                pushActivity("Appointment", `Rescheduled ${app.patientName} to ${newDate} at ${newTime}.`);
-                                showToast("Appointment rescheduled.", "success");
-                              }
-                            }}
-                            className="flex-1 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            Reschedule
-                          </button>
-
-                          {/* ₹ Billing Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleApptGenerateBill(app.id)}
-                            className="flex-1 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            ₹ Billing
-                          </button>
-
-                          {/* WhatsApp Communication Button */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              console.log("Open WhatsApp communication workflow");
-                              alert(`Opening WhatsApp chat communication workflow with ${app.patientName} (${patientPhone}).`);
-                            }}
-                            className="h-[34px] w-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-[#25D366]/10 hover:text-[#25D366] hover:border-[#25D366]/20 flex items-center justify-center transition-colors shrink-0 cursor-pointer duration-200"
-                            title="WhatsApp Communication"
-                          >
-                            <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] fill-current" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.45 5.426-.003 9.84-4.42 9.843-9.848.002-2.63-1.02-5.101-2.879-6.963-1.859-1.862-4.332-2.887-6.965-2.888-5.432 0-9.85 4.417-9.853 9.848-.001 1.554.385 3.078 1.121 4.426l-.995 3.636 3.728-.977zm11.391-7.054c-.302-.152-1.792-.884-2.07-.984-.277-.101-.48-.152-.68.152-.2.302-.777.983-.952 1.185-.176.202-.351.227-.653.076-.302-.152-1.275-.47-2.428-1.499-.896-.8-1.5-.189-1.782-.416-.282-.227-.302-.352-.453-.503-.151-.152-.227-.253-.34-.48-.113-.227-.057-.428.028-.58.085-.152.68-.783.82-.983.14-.202.188-.34.283-.567.094-.227.047-.428-.028-.58-.076-.152-.68-1.638-.932-2.247-.246-.59-.496-.51-.68-.518-.176-.008-.377-.01-.58-.01-.202 0-.53.076-.807.38-.277.302-1.057 1.033-1.057 2.52 0 1.488 1.082 2.923 1.232 3.125.151.202 2.13 3.253 5.16 4.561.72.311 1.282.497 1.72.637.723.23 1.381.197 1.901.12.58-.087 1.792-.733 2.046-1.439.253-.706.253-1.312.176-1.439-.076-.126-.277-.202-.58-.352z"/>
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <p className="text-xs text-slate-400 py-8 text-center">No appointments scheduled for today</p>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
