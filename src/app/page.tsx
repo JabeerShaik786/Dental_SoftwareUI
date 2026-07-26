@@ -2669,7 +2669,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         {/* TOP SECTION: Calendar & Today's Schedule side by side */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* SECTION 1 - Weekly Appointment Calendar (Left ~66.6%) */}
-          <div className="calendar-card lg:col-span-8 bg-white dark:bg-slate-955 border border-slate-205 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+          <div className="calendar-card lg:col-span-8 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3 gap-3">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="font-semibold text-[18px] text-slate-900 dark:text-white">Weekly Appointment Calendar</span>
@@ -2881,9 +2881,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
         {/* SECTION 4 - Today's Schedule (RIGHT) */}
         <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
-          <div className="flex justify-between items-center mb-3 shrink-0">
-            <span className="font-semibold text-[18px] block">Today's Schedule</span>
-            <span className="text-[12px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-bold">
+          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3 mb-3 shrink-0">
+            <span className="font-semibold text-[18px] text-slate-900 dark:text-white">Today's Schedule</span>
+            <span className="text-[13px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-semibold">
               {todayApptsList.length} {todayApptsList.length === 1 ? "Appointment" : "Appointments"}
             </span>
           </div>
@@ -2907,9 +2907,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           {(app.status === "Checked In" || app.status === "Waiting") && <span className="h-2 w-2 rounded-full bg-emerald-500 mr-2 shrink-0" title="Checked In" />}
                           {app.status === "In Procedure" && <span className="h-2 w-2 rounded-full bg-orange-500 mr-2 shrink-0 animate-pulse" title="In Procedure" />}
                           {app.status === "Completed" && <span className="h-2 w-2 rounded-full bg-slate-400 mr-2 shrink-0" title="Completed" />}
-                          <span className="font-semibold text-[16px] text-slate-808 dark:text-slate-200 truncate leading-none">{app.patientName}</span>
+                          <span className="font-semibold text-[14px] text-slate-808 dark:text-slate-200 truncate leading-none">{app.patientName}</span>
                         </div>
-                        <span className="text-[13px] font-semibold text-slate-650 dark:text-slate-400 shrink-0 leading-none">{app.time}</span>
+                        <span className="text-[12px] font-semibold text-slate-650 dark:text-slate-400 shrink-0 leading-none">{app.time}</span>
                       </div>
 
                       {/* Second Line: Doctor Name */}
