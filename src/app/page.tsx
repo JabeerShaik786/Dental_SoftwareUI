@@ -6639,21 +6639,59 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           sidebarCollapsed ? "w-[68px]" : "w-[200px]"
         }`}
       >
-        <div className={`border-b border-slate-200 dark:border-slate-800 flex items-center shrink-0 transition-all duration-300 ease-in-out overflow-hidden h-20 ${
+        <div className={`relative border-b border-slate-200 dark:border-slate-800 flex shrink-0 transition-all duration-200 ease-in-out overflow-hidden ${
           sidebarCollapsed
-            ? "px-2 justify-center gap-1.5"
-            : "px-4 py-5 justify-between"
+            ? "h-24 flex-col justify-center items-center px-2 py-3 gap-2"
+            : "h-20 flex-row items-center px-[16px] justify-between"
         }`}>
-          <div className={`flex items-center transition-all duration-300 ease-in-out overflow-hidden ${
-            sidebarCollapsed ? "justify-center" : "justify-start min-w-0"
+          {/* Brand Group: Logo & Text */}
+          <div className={`flex items-center transition-all duration-200 ease-in-out ${
+            sidebarCollapsed ? "flex-col justify-center gap-0" : "flex-row gap-[14px] flex-grow min-w-0"
           }`}>
-            <DentalLogo showText={!sidebarCollapsed} collapsed={sidebarCollapsed} />
+            {/* Logo Container */}
+            <div className={`relative flex items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 shadow-md shadow-blue-500/20 transition-all duration-200 ease-in-out shrink-0 ${
+              sidebarCollapsed ? "h-[44px] w-[44px] rounded-xl" : "h-[46px] w-[46px]"
+            }`}>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`text-white transition-all duration-200 ${sidebarCollapsed ? "h-5 w-5" : "h-6 w-6"}`}
+              >
+                <path d="M12 2v20M2 12h20" strokeWidth="2.5" />
+                <circle cx="12" cy="12" r="4" fill="none" strokeWidth="1.5" className="stroke-cyan-300" />
+              </svg>
+              {/* Animated Cyan Pulse Dot */}
+              <div className={`absolute rounded-full bg-cyan-300 animate-pulse border-2 border-white transition-all duration-200 ${
+                sidebarCollapsed ? "-right-0.5 -top-0.5 h-2.5 w-2.5 border" : "-right-0.5 -top-0.5 h-3 w-3"
+              }`} />
+            </div>
+
+            {/* Text Container */}
+            <div className={`flex flex-col text-left transition-all duration-200 ease-in-out origin-left ${
+              sidebarCollapsed 
+                ? "opacity-0 max-w-0 max-h-0 overflow-hidden pointer-events-none" 
+                : "opacity-100 max-w-[120px] max-h-12 flex-grow"
+            }`}>
+              <span className="text-[18px] font-bold tracking-tight text-slate-900 dark:text-white leading-none whitespace-nowrap">
+                Heal
+              </span>
+              <span className="text-[12px] font-medium text-slate-400 dark:text-slate-500 mt-[4px] whitespace-nowrap leading-none">
+                Dental Practice
+              </span>
+            </div>
           </div>
-          
+
+          {/* Collapse/Expand Toggle Button */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className={`rounded-full flex items-center justify-center hover:bg-[#EFF6FF] hover:text-blue-600 text-slate-500 transition-all duration-250 ease-in-out shrink-0 active:scale-[0.97] ${
-              sidebarCollapsed ? "h-6 w-6" : "h-8 w-8 ml-1"
+            className={`rounded-full flex items-center justify-center text-slate-505 hover:text-blue-600 dark:hover:text-white transition-all duration-200 ease-in-out shrink-0 active:scale-[0.95] ${
+              sidebarCollapsed 
+                ? "h-6 w-6 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 mt-1" 
+                : "h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-900"
             }`}
             title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
