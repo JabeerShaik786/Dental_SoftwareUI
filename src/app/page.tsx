@@ -2853,7 +2853,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     >
                       {appt ? (
                         <>
-                          <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
+                          <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
                           <div className="w-full mt-1">
                             <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
                             <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
@@ -2880,7 +2880,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         </div>
 
         {/* SECTION 4 - Today's Schedule (RIGHT) */}
-        <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col">
+        <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[610px]">
           <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3 mb-3 shrink-0">
             <span className="font-semibold text-[18px] text-slate-900 dark:text-white">Today's Schedule</span>
             <span className="text-[13px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-semibold">
@@ -3224,6 +3224,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               )}
             </div>
 
+            {/* Load More Button */}
             {filteredPatients.length > patientVisibleCount && (
               <button
                 type="button"
