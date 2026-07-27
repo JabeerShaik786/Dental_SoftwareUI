@@ -458,8 +458,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [selectedCalendarDay, setSelectedCalendarDay] = useState("12 Aug 2026");
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date(2026, 7, 10)); // Mon Aug 10, 2026
   const [blockedSlots, setBlockedSlots] = useState<Record<string, boolean>>({});
-  const [hoveredAppt, setHoveredAppt] = useState<any>(null);
-  const [popoverPosition, setPopoverPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   
   // Add Patient quick panel inputs
   const [quickFirstName, setQuickFirstName] = useState("");
@@ -2563,35 +2561,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     const displayedPatients = filteredPatients.slice(0, patientVisibleCount);
 
-    const handleMouseEnterAppt = (appt: any, e: React.MouseEvent<HTMLButtonElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const popoverWidth = 256;
-      const popoverHeight = 160;
-      
-      let x = rect.right + 8;
-      let y = rect.top;
-      
-      // Auto-reposition if it overflows the right edge of viewport
-      if (x + popoverWidth > window.innerWidth) {
-        x = rect.left - popoverWidth - 8;
-      }
-      
-      // Auto-reposition if it overflows the bottom edge of viewport
-      if (y + popoverHeight > window.innerHeight) {
-        y = window.innerHeight - popoverHeight - 16;
-      }
-      
-      // Ensure y is not negative
-      if (y < 8) y = 8;
-      
-      setHoveredAppt(appt);
-      setPopoverPosition({ x, y });
-    };
-
-    const handleMouseLeaveAppt = () => {
-      setHoveredAppt(null);
-    };
-
     // Get next scheduled appointment for alert strip
     const nextScheduled = appointments
       .filter(a => a.date === "12 Aug 2026" && a.status === "Scheduled")
@@ -2697,40 +2666,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     return (
       <div className="dashboard-container space-y-4 animate-fadeIn text-slate-700">
-        {/* Clinic Alerts Section */}
-        {nextScheduled ? (
-          <div className="alerts-strip bg-[#FEF2F2] dark:bg-red-955/10 border border-[#FECACA] dark:border-red-900/25 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#DC2626] dark:text-red-400 shrink-0">
-            <div className="flex items-center gap-3">
-              {/* Doctor Avatar */}
-              <div className="h-9 w-9 rounded-full bg-red-100 dark:bg-red-900/50 text-[#DC2626] dark:text-red-300 flex items-center justify-center font-bold text-sm shrink-0 border border-[#FECACA]/60 dark:border-red-900/40">
-                {nextScheduled.doctor.replace("Dr. ", "").split(" ").map(n => n[0]).join("")}
-              </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-[14px] leading-tight">{nextScheduled.doctor}</span>
-                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Next Appointment • {nextScheduled.time}</span>
-              </div>
-            </div>
-            
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-              <div>
-                <span className="text-[9px] uppercase font-bold text-slate-400 dark:text-slate-500 block leading-none mb-0.5">Patient</span>
-                <span className="font-semibold text-[13px]">{nextScheduled.patientName}</span>
-              </div>
-              {nextScheduled.treatment && (
-                <div>
-                  <span className="text-[9px] uppercase font-bold text-slate-400 dark:text-slate-500 block leading-none mb-0.5">Treatment</span>
-                  <span className="font-semibold text-[13px]">{nextScheduled.treatment}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="alerts-strip bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 shrink-0">
-            <Bell className="h-4 w-4 text-slate-400" />
-            <span className="font-medium">No upcoming appointments scheduled for today.</span>
-          </div>
-        )}
-
         {/* TOP SECTION: Calendar & Today's Schedule side by side */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* SECTION 1 - Weekly Appointment Calendar (Left ~66.6%) */}
@@ -2834,8 +2769,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setSlotPatientId("");
                         setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
                       }}
-                      onMouseEnter={(e) => appt && handleMouseEnterAppt(appt, e)}
-                      onMouseLeave={handleMouseLeaveAppt}
                       className={`slot-btn ${!appt && !isBlocked ? "slot-btn-empty" : ""} p-2.5 rounded-xl border text-[10px] transition-all ${
                         appt 
                           ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800 flex flex-col justify-between items-start text-left" 
@@ -2848,6 +2781,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         <>
                           <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
                           <div className="w-full mt-1">
+                            <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
                             <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
                               {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
                             </span>
@@ -2909,8 +2843,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setSlotPatientId("");
                         setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
                       }}
-                      onMouseEnter={(e) => appt && handleMouseEnterAppt(appt, e)}
-                      onMouseLeave={handleMouseLeaveAppt}
                       className={`slot-btn ${!appt && !isBlocked ? "slot-btn-empty" : ""} p-2.5 rounded-xl border text-[10px] transition-all ${
                         appt 
                           ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800 flex flex-col justify-between items-start text-left" 
@@ -2923,6 +2855,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         <>
                           <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
                           <div className="w-full mt-1">
+                            <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
                             <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
                               {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
                             </span>
@@ -2947,7 +2880,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         </div>
 
         {/* SECTION 4 - Today's Schedule (RIGHT) */}
-        <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col">
+        <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[570px]">
           <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3 mb-3 shrink-0">
             <span className="font-semibold text-[18px] text-slate-900 dark:text-white">Today's Schedule</span>
             <span className="text-[13px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-semibold">
@@ -3535,58 +3468,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             </div>
           </div>
         </div>
-
-        {hoveredAppt && (
-          <div
-            className="fixed z-50 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xl text-xs w-64 pointer-events-none animate-fadeIn flex flex-col gap-2.5"
-            style={{ 
-              top: popoverPosition.y, 
-              left: popoverPosition.x,
-              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)"
-            }}
-          >
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2 mb-0.5">
-              <span className="font-bold text-slate-900 dark:text-white text-[13px]">Appointment Details</span>
-              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                hoveredAppt.status === "Scheduled" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-400" :
-                hoveredAppt.status === "Checked In" || hoveredAppt.status === "Waiting" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400" :
-                hoveredAppt.status === "In Procedure" ? "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-400 animate-pulse" :
-                "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400"
-              }`}>
-                {hoveredAppt.status}
-              </span>
-            </div>
-
-            <div className="space-y-2 text-slate-700 dark:text-slate-355">
-              <div>
-                <span className="text-[10px] text-slate-400 block mb-0.5 uppercase tracking-wider">Patient Name</span>
-                <span className="font-semibold text-slate-900 dark:text-white text-[12px]">{hoveredAppt.patientName} ({hoveredAppt.patientId})</span>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <span className="text-[10px] text-slate-400 block mb-0.5 uppercase tracking-wider">Doctor</span>
-                  <span className="font-semibold text-[11px] truncate block">{hoveredAppt.doctor}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block mb-0.5 uppercase tracking-wider">Treatment</span>
-                  <span className="font-semibold text-[11px] truncate block">{hoveredAppt.treatment}</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <span className="text-[10px] text-slate-400 block mb-0.5 uppercase tracking-wider">Time</span>
-                  <span className="font-semibold text-[11px] block">{hoveredAppt.time}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block mb-0.5 uppercase tracking-wider">Mobile</span>
-                  <span className="font-semibold text-[11px] block">{patients.find(p => p.id === hoveredAppt.patientId)?.phone || "+91 99000 11000"}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   };
