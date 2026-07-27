@@ -3713,33 +3713,28 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             >
               <Calendar className="h-4 w-4" /> Go to Date
             </Button>
-
-            <hr className="border-slate-100 dark:border-slate-800" />
-
-            {/* Redesigned Doctors Filter Panel */}
+            {/* Redesigned Doctors Filter Panel */}
             <span className="font-bold text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">Clinic Directory</span>
-            <div className="space-y-1.5 max-h-[360px] overflow-y-auto pr-1 scrollbar-thin">
+            <div className="space-y-1.5">
               {/* All Doctors option */}
               <div 
                 onClick={() => setApptSelectedDoctor("All")}
-                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all border ${
+                className={`flex items-center gap-2.5 py-1.5 px-2.5 rounded-lg cursor-pointer transition-all border ${
                   apptSelectedDoctor === "All"
                     ? "bg-blue-600 border-blue-700 text-white shadow-sm"
-                    : "bg-slate-50/50 border-slate-100 hover:bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:border-slate-800 dark:text-slate-350"
+                    : "bg-slate-50/50 border-slate-100 hover:bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:border-slate-800 dark:text-slate-355"
                 }`}
+                style={{ height: "50px" }}
               >
                 {/* All Doctors Avatar */}
-                <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
                   apptSelectedDoctor === "All"
                     ? "bg-blue-500/20 text-white"
-                    : "bg-blue-50 border border-blue-100 text-blue-700 dark:bg-blue-950/20 dark:border-blue-900/30"
+                    : "bg-blue-50 border border-blue-100 text-blue-700 dark:bg-blue-955/20 dark:border-blue-900/30"
                 }`}>
-                  <Users className="h-5 w-5" />
+                  <Users className="h-4.5 w-4.5" />
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="font-bold text-xs truncate">All Doctors</span>
-                  <span className={`text-[10px] truncate ${apptSelectedDoctor === "All" ? "text-blue-205" : "text-slate-400"}`}>Show all appointments</span>
-                </div>
+                <span className="font-bold text-xs truncate">All Doctors</span>
               </div>
 
               {/* Doctor rows */}
@@ -3749,7 +3744,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 const initials = doc.name.replace("Dr. ", "").split(" ").map(n => n[0]).join("").toUpperCase();
                 
                 const colors = [
-                  "bg-blue-50 border border-blue-100 text-blue-700 dark:bg-blue-950/20 dark:border-blue-900/30",
+                  "bg-blue-50 border border-blue-100 text-blue-700 dark:bg-blue-955/20 dark:border-blue-900/30",
                   "bg-purple-50 border border-purple-100 text-purple-700 dark:bg-purple-955/20 dark:border-purple-900/30",
                   "bg-emerald-50 border border-emerald-100 text-emerald-700 dark:bg-emerald-955/20 dark:border-emerald-900/30",
                   "bg-indigo-50 border border-indigo-100 text-indigo-700 dark:bg-indigo-955/20 dark:border-indigo-900/30",
@@ -3761,25 +3756,20 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   <div
                     key={doc.name}
                     onClick={() => setApptSelectedDoctor(isActive ? "All" : doc.name)}
-                    className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all border ${
+                    className={`flex items-center gap-2.5 py-1.5 px-2.5 rounded-lg cursor-pointer transition-all border ${
                       isActive
                         ? "bg-blue-600 border-blue-700 text-white shadow-sm"
                         : "bg-slate-50/50 border-slate-100 hover:bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:border-slate-800 dark:text-slate-355"
                     }`}
+                    style={{ height: "50px" }}
                   >
                     {/* Doctor Avatar */}
-                    <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                    <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
                       isActive ? "bg-blue-500/20 text-white" : avatarColor
                     }`}>
                       {initials}
                     </div>
-                    
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-bold text-xs truncate">{firstName}</span>
-                      <span className={`text-[10px] truncate ${isActive ? "text-blue-205" : "text-slate-400"}`}>
-                        {doc.speciality}
-                      </span>
-                    </div>
+                    <span className="font-bold text-xs truncate">{firstName}</span>
                   </div>
                 );
               })}
