@@ -2880,7 +2880,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         </div>
 
         {/* SECTION 4 - Today's Schedule (RIGHT) */}
-        <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col lg:h-0 lg:min-h-full">
+        <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col lg:h-full overflow-hidden">
           <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3 mb-3 shrink-0">
             <span className="font-semibold text-[18px] text-slate-900 dark:text-white">Today's Schedule</span>
             <span className="text-[13px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-semibold">
