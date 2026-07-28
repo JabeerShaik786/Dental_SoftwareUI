@@ -50,11 +50,7 @@ import {
   Sun,
   Moon,
   Upload,
-  Play,
-  Pause,
-  Square,
-  RefreshCw,
-  Save
+  Play
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -318,15 +314,14 @@ const TREATMENT_PRICES: Record<string, number> = {
   "Braces": 35000
 };
 
-// Module sub-tabs mapping
 const menuItems = [
-  { name: "Dashboard", icon: <Home className="h-5 w-5 shrink-0" />, badge: null },
-  { name: "Appointments", icon: <Calendar className="h-5 w-5 shrink-0" />, badge: "4" },
-  { name: "Patients", icon: <Users className="h-5 w-5 shrink-0" />, badge: null },
-  { name: "Treatments", icon: <Stethoscope className="h-5 w-5 shrink-0" />, badge: null },
-  { name: "Billing", icon: <Receipt className="h-5 w-5 shrink-0" />, badge: "2" },
-  { name: "Reports", icon: <BarChart3 className="h-5 w-5 shrink-0" />, badge: null },
-  { name: "Settings", icon: <Settings className="h-5 w-5 shrink-0" />, badge: null }
+  { name: "Dashboard", icon: <Home className="h-[22px] w-[22px] shrink-0" strokeWidth={2} />, badge: null },
+  { name: "Appointments", icon: <Calendar className="h-[22px] w-[22px] shrink-0" strokeWidth={2} />, badge: null },
+  { name: "Patients", icon: <Users className="h-[22px] w-[22px] shrink-0" strokeWidth={2} />, badge: null },
+  { name: "Treatments", icon: <Stethoscope className="h-[22px] w-[22px] shrink-0" strokeWidth={2} />, badge: null },
+  { name: "Billing", icon: <Receipt className="h-[22px] w-[22px] shrink-0" strokeWidth={2} />, badge: null },
+  { name: "Reports", icon: <BarChart3 className="h-[22px] w-[22px] shrink-0" strokeWidth={2} />, badge: null },
+  { name: "Settings", icon: <Settings className="h-[22px] w-[22px] shrink-0" strokeWidth={2} />, badge: null }
 ];
 
 const moduleSubTabs: Record<string, string[]> = {
@@ -344,7 +339,7 @@ interface ClinicalMedia {
   patientId: string;
   name: string;
   type: string;
-  category: "Clinical Photos" | "X-rays" | "Videos" | "Scans" | "Documents" | "Treatment Progress" | "Consent Videos";
+  category: "Clinical Photos" | "X-rays" | "Videos" | "Scans" | "Documents" | "Treatment Progress";
   url: string;
   uploadDate: string;
   uploadedBy: string;
@@ -352,7 +347,6 @@ interface ClinicalMedia {
   treatment?: string;
   appointment?: string;
   prescription?: string;
-  duration?: string;
 }
 
 const parseClinicalNote = (noteStr: string) => {
@@ -458,8 +452,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [selectedCalendarDay, setSelectedCalendarDay] = useState("12 Aug 2026");
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date(2026, 7, 10)); // Mon Aug 10, 2026
   const [blockedSlots, setBlockedSlots] = useState<Record<string, boolean>>({});
-  const [hoveredAppt, setHoveredAppt] = useState<any>(null);
-  const [popoverPosition, setPopoverPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   
   // Add Patient quick panel inputs
   const [quickFirstName, setQuickFirstName] = useState("");
@@ -550,341 +542,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [mediaFilter, setMediaFilter] = useState("All");
   const [selectedMediaForPreview, setSelectedMediaForPreview] = useState<ClinicalMedia | null>(null);
   const [mediaToEdit, setMediaToEdit] = useState<ClinicalMedia | null>(null);
-
-  // Consent Video Recorder states
-  const [recordingState, setRecordingState] = useState<"idle" | "recording" | "paused" | "stopped">("idle");
-  const [recordedBlobUrl, setRecordedBlobUrl] = useState<string | null>(null);
-  const [recordingDuration, setRecordingDuration] = useState(0);
-  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedVideoDeviceId, setSelectedVideoDeviceId] = useState("");
-  const [cameraStatus, setCameraStatus] = useState<"active" | "inactive">("inactive");
-  const [micStatus, setMicStatus] = useState<"active" | "inactive">("inactive");
-  const [timeLimitNotice, setTimeLimitNotice] = useState<string | null>(null);
-  const [currentTime, setCurrentTime] = useState("");
-
-  // Refs for recording
-  const webcamStreamRef = useRef<MediaStream | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = useRef<Blob[]>([]);
-  const recordingTimerRef = useRef<any>(null);
-
-  // Current Time live clock
-  useEffect(() => {
-    const updateTime = () => {
-      setCurrentTime(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }));
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Media sub-tab cleanup and enumeration
-  useEffect(() => {
-    if (profileSubTab === "Media") {
-      navigator.mediaDevices.enumerateDevices()
-        .then(devices => {
-          const videoDevs = devices.filter(device => device.kind === "videoinput");
-          setVideoDevices(videoDevs);
-          if (videoDevs.length > 0 && !selectedVideoDeviceId) {
-            setSelectedVideoDeviceId(videoDevs[0].deviceId);
-          }
-        })
-        .catch(err => console.error("Error listing devices:", err));
-    } else {
-      if (webcamStreamRef.current) {
-        webcamStreamRef.current.getTracks().forEach(track => track.stop());
-        webcamStreamRef.current = null;
-      }
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-      }
-      setRecordingState("idle");
-      setRecordedBlobUrl(null);
-      setRecordingDuration(0);
-      setCameraStatus("inactive");
-      setMicStatus("inactive");
-      setTimeLimitNotice(null);
-    }
-  }, [profileSubTab]);
-
-  // Overall cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (webcamStreamRef.current) {
-        webcamStreamRef.current.getTracks().forEach(track => track.stop());
-      }
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-      }
-    };
-  }, []);
-
-  // Helper to format duration in MM:SS
-  const formatTimer = (seconds: number) => {
-    const min = Math.floor(seconds / 60);
-    const sec = seconds % 60;
-    return `${min < 10 ? '0' : ''}${min}:${sec < 10 ? '0' : ''}${sec}`;
-  };
-
-  // Switch camera when device changes
-  const handleDeviceChange = (deviceId: string) => {
-    setSelectedVideoDeviceId(deviceId);
-    if (recordingState === "idle") {
-      startWebcamPreview(deviceId);
-    }
-  };
-
-  // Start webcam preview stream
-  const startWebcamPreview = async (deviceId?: string) => {
-    try {
-      const constraints: MediaStreamConstraints = {
-        video: deviceId ? { deviceId: { exact: deviceId } } : true,
-        audio: true
-      };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      webcamStreamRef.current = stream;
-
-      const videoTracks = stream.getVideoTracks();
-      const audioTracks = stream.getAudioTracks();
-      setCameraStatus(videoTracks.length > 0 && videoTracks[0].enabled ? "active" : "inactive");
-      setMicStatus(audioTracks.length > 0 && audioTracks[0].enabled ? "active" : "inactive");
-
-      const videoEl = document.getElementById("webcam-preview-video") as HTMLVideoElement;
-      if (videoEl) {
-        videoEl.srcObject = stream;
-        videoEl.muted = true;
-        videoEl.play().catch(e => console.error("Error playing video:", e));
-      }
-    } catch (err) {
-      console.error("Error starting preview:", err);
-      setCameraStatus("inactive");
-      setMicStatus("inactive");
-    }
-  };
-
-  // Start Recording
-  const startRecording = async () => {
-    try {
-      const constraints: MediaStreamConstraints = {
-        video: selectedVideoDeviceId ? { deviceId: { exact: selectedVideoDeviceId } } : true,
-        audio: true
-      };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      webcamStreamRef.current = stream;
-
-      const videoTracks = stream.getVideoTracks();
-      const audioTracks = stream.getAudioTracks();
-      setCameraStatus(videoTracks.length > 0 && videoTracks[0].enabled ? "active" : "inactive");
-      setMicStatus(audioTracks.length > 0 && audioTracks[0].enabled ? "active" : "inactive");
-
-      const videoEl = document.getElementById("webcam-preview-video") as HTMLVideoElement;
-      if (videoEl) {
-        videoEl.srcObject = stream;
-        videoEl.muted = true;
-        videoEl.play().catch(e => console.error("Error playing preview:", e));
-      }
-
-      navigator.mediaDevices.enumerateDevices().then(devices => {
-        const videoDevs = devices.filter(device => device.kind === "videoinput");
-        setVideoDevices(videoDevs);
-        if (videoDevs.length > 0 && !selectedVideoDeviceId) {
-          setSelectedVideoDeviceId(videoDevs[0].deviceId);
-        }
-      });
-
-      recordedChunksRef.current = [];
-      const options = { mimeType: "video/webm;codecs=vp9,opus" };
-      let recorder: MediaRecorder;
-      try {
-        recorder = new MediaRecorder(stream, options);
-      } catch (e) {
-        recorder = new MediaRecorder(stream);
-      }
-
-      recorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          recordedChunksRef.current.push(event.data);
-        }
-      };
-
-      recorder.onstop = () => {
-        const blob = new Blob(recordedChunksRef.current, { type: "video/webm" });
-        const url = URL.createObjectURL(blob);
-        setRecordedBlobUrl(url);
-      };
-
-      mediaRecorderRef.current = recorder;
-      recorder.start(100);
-
-      setRecordingDuration(0);
-      setRecordingState("recording");
-      setRecordedBlobUrl(null);
-      setTimeLimitNotice("Please record at least 20 seconds of patient consent.");
-
-      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingDuration(prev => {
-          const next = prev + 1;
-          if (next >= 20) {
-            setTimeLimitNotice(null);
-          }
-          if (next >= 90) {
-            clearInterval(recordingTimerRef.current);
-            stopRecording(true);
-            return 90;
-          }
-          return next;
-        });
-      }, 1000);
-    } catch (err) {
-      console.error("Error starting recording:", err);
-      showToast("Could not access camera or microphone.", "error");
-      setCameraStatus("inactive");
-      setMicStatus("inactive");
-    }
-  };
-
-  // Pause Recording
-  const pauseRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-      mediaRecorderRef.current.pause();
-      setRecordingState("paused");
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-      }
-    }
-  };
-
-  // Resume Recording
-  const resumeRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "paused") {
-      mediaRecorderRef.current.resume();
-      setRecordingState("recording");
-
-      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingDuration(prev => {
-          const next = prev + 1;
-          if (next >= 20) {
-            setTimeLimitNotice(null);
-          }
-          if (next >= 90) {
-            clearInterval(recordingTimerRef.current);
-            stopRecording(true);
-            return 90;
-          }
-          return next;
-        });
-      }, 1000);
-    }
-  };
-
-  // Stop Recording
-  const stopRecording = (autoStop = false) => {
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current);
-    }
-
-    if (mediaRecorderRef.current && (mediaRecorderRef.current.state === "recording" || mediaRecorderRef.current.state === "paused")) {
-      mediaRecorderRef.current.stop();
-    }
-
-    if (webcamStreamRef.current) {
-      webcamStreamRef.current.getTracks().forEach(track => track.stop());
-      webcamStreamRef.current = null;
-    }
-
-    setRecordingState("stopped");
-    setCameraStatus("inactive");
-    setMicStatus("inactive");
-
-    if (autoStop) {
-      setTimeLimitNotice("Maximum recording time (90 seconds) reached.");
-    } else {
-      setRecordingDuration(prev => {
-        if (prev < 20) {
-          setTimeLimitNotice("Please record at least 20 seconds of patient consent.");
-        } else {
-          setTimeLimitNotice(null);
-        }
-        return prev;
-      });
-    }
-  };
-
-  // Retake Recording
-  const retakeRecording = () => {
-    if (recordedBlobUrl) {
-      URL.revokeObjectURL(recordedBlobUrl);
-    }
-    setRecordedBlobUrl(null);
-    setRecordingDuration(0);
-    setRecordingState("idle");
-    setTimeLimitNotice(null);
-    startWebcamPreview(selectedVideoDeviceId);
-  };
-
-  // Save Recording
-  const saveRecording = () => {
-    if (recordingDuration < 20) {
-      showToast("Recording must be at least 20 seconds long.", "error");
-      return;
-    }
-    if (!recordedBlobUrl) {
-      showToast("No recorded video found.", "error");
-      return;
-    }
-
-    const dateNow = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-    const docName = prescDoctor || (doctors[0]?.name || "Dr. Deepa Kodali");
-
-    const newMedia: ClinicalMedia = {
-      id: `media-${Date.now()}`,
-      patientId: selectedPatientId || "",
-      name: `consent_video_${Date.now()}.webm`,
-      type: "video/webm",
-      category: "Consent Videos",
-      url: recordedBlobUrl,
-      uploadDate: dateNow,
-      uploadedBy: docName,
-      duration: formatTimer(recordingDuration)
-    };
-
-    setPatientMedia(prev => [newMedia, ...prev]);
-    showToast("Consent video saved successfully.", "success");
-
-    setRecordedBlobUrl(null);
-    setRecordingDuration(0);
-    setRecordingState("idle");
-    setTimeLimitNotice(null);
-  };
-
-  // Photo Upload Handler (strictly clinical photos only)
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    const filesArray = Array.from(e.target.files);
-    const imageFiles = filesArray.filter(file => file.type.startsWith("image/"));
-    if (imageFiles.length === 0) {
-      showToast("Only clinical photographs (images) can be uploaded manually.", "error");
-      return;
-    }
-
-    const newMediaItems: ClinicalMedia[] = imageFiles.map((file, idx) => {
-      return {
-        id: `media-${Date.now()}-${idx}`,
-        patientId: selectedPatientId || "",
-        name: file.name,
-        type: file.type || "image/png",
-        category: "Clinical Photos",
-        url: URL.createObjectURL(file),
-        uploadDate: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
-        uploadedBy: prescDoctor || (doctors[0]?.name || "Dr. Deepa Kodali")
-      };
-    });
-
-    setPatientMedia(prev => [...newMediaItems, ...prev]);
-    showToast(`${imageFiles.length} clinical photo(s) uploaded.`, "success");
-  };
 
   // Edit/Rename media form fields
   const [editMediaName, setEditMediaName] = useState("");
@@ -2563,35 +2220,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     const displayedPatients = filteredPatients.slice(0, patientVisibleCount);
 
-    const handleMouseEnterAppt = (appt: any, e: React.MouseEvent<HTMLButtonElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const popoverWidth = 256;
-      const popoverHeight = 160;
-      
-      let x = rect.right + 8;
-      let y = rect.top;
-      
-      // Auto-reposition if it overflows the right edge of viewport
-      if (x + popoverWidth > window.innerWidth) {
-        x = rect.left - popoverWidth - 8;
-      }
-      
-      // Auto-reposition if it overflows the bottom edge of viewport
-      if (y + popoverHeight > window.innerHeight) {
-        y = window.innerHeight - popoverHeight - 16;
-      }
-      
-      // Ensure y is not negative
-      if (y < 8) y = 8;
-      
-      setHoveredAppt(appt);
-      setPopoverPosition({ x, y });
-    };
-
-    const handleMouseLeaveAppt = () => {
-      setHoveredAppt(null);
-    };
-
     // Get next scheduled appointment for alert strip
     const nextScheduled = appointments
       .filter(a => a.date === "12 Aug 2026" && a.status === "Scheduled")
@@ -2697,10 +2325,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     return (
       <div className="dashboard-container space-y-4 animate-fadeIn text-slate-700">
-        {/* TOP SECTION: Calendar & Today's Schedule side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* SECTION 1 - Weekly Appointment Calendar (Left ~66.6%) */}
-          <div className="calendar-card lg:col-span-8 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        {/* SECTION 1 - Weekly Appointment Calendar (TOP CENTER) */}
+        <div className="calendar-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3 gap-3">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="font-semibold text-[18px] text-slate-900 dark:text-white">Weekly Appointment Calendar</span>
@@ -2800,8 +2426,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setSlotPatientId("");
                         setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
                       }}
-                      onMouseEnter={(e) => appt && handleMouseEnterAppt(appt, e)}
-                      onMouseLeave={handleMouseLeaveAppt}
                       className={`slot-btn ${!appt && !isBlocked ? "slot-btn-empty" : ""} p-2.5 rounded-xl border text-[10px] transition-all ${
                         appt 
                           ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800 flex flex-col justify-between items-start text-left" 
@@ -2814,6 +2438,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         <>
                           <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
                           <div className="w-full mt-1">
+                            <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
                             <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
                               {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
                             </span>
@@ -2875,8 +2500,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         setSlotPatientId("");
                         setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
                       }}
-                      onMouseEnter={(e) => appt && handleMouseEnterAppt(appt, e)}
-                      onMouseLeave={handleMouseLeaveAppt}
                       className={`slot-btn ${!appt && !isBlocked ? "slot-btn-empty" : ""} p-2.5 rounded-xl border text-[10px] transition-all ${
                         appt 
                           ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800 flex flex-col justify-between items-start text-left" 
@@ -2889,6 +2512,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         <>
                           <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
                           <div className="w-full mt-1">
+                            <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
                             <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
                               {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
                             </span>
@@ -2912,149 +2536,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
         </div>
 
-        {/* SECTION 4 - Today's Schedule (RIGHT) */}
-        <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[540px]">
-          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3 mb-3 shrink-0">
-            <span className="font-semibold text-[18px] text-slate-900 dark:text-white">Today's Schedule</span>
-            <span className="text-[13px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-semibold">
-              {todayApptsList.length} {todayApptsList.length === 1 ? "Appointment" : "Appointments"}
-            </span>
-          </div>
-
-          <div className="flex-grow overflow-y-auto pr-1 scrollbar-thin flex flex-col">
-            {todayApptsList.length > 0 ? (
-              <div className="space-y-3 flex-grow">
-                {todayApptsList.map((app) => {
-                  const patientPhone = patients.find((p) => p.id === app.patientId)?.phone || "+91 99000 11000";
-
-                  return (
-                    <div
-                      key={app.id}
-                      className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/20 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-all shadow-2xs space-y-2 flex flex-col justify-between"
-                    >
-                      {/* First Line: Patient Name & Appt Time */}
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center min-w-0 pr-2">
-                          {/* Status Indicator Dot */}
-                          {app.status === "Scheduled" && <span className="h-2 w-2 rounded-full bg-blue-500 mr-2 shrink-0" title="Scheduled" />}
-                          {(app.status === "Checked In" || app.status === "Waiting") && <span className="h-2 w-2 rounded-full bg-emerald-500 mr-2 shrink-0" title="Checked In" />}
-                          {app.status === "In Procedure" && <span className="h-2 w-2 rounded-full bg-orange-500 mr-2 shrink-0 animate-pulse" title="In Procedure" />}
-                          {app.status === "Completed" && <span className="h-2 w-2 rounded-full bg-slate-400 mr-2 shrink-0" title="Completed" />}
-                          <span className="font-semibold text-[14px] text-slate-808 dark:text-slate-200 truncate leading-none">{app.patientName}</span>
-                        </div>
-                        <span className="text-[12px] font-semibold text-slate-650 dark:text-slate-400 shrink-0 leading-none">{app.time}</span>
-                      </div>
-
-                      {/* Second Line: Doctor Name */}
-                      <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
-                        {app.doctor}
-                      </p>
-
-                      {/* Third Line: Treatment */}
-                      <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
-                        {app.treatment}
-                      </p>
-
-                      {/* Fourth Line: Phone Number */}
-                      <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
-                        {patientPhone}
-                      </p>
-
-                      {/* Bottom Row: Actions */}
-                      <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100/60 dark:border-slate-800/65">
-                        {/* ✓ Check In / Action Button */}
-                        {app.status === "Scheduled" ? (
-                          <button
-                            type="button"
-                            onClick={() => handleApptCheckIn(app.id)}
-                            className="flex-grow h-[34px] rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            ✓ Check In
-                          </button>
-                        ) : app.status === "Checked In" || app.status === "Waiting" ? (
-                          <button
-                            type="button"
-                            onClick={() => handleApptStartProcedure(app.id)}
-                            className="flex-grow h-[34px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            ✓ Start
-                          </button>
-                        ) : app.status === "In Procedure" ? (
-                          <button
-                            type="button"
-                            onClick={() => handleApptCompleteProcedure(app.id)}
-                            className="flex-grow h-[34px] rounded-lg bg-orange-500 hover:bg-orange-455 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            ✓ Complete
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled
-                            className="flex-grow h-[34px] rounded-lg bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-slate-400 font-medium text-[11.5px] flex items-center justify-center gap-1 cursor-not-allowed"
-                          >
-                            ✓ Completed
-                          </button>
-                        )}
-
-                        {/* Reschedule Button */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newDate = prompt("Enter new date (e.g. 12 Aug 2026):", app.date);
-                            const newTime = prompt("Enter new time (e.g. 09:30 AM):", app.time);
-                            if (newDate && newTime) {
-                               setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, date: newDate, time: newTime } : a));
-                               pushActivity("Appointment", `Rescheduled ${app.patientName} to ${newDate} at ${newTime}.`);
-                               showToast("Appointment rescheduled.", "success");
-                            }
-                          }}
-                          className="flex-1 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                        >
-                          Reschedule
-                        </button>
-
-                        {/* ₹ Billing Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleApptGenerateBill(app.id)}
-                          className="flex-1 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                        >
-                          ₹ Billing
-                        </button>
-
-                        {/* WhatsApp Communication Button */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            console.log("Open WhatsApp communication workflow");
-                            alert(`Opening WhatsApp chat communication workflow with ${app.patientName} (${patientPhone}).`);
-                          }}
-                          className="h-[34px] w-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-[#25D366]/10 hover:text-[#25D366] hover:border-[#25D366]/20 flex items-center justify-center transition-colors shrink-0 cursor-pointer duration-200"
-                          title="WhatsApp Communication"
-                        >
-                          <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] fill-current" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.45 5.426-.003 9.84-4.42 9.843-9.848.002-2.63-1.02-5.101-2.879-6.963-1.859-1.862-4.332-2.887-6.965-2.888-5.432 0-9.85 4.417-9.853 9.848-.001 1.554.385 3.078 1.121 4.426l-.995 3.636 3.728-.977zm11.391-7.054c-.302-.152-1.792-.884-2.07-.984-.277-.101-.48-.152-.68.152-.2.302-.777.983-.952 1.185-.176.202-.351.227-.653.076-.302-.152-1.275-.47-2.428-1.499-.896-.8-1.5-.189-1.782-.416-.282-.227-.302-.352-.453-.503-.151-.152-.227-.253-.34-.48-.113-.227-.057-.428.028-.58.085-.152.68-.783.82-.983.14-.202.188-.34.283-.567.094-.227.047-.428-.028-.58-.076-.152-.68-1.638-.932-2.247-.246-.59-.496-.51-.68-.518-.176-.008-.377-.01-.58-.01-.202 0-.53.076-.807.38-.277.302-1.057 1.033-1.057 2.52 0 1.488 1.082 2.923 1.232 3.125.151.202 2.13 3.253 5.16 4.561.72.311 1.282.497 1.72.637.723.23 1.381.197 1.901.12.58-.087 1.792-.733 2.046-1.439.253-.706.253-1.312.176-1.439-.076-.126-.277-.202-.58-.352z"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex-1 flex items-center justify-center">
-                <p className="text-xs text-slate-400 py-8 text-center">No appointments scheduled for today</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div> {/* Closes TOP SECTION grid container */}
-
-      {/* 2-Column Operational Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[65fr_35fr] gap-6">
+        {/* 3-Column Operational Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* SECTION 2 - Add Patient Panel (LEFT) */}
-          <div className="form-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
+          <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
             <span className="font-semibold text-[18px] block mb-[22px] shrink-0">Patient Registration</span>
             
             <form onSubmit={handleSavePatientQuick} className="flex-grow flex flex-col justify-between overflow-hidden">
@@ -3159,7 +2644,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
 
           {/* SECTION 3 - Recently Added Patients (CENTER) */}
-          <div className="list-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
+          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
             <div className="flex justify-between items-center mb-3 shrink-0">
               <span className="font-semibold text-[18px] block">Recently Added Patients</span>
             </div>
@@ -3267,6 +2752,144 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 Load More Patients
               </button>
             )}
+          </div>
+
+          {/* SECTION 4 - Today's Schedule (RIGHT) */}
+          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
+            <div className="flex justify-between items-center mb-3 shrink-0">
+              <span className="font-semibold text-[18px] block">Today's Schedule</span>
+              <span className="text-[12px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-bold">
+                {todayApptsList.length} {todayApptsList.length === 1 ? "Appointment" : "Appointments"}
+              </span>
+            </div>
+
+            <div className="flex-grow overflow-y-auto pr-1 scrollbar-thin flex flex-col">
+              {todayApptsList.length > 0 ? (
+                <div className="space-y-3 flex-grow">
+                  {todayApptsList.map((app) => {
+                    const patientPhone = patients.find((p) => p.id === app.patientId)?.phone || "+91 99000 11000";
+
+                    return (
+                      <div
+                        key={app.id}
+                        className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/20 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-all shadow-2xs space-y-2 flex flex-col justify-between"
+                      >
+                        {/* First Line: Patient Name & Appt Time */}
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center min-w-0 pr-2">
+                            {/* Status Indicator Dot */}
+                            {app.status === "Scheduled" && <span className="h-2 w-2 rounded-full bg-blue-500 mr-2 shrink-0" title="Scheduled" />}
+                            {(app.status === "Checked In" || app.status === "Waiting") && <span className="h-2 w-2 rounded-full bg-emerald-500 mr-2 shrink-0" title="Checked In" />}
+                            {app.status === "In Procedure" && <span className="h-2 w-2 rounded-full bg-orange-500 mr-2 shrink-0 animate-pulse" title="In Procedure" />}
+                            {app.status === "Completed" && <span className="h-2 w-2 rounded-full bg-slate-400 mr-2 shrink-0" title="Completed" />}
+                            <span className="font-semibold text-[16px] text-slate-800 dark:text-slate-200 truncate leading-none">{app.patientName}</span>
+                          </div>
+                          <span className="text-[13px] font-semibold text-slate-650 dark:text-slate-400 shrink-0 leading-none">{app.time}</span>
+                        </div>
+
+                        {/* Second Line: Doctor Name */}
+                        <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
+                          {app.doctor}
+                        </p>
+
+                        {/* Third Line: Treatment */}
+                        <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
+                          {app.treatment}
+                        </p>
+
+                        {/* Fourth Line: Phone Number */}
+                        <p className="text-[12px] text-slate-455 dark:text-slate-400 font-normal leading-none pl-4">
+                          {patientPhone}
+                        </p>
+
+                        {/* Bottom Row: Actions */}
+                        <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100/60 dark:border-slate-800/65">
+                          {/* ✓ Check In / Action Button */}
+                          {app.status === "Scheduled" ? (
+                            <button
+                              type="button"
+                              onClick={() => handleApptCheckIn(app.id)}
+                              className="flex-grow h-[34px] rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              ✓ Check In
+                            </button>
+                          ) : app.status === "Checked In" || app.status === "Waiting" ? (
+                            <button
+                              type="button"
+                              onClick={() => handleApptStartProcedure(app.id)}
+                              className="flex-grow h-[34px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              ✓ Start
+                            </button>
+                          ) : app.status === "In Procedure" ? (
+                            <button
+                              type="button"
+                              onClick={() => handleApptCompleteProcedure(app.id)}
+                              className="flex-grow h-[34px] rounded-lg bg-orange-500 hover:bg-orange-455 text-white font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              ✓ Complete
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled
+                              className="flex-grow h-[34px] rounded-lg bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-slate-400 font-medium text-[11.5px] flex items-center justify-center gap-1 cursor-not-allowed"
+                            >
+                              ✓ Completed
+                            </button>
+                          )}
+
+                          {/* Reschedule Button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newDate = prompt("Enter new date (e.g. 12 Aug 2026):", app.date);
+                              const newTime = prompt("Enter new time (e.g. 09:30 AM):", app.time);
+                              if (newDate && newTime) {
+                                setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, date: newDate, time: newTime } : a));
+                                pushActivity("Appointment", `Rescheduled ${app.patientName} to ${newDate} at ${newTime}.`);
+                                showToast("Appointment rescheduled.", "success");
+                              }
+                            }}
+                            className="flex-1 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            Reschedule
+                          </button>
+
+                          {/* ₹ Billing Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleApptGenerateBill(app.id)}
+                            className="flex-1 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            ₹ Billing
+                          </button>
+
+                          {/* WhatsApp Communication Button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              console.log("Open WhatsApp communication workflow");
+                              alert(`Opening WhatsApp chat communication workflow with ${app.patientName} (${patientPhone}).`);
+                            }}
+                            className="h-[34px] w-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-[#25D366]/10 hover:text-[#25D366] hover:border-[#25D366]/20 flex items-center justify-center transition-colors shrink-0 cursor-pointer duration-200"
+                            title="WhatsApp Communication"
+                          >
+                            <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] fill-current" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.45 5.426-.003 9.84-4.42 9.843-9.848.002-2.63-1.02-5.101-2.879-6.963-1.859-1.862-4.332-2.887-6.965-2.888-5.432 0-9.85 4.417-9.853 9.848-.001 1.554.385 3.078 1.121 4.426l-.995 3.636 3.728-.977zm11.391-7.054c-.302-.152-1.792-.884-2.07-.984-.277-.101-.48-.152-.68.152-.2.302-.777.983-.952 1.185-.176.202-.351.227-.653.076-.302-.152-1.275-.47-2.428-1.499-.896-.8-1.5-.189-1.782-.416-.282-.227-.302-.352-.453-.503-.151-.152-.227-.253-.34-.48-.113-.227-.057-.428.028-.58.085-.152.68-.783.82-.983.14-.202.188-.34.283-.567.094-.227.047-.428-.028-.58-.076-.152-.68-1.638-.932-2.247-.246-.59-.496-.51-.68-.518-.176-.008-.377-.01-.58-.01-.202 0-.53.076-.807.38-.277.302-1.057 1.033-1.057 2.52 0 1.488 1.082 2.923 1.232 3.125.151.202 2.13 3.253 5.16 4.561.72.311 1.282.497 1.72.637.723.23 1.381.197 1.901.12.58-.087 1.792-.733 2.046-1.439.253-.706.253-1.312.176-1.439-.076-.126-.277-.202-.58-.352z"/>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-xs text-slate-400 py-8 text-center">No appointments scheduled for today</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -3501,58 +3124,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             </div>
           </div>
         </div>
-
-        {hoveredAppt && (
-          <div
-            className="fixed z-50 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xl text-xs w-64 pointer-events-none animate-fadeIn flex flex-col gap-2.5"
-            style={{ 
-              top: popoverPosition.y, 
-              left: popoverPosition.x,
-              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)"
-            }}
-          >
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2 mb-0.5">
-              <span className="font-bold text-slate-900 dark:text-white text-[13px]">Appointment Details</span>
-              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                hoveredAppt.status === "Scheduled" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-400" :
-                hoveredAppt.status === "Checked In" || hoveredAppt.status === "Waiting" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400" :
-                hoveredAppt.status === "In Procedure" ? "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-400 animate-pulse" :
-                "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400"
-              }`}>
-                {hoveredAppt.status}
-              </span>
-            </div>
-
-            <div className="space-y-2 text-slate-700 dark:text-slate-355">
-              <div>
-                <span className="text-[10px] text-slate-400 block mb-0.5 uppercase tracking-wider">Patient Name</span>
-                <span className="font-semibold text-slate-900 dark:text-white text-[12px]">{hoveredAppt.patientName} ({hoveredAppt.patientId})</span>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <span className="text-[10px] text-slate-400 block mb-0.5 uppercase tracking-wider">Doctor</span>
-                  <span className="font-semibold text-[11px] truncate block">{hoveredAppt.doctor}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block mb-0.5 uppercase tracking-wider">Treatment</span>
-                  <span className="font-semibold text-[11px] truncate block">{hoveredAppt.treatment}</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <span className="text-[10px] text-slate-400 block mb-0.5 uppercase tracking-wider">Time</span>
-                  <span className="font-semibold text-[11px] block">{hoveredAppt.time}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block mb-0.5 uppercase tracking-wider">Mobile</span>
-                  <span className="font-semibold text-[11px] block">{patients.find(p => p.id === hoveredAppt.patientId)?.phone || "+91 99000 11000"}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   };
@@ -3713,63 +3284,44 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             >
               <Calendar className="h-4 w-4" /> Go to Date
             </Button>
-            {/* Redesigned Doctors Filter Panel */}
-            <span className="font-bold text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">Clinic Directory</span>
-            <div className="space-y-1.5">
-              {/* All Doctors option */}
+
+            <hr className="border-slate-100 dark:border-slate-800" />
+
+            {/* Doctors Initials/Avatar Selector Grid */}
+            <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-1">All Doctors</span>
+            <div className="flex flex-wrap gap-2.5 pt-1">
               <div 
                 onClick={() => setApptSelectedDoctor("All")}
-                className={`flex items-center gap-2.5 py-1.5 px-2.5 rounded-lg cursor-pointer transition-all border ${
+                title="Show All Doctors"
+                className={`h-8 w-8 rounded-full font-bold text-[10px] flex items-center justify-center cursor-pointer transition-all border ${
                   apptSelectedDoctor === "All"
-                    ? "bg-blue-600 border-blue-700 text-white shadow-sm"
-                    : "bg-slate-50/50 border-slate-100 hover:bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:border-slate-800 dark:text-slate-355"
+                    ? "bg-blue-600 border-blue-700 text-white shadow-sm ring-1 ring-blue-500 ring-offset-2 dark:ring-offset-slate-955 scale-105"
+                    : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
                 }`}
-                style={{ height: "50px" }}
               >
-                {/* All Doctors Avatar */}
-                <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-                  apptSelectedDoctor === "All"
-                    ? "bg-blue-500/20 text-white"
-                    : "bg-blue-50 border border-blue-100 text-blue-700 dark:bg-blue-955/20 dark:border-blue-900/30"
-                }`}>
-                  <Users className="h-4.5 w-4.5" />
-                </div>
-                <span className="font-bold text-xs truncate">All Doctors</span>
+                ALL
               </div>
-
-              {/* Doctor rows */}
               {doctors.map((doc, idx) => {
                 const isActive = apptSelectedDoctor === doc.name;
-                const firstName = doc.name.replace("Dr. ", "").split(" ")[0];
                 const initials = doc.name.replace("Dr. ", "").split(" ").map(n => n[0]).join("").toUpperCase();
-                
                 const colors = [
-                  "bg-blue-50 border border-blue-100 text-blue-700 dark:bg-blue-955/20 dark:border-blue-900/30",
-                  "bg-purple-50 border border-purple-100 text-purple-700 dark:bg-purple-955/20 dark:border-purple-900/30",
-                  "bg-emerald-50 border border-emerald-100 text-emerald-700 dark:bg-emerald-955/20 dark:border-emerald-900/30",
-                  "bg-indigo-50 border border-indigo-100 text-indigo-700 dark:bg-indigo-955/20 dark:border-indigo-900/30",
-                  "bg-pink-50 border border-pink-100 text-pink-700 dark:bg-pink-955/20 dark:border-pink-900/30"
+                  "bg-blue-100 border-blue-200 text-blue-700",
+                  "bg-purple-100 border-purple-200 text-purple-700",
+                  "bg-emerald-100 border-emerald-200 text-emerald-700",
+                  "bg-indigo-100 border-indigo-200 text-indigo-700",
+                  "bg-pink-100 border-pink-200 text-pink-700"
                 ];
                 const avatarColor = colors[idx % colors.length];
-
                 return (
                   <div
                     key={doc.name}
                     onClick={() => setApptSelectedDoctor(isActive ? "All" : doc.name)}
-                    className={`flex items-center gap-2.5 py-1.5 px-2.5 rounded-lg cursor-pointer transition-all border ${
-                      isActive
-                        ? "bg-blue-600 border-blue-700 text-white shadow-sm"
-                        : "bg-slate-50/50 border-slate-100 hover:bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:border-slate-800 dark:text-slate-355"
+                    title={doc.name}
+                    className={`h-8 w-8 rounded-full font-bold text-[10px] flex items-center justify-center cursor-pointer transition-all border ${avatarColor} ${
+                      isActive ? "ring-1 ring-blue-500 ring-offset-2 dark:ring-offset-slate-955 scale-105" : "hover:opacity-90"
                     }`}
-                    style={{ height: "50px" }}
                   >
-                    {/* Doctor Avatar */}
-                    <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-                      isActive ? "bg-blue-500/20 text-white" : avatarColor
-                    }`}>
-                      {initials}
-                    </div>
-                    <span className="font-bold text-xs truncate">{firstName}</span>
+                    {initials}
                   </div>
                 );
               })}
@@ -5574,221 +5126,37 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               <div className="space-y-6 animate-fadeIn">
                 {/* Header Title */}
                 <div className="flex justify-between items-center border-b pb-3 mb-4 shrink-0">
-                  <span className="text-[18px] font-semibold text-slate-900 dark:text-white">Patient Consent & Media</span>
+                  <span className="text-[18px] font-semibold text-slate-900 dark:text-white">Patient Media Gallery</span>
                 </div>
 
-                {/* Patient Consent Video Card */}
-                <div className="bg-white dark:bg-slate-955 border border-slate-205 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
-                  <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-850">
-                    <span className="font-bold text-slate-805 dark:text-white text-xs uppercase tracking-wider">Patient Consent Video</span>
-                  </div>
-
-                  {/* Recording Information Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 border-b border-slate-100 dark:border-slate-850 pb-3 text-xs font-semibold text-slate-600 dark:text-slate-400">
-                    <div>
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase block">Patient Name</span>
-                      <strong className="text-slate-800 dark:text-white font-bold">{patientItem?.name || "N/A"}</strong>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase block">Patient ID</span>
-                      <strong className="text-slate-800 dark:text-white font-bold">{patientItem?.id || "N/A"}</strong>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase block">Doctor Name</span>
-                      <strong className="text-slate-800 dark:text-white font-bold">{prescDoctor || (doctors[0]?.name || "Dr. Deepa Kodali")}</strong>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase block">Current Date</span>
-                      <strong className="text-slate-800 dark:text-white font-bold">{new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</strong>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase block">Current Time</span>
-                      <strong className="text-slate-800 dark:text-white font-bold">{currentTime}</strong>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase block">Recording Timer</span>
-                      <strong className={`text-[13px] font-bold ${recordingState === 'recording' ? 'text-red-650 animate-pulse' : 'text-slate-800 dark:text-white'}`}>
-                        {formatTimer(recordingDuration)}
-                      </strong>
-                    </div>
-                  </div>
-
-                  {/* Device selectors & status indicators */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-semibold">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`h-2 w-2 rounded-full ${cameraStatus === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-                        <span className="text-slate-500 dark:text-slate-400">Camera: <span className="font-bold">{cameraStatus === 'active' ? 'Active' : 'Inactive'}</span></span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className={`h-2 w-2 rounded-full ${micStatus === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-                        <span className="text-slate-500 dark:text-slate-400">Microphone: <span className="font-bold">{micStatus === 'active' ? 'Active' : 'Inactive'}</span></span>
-                      </div>
-                    </div>
-
-                    {videoDevices.length > 1 && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-slate-500 dark:text-slate-400">Select Camera:</span>
-                        <select
-                          value={selectedVideoDeviceId}
-                          onChange={(e) => handleDeviceChange(e.target.value)}
-                          className="h-8 px-2 rounded-lg border border-slate-200 bg-white text-xs font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-805 text-slate-700 dark:text-slate-300"
-                        >
-                          {videoDevices.map(device => (
-                            <option key={device.deviceId} value={device.deviceId}>
-                              {device.label || `Camera ${videoDevices.indexOf(device) + 1}`}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Webcam / Playback Container */}
-                  <div className="relative aspect-video w-full bg-slate-900 rounded-xl overflow-hidden shadow-inner border border-slate-205 dark:border-slate-800 flex items-center justify-center">
-                    {recordingState !== 'stopped' ? (
-                      <>
-                        <video
-                          id="webcam-preview-video"
-                          autoPlay
-                          muted
-                          playsInline
-                          className="w-full h-full object-cover"
-                        />
-                        {recordingState === 'idle' && (
-                          <div className="absolute inset-0 bg-slate-900/80 flex flex-col items-center justify-center text-center p-4">
-                            <div className="text-4xl mb-2">📹</div>
-                            <span className="text-white font-bold text-sm">Consent Recorder Offline</span>
-                            <p className="text-xs text-slate-400 mt-1 max-w-xs leading-normal">
-                              Click "Start Recording" below to request camera and microphone permissions and begin.
-                            </p>
-                          </div>
-                        )}
-                        {recordingState === 'recording' && (
-                          <div className="absolute top-3 left-3 bg-red-655/90 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded flex items-center gap-1 shadow backdrop-blur-xs">
-                            <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping" />
-                            Recording
-                          </div>
-                        )}
-                        {recordingState === 'paused' && (
-                          <div className="absolute top-3 left-3 bg-amber-600/90 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded flex items-center gap-1 shadow backdrop-blur-xs">
-                            <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                            Paused
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <video
-                        src={recordedBlobUrl || ""}
-                        controls
-                        autoPlay
-                        className="w-full h-full object-contain"
-                      />
-                    )}
-                  </div>
-
-                  {/* Warning Notice Message Banner */}
-                  {timeLimitNotice && (
-                    <div className={`p-2.5 rounded-lg border text-center text-xs font-bold leading-none ${
-                      recordingDuration < 20 
-                        ? 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-955/20 dark:border-amber-900 dark:text-amber-400' 
-                        : 'bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-955/20 dark:border-blue-900 dark:text-blue-400'
-                    }`}>
-                      {timeLimitNotice}
-                    </div>
-                  )}
-
-                  {/* Recording controls buttons */}
-                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                    {recordingState === "idle" && (
-                      <Button
-                        onClick={startRecording}
-                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-10 px-5 rounded-lg flex items-center gap-2"
-                      >
-                        <Play className="h-4 w-4" /> Start Recording
-                      </Button>
-                    )}
-
-                    {(recordingState === "recording" || recordingState === "paused") && (
-                      <>
-                        {recordingState === "recording" ? (
-                          <Button
-                            onClick={pauseRecording}
-                            className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs h-10 px-5 rounded-lg flex items-center gap-2"
-                          >
-                            <Pause className="h-4 w-4" /> Pause
-                          </Button>
-                        ) : (
-                          <Button
-                            onClick={resumeRecording}
-                            className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-10 px-5 rounded-lg flex items-center gap-2"
-                          >
-                            <Play className="h-4 w-4" /> Resume
-                          </Button>
-                        )}
-                        <Button
-                          onClick={() => stopRecording(false)}
-                          className="bg-red-650 hover:bg-red-500 text-white font-bold text-xs h-10 px-5 rounded-lg flex items-center gap-2"
-                        >
-                          <Square className="h-4 w-4" /> Stop
-                        </Button>
-                      </>
-                    )}
-
-                    {recordingState === "stopped" && (
-                      <>
-                        <Button
-                          variant="outline"
-                          onClick={retakeRecording}
-                          className="border border-slate-205 hover:bg-slate-50 text-slate-700 font-bold text-xs h-10 px-5 rounded-lg flex items-center gap-2 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
-                        >
-                          <RefreshCw className="h-4 w-4" /> Retake
-                        </Button>
-                        <Button
-                          onClick={saveRecording}
-                          disabled={recordingDuration < 20}
-                          className={`font-bold text-xs h-10 px-5 rounded-lg flex items-center gap-2 shadow-xs ${
-                            recordingDuration < 20 
-                              ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed dark:bg-slate-850 dark:border-slate-800 dark:text-slate-500" 
-                              : "bg-emerald-600 hover:bg-emerald-500 text-white"
-                          }`}
-                        >
-                          <Save className="h-4 w-4" /> Save Recording
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Upload & Filters card (only for photos) */}
+                {/* Upload Card */}
                 <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col md:flex-row justify-between items-center gap-4">
                   <div className="space-y-1">
-                    <span className="font-bold text-slate-855 dark:text-white text-xs block">Upload Patient Photo</span>
+                    <span className="font-bold text-slate-805 dark:text-white text-xs block">Clinical Repository</span>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                      Select image files to add to the Patient's Clinical Photos gallery.
+                      Supported file types: Photos, X-rays, Smile Photos, Scans, PDF Clinical Reports, and Videos.
                     </p>
                   </div>
                   <div>
                     <input 
                       type="file" 
-                      id="photo-upload-input" 
-                      accept="image/*"
+                      id="media-file-upload-input" 
                       multiple 
                       className="hidden" 
-                      onChange={handlePhotoUpload} 
+                      onChange={handleMockMediaUpload} 
                     />
                     <Button 
-                      onClick={() => document.getElementById("photo-upload-input")?.click()}
+                      onClick={() => document.getElementById("media-file-upload-input")?.click()}
                       className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-9 rounded-lg px-4 flex items-center gap-2"
                     >
-                      <Upload className="h-4 w-4" /> Upload Clinical Photo
+                      <Upload className="h-4 w-4" /> Upload Files
                     </Button>
                   </div>
                 </div>
 
                 {/* Media Filter Tabs */}
                 <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none border-b border-slate-100 dark:border-slate-800 pb-2.5 shrink-0 text-[11px] font-semibold">
-                  {["All", "Clinical Photos", "Consent Videos"].map((cat) => {
+                  {["All", "Clinical Photos", "X-rays", "Videos", "Scans", "Documents", "Treatment Progress"].map((cat) => {
                     const active = mediaFilter === cat;
                     return (
                       <button
@@ -5807,93 +5175,131 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 </div>
 
                 {/* Media Cards Grid or Empty State */}
-                {patientMedia.filter(m => m.patientId === selectedPatientId && (m.category === "Clinical Photos" || m.category === "Consent Videos") && (mediaFilter === "All" || m.category === mediaFilter)).length === 0 ? (
+                {patientMedia.filter(m => m.patientId === selectedPatientId && (mediaFilter === "All" || m.category === mediaFilter)).length === 0 ? (
                   <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-10 shadow-xs flex flex-col items-center justify-center text-center">
-                    <div className="text-3xl mb-3">📸</div>
+                    <div className="text-3xl mb-3">🦷</div>
                     <span className="font-bold text-slate-850 dark:text-white text-sm block mb-1">No Clinical Media Available</span>
                     <p className="max-w-md text-xs text-slate-400 dark:text-slate-550 mb-4 leading-normal font-medium">
-                      Record a patient consent video or add clinical photographs.
+                      Upload patient photos, X-rays, videos, or treatment documents to build the patient's clinical history.
                     </p>
                     <Button 
-                      onClick={() => document.getElementById("photo-upload-input")?.click()}
+                      onClick={() => document.getElementById("media-file-upload-input")?.click()}
                       className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-9 rounded-lg px-4"
                     >
-                      <Upload className="h-4 w-4 mr-1.5" /> Upload Clinical Photo
+                      <Upload className="h-4 w-4 mr-1.5" /> Upload Media
                     </Button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
                     {patientMedia
-                      .filter(m => m.patientId === selectedPatientId && (m.category === "Clinical Photos" || m.category === "Consent Videos") && (mediaFilter === "All" || m.category === mediaFilter))
+                      .filter(m => m.patientId === selectedPatientId && (mediaFilter === "All" || m.category === mediaFilter))
                       .slice()
                       .reverse()
-                      .map((media) => {
-                        const isVideo = media.category === "Consent Videos";
-                        return (
-                          <div key={media.id} className="group bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
-                            {/* Thumbnail Area */}
-                            <div 
-                              onClick={() => setSelectedMediaForPreview(media)}
-                              className="relative aspect-video bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center overflow-hidden cursor-pointer"
-                            >
-                              {isVideo ? (
-                                <div className="flex flex-col items-center gap-1.5 text-slate-400">
-                                  <Play className="h-8 w-8 text-blue-500 animate-pulse" />
-                                  <span className="text-[10px] font-semibold uppercase tracking-wider">Video Clip</span>
-                                  {media.duration && (
-                                    <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-white text-[9px] font-bold">
-                                      {media.duration}
-                                    </span>
-                                  )}
-                                </div>
-                              ) : (
-                                <img src={media.url} alt={media.name} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300" />
-                              )}
+                      .map((media) => (
+                        <div key={media.id} className="group bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+                          {/* Thumbnail Area */}
+                          <div 
+                            onClick={() => setSelectedMediaForPreview(media)}
+                            className="relative aspect-video bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center overflow-hidden cursor-pointer"
+                          >
+                            {media.type.startsWith("image/") ? (
+                              <img src={media.url} alt={media.name} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300" />
+                            ) : media.type.startsWith("video/") ? (
+                              <div className="flex flex-col items-center gap-1.5 text-slate-400">
+                                <Play className="h-8 w-8 text-blue-500 animate-pulse" />
+                                <span className="text-[10px] font-semibold uppercase tracking-wider">Video Clip</span>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center gap-1.5 text-slate-400">
+                                <FileText className="h-8 w-8 text-rose-500" />
+                                <span className="text-[10px] font-semibold uppercase tracking-wider">PDF Document</span>
+                              </div>
+                            )}
 
-                              {/* Category Badge Overlay */}
-                              <span className="absolute top-2 left-2 px-2 py-0.5 rounded-[4px] bg-slate-900/80 text-white text-[8.5px] font-extrabold uppercase tracking-wider backdrop-blur-xs">
-                                {media.category}
+                            {/* Category Badge Overlay */}
+                            <span className="absolute top-2 left-2 px-2 py-0.5 rounded-[4px] bg-slate-900/80 text-white text-[8.5px] font-extrabold uppercase tracking-wider backdrop-blur-xs">
+                              {media.category}
+                            </span>
+                          </div>
+
+                          {/* Info Area */}
+                          <div className="p-4 flex-1 flex flex-col justify-between gap-3 text-xs font-semibold">
+                            <div className="space-y-1">
+                              <span 
+                                onClick={() => setSelectedMediaForPreview(media)}
+                                className="font-bold text-slate-855 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer block truncate text-xs"
+                                title={media.name}
+                              >
+                                {media.name}
                               </span>
+                              <div className="flex justify-between items-center text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                                <span>{media.uploadDate}</span>
+                                <span>By {media.uploadedBy}</span>
+                              </div>
                             </div>
 
-                            {/* Info Area */}
-                            <div className="p-4 flex-1 flex flex-col justify-between gap-3 text-xs font-semibold">
-                              <div className="space-y-1">
-                                <span 
-                                  onClick={() => setSelectedMediaForPreview(media)}
-                                  className="font-bold text-slate-855 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer block truncate text-xs"
-                                  title={media.name}
-                                >
-                                  {media.name}
-                                </span>
-                                <div className="flex justify-between items-center text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                                  <span>{media.uploadDate}</span>
-                                  <span>By {media.uploadedBy}</span>
-                                </div>
+                            {/* Linked Associations Tags */}
+                            {(media.toothNumber || media.treatment || media.appointment || media.prescription) && (
+                              <div className="pt-2.5 border-t border-slate-50 dark:border-slate-905 flex flex-wrap gap-1">
+                                {media.toothNumber && (
+                                  <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-705 dark:bg-blue-955/30 dark:text-blue-400 text-[9px] font-extrabold">
+                                    Tooth #{media.toothNumber}
+                                  </span>
+                                )}
+                                {media.treatment && (
+                                  <span className="px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-705 dark:bg-cyan-955/30 dark:text-cyan-400 text-[9px] font-extrabold truncate max-w-[120px]" title={media.treatment}>
+                                    {media.treatment}
+                                  </span>
+                                )}
+                                {media.appointment && (
+                                  <span className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-705 dark:bg-purple-955/30 dark:text-purple-400 text-[9px] font-extrabold truncate max-w-[120px]" title={media.appointment}>
+                                    {media.appointment}
+                                  </span>
+                                )}
+                                {media.prescription && (
+                                  <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-705 dark:bg-emerald-955/30 dark:text-emerald-400 text-[9px] font-extrabold truncate max-w-[120px]" title={media.prescription}>
+                                    {media.prescription}
+                                  </span>
+                                )}
                               </div>
+                            )}
 
-                              {/* Actions Footer */}
-                              <div className="pt-2 border-t border-slate-100 dark:border-slate-850 flex justify-between items-center gap-2 text-[11px] font-bold text-slate-505 dark:text-slate-400">
-                                <button 
-                                  onClick={() => setSelectedMediaForPreview(media)}
-                                  className="hover:text-slate-800 dark:hover:text-white"
-                                >
-                                  View
-                                </button>
-                                <button 
-                                  onClick={() => {
-                                    setPatientMedia(prev => prev.filter(m => m.id !== media.id));
-                                    showToast("Clinical media file deleted.", "success");
-                                  }}
-                                  className="text-red-505 hover:underline"
-                                >
-                                  Delete
-                                </button>
-                              </div>
+                            {/* Actions Footer */}
+                            <div className="pt-2 border-t border-slate-100 dark:border-slate-850 flex justify-between items-center gap-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                              <button 
+                                onClick={() => setSelectedMediaForPreview(media)}
+                                className="hover:text-slate-800 dark:hover:text-white"
+                              >
+                                View
+                              </button>
+                              <a 
+                                href={media.url}
+                                download={media.name}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="hover:text-slate-800 dark:hover:text-white"
+                              >
+                                Download
+                              </a>
+                              <button 
+                                onClick={() => setMediaToEdit(media)}
+                                className="hover:text-slate-800 dark:hover:text-white"
+                              >
+                                Rename
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  setPatientMedia(prev => prev.filter(m => m.id !== media.id));
+                                  showToast("Clinical media file deleted.", "success");
+                                }}
+                                className="text-red-505 hover:underline"
+                              >
+                                Delete
+                              </button>
                             </div>
                           </div>
-                        );
-                      })}
+                        </div>
+                      ))}
                   </div>
                 )}
 
@@ -6746,59 +6152,21 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           sidebarCollapsed ? "w-[68px]" : "w-[200px]"
         }`}
       >
-        <div className={`relative border-b border-slate-200 dark:border-slate-800 flex shrink-0 transition-all duration-200 ease-in-out overflow-hidden ${
+        <div className={`border-b border-slate-200 dark:border-slate-800 flex items-center shrink-0 transition-all duration-300 ease-in-out overflow-hidden h-20 ${
           sidebarCollapsed
-            ? "h-24 flex-col justify-center items-center px-2 py-3 gap-2"
-            : "h-20 flex-row items-center px-[16px] justify-between"
+            ? "px-2 justify-center gap-1.5"
+            : "px-4 py-5 justify-between"
         }`}>
-          {/* Brand Group: Logo & Text */}
-          <div className={`flex items-center transition-all duration-200 ease-in-out ${
-            sidebarCollapsed ? "flex-col justify-center gap-0" : "flex-row gap-[14px] flex-grow min-w-0"
+          <div className={`flex items-center transition-all duration-300 ease-in-out overflow-hidden ${
+            sidebarCollapsed ? "justify-center" : "justify-start min-w-0"
           }`}>
-            {/* Logo Container */}
-            <div className={`relative flex items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 shadow-md shadow-blue-500/20 transition-all duration-200 ease-in-out shrink-0 ${
-              sidebarCollapsed ? "h-[44px] w-[44px] rounded-xl" : "h-[46px] w-[46px]"
-            }`}>
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`text-white transition-all duration-200 ${sidebarCollapsed ? "h-5 w-5" : "h-6 w-6"}`}
-              >
-                <path d="M12 2v20M2 12h20" strokeWidth="2.5" />
-                <circle cx="12" cy="12" r="4" fill="none" strokeWidth="1.5" className="stroke-cyan-300" />
-              </svg>
-              {/* Animated Cyan Pulse Dot */}
-              <div className={`absolute rounded-full bg-cyan-300 animate-pulse border-2 border-white transition-all duration-200 ${
-                sidebarCollapsed ? "-right-0.5 -top-0.5 h-2.5 w-2.5 border" : "-right-0.5 -top-0.5 h-3 w-3"
-              }`} />
-            </div>
-
-            {/* Text Container */}
-            <div className={`flex flex-col text-left transition-all duration-200 ease-in-out origin-left ${
-              sidebarCollapsed 
-                ? "opacity-0 max-w-0 max-h-0 overflow-hidden pointer-events-none" 
-                : "opacity-100 max-w-[120px] max-h-12 flex-grow"
-            }`}>
-              <span className="text-[18px] font-bold tracking-tight text-slate-900 dark:text-white leading-none whitespace-nowrap">
-                Heal
-              </span>
-              <span className="text-[12px] font-medium text-slate-400 dark:text-slate-500 mt-[4px] whitespace-nowrap leading-none">
-                Dental Practice
-              </span>
-            </div>
+            <DentalLogo showText={!sidebarCollapsed} collapsed={sidebarCollapsed} />
           </div>
-
-          {/* Collapse/Expand Toggle Button */}
+          
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className={`rounded-full flex items-center justify-center text-slate-505 hover:text-blue-600 dark:hover:text-white transition-all duration-200 ease-in-out shrink-0 active:scale-[0.95] ${
-              sidebarCollapsed 
-                ? "h-6 w-6 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 mt-1" 
-                : "h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-900"
+            className={`rounded-full flex items-center justify-center hover:bg-[#EFF6FF] hover:text-blue-600 text-slate-500 transition-all duration-250 ease-in-out shrink-0 active:scale-[0.97] ${
+              sidebarCollapsed ? "h-6 w-6" : "h-8 w-8 ml-1"
             }`}
             title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
@@ -6829,9 +6197,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="relative flex items-center justify-center h-[20px] w-[20px] shrink-0">
-                        <span className={active ? "text-white" : "text-slate-400 group-hover:text-blue-600 dark:group-hover:text-slate-205"}>
-                          {React.cloneElement(item.icon, { className: "h-[20px] w-[20px]" })}
+                      <div className="relative flex items-center justify-center h-[22px] w-[22px] shrink-0">
+                        <span className={active ? "text-white" : "text-slate-500 group-hover:text-blue-600 dark:text-slate-400 dark:group-hover:text-white transition-colors"}>
+                          {React.cloneElement(item.icon, { className: "h-[22px] w-[22px]" })}
                         </span>
                         {item.badge && sidebarCollapsed && (
                           <span className="absolute -top-1.5 -right-1.5 text-[10px] font-medium h-4 min-w-4 px-1 rounded-full bg-red-650 text-white border-2 border-white dark:border-slate-955 flex items-center justify-center shadow-xs">
@@ -6925,14 +6293,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         <header className="h-20 bg-white dark:bg-slate-955 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 flex items-center justify-between px-6 shrink-0">
           
           <div className="flex items-center gap-7 flex-grow">
-            {sidebarCollapsed && (
-              <span className="text-[22px] font-bold text-slate-900 dark:text-white shrink-0 hidden md:inline-block animate-fadeIn">
-                {activeConsultationApptId 
-                  ? "Active Consultation" 
-                  : (activeTab === "Patients" && selectedPatientId ? "Patient Profile" : activeTab)
-                }
-              </span>
-            )}
+            <span className="text-[22px] font-bold text-slate-900 dark:text-white shrink-0 hidden md:inline-block">
+              {activeTab === "Dashboard" && !sidebarCollapsed ? null : activeTab}
+            </span>
             <div className="flex items-center gap-3 flex-grow max-w-[540px] w-full relative">
               <button
                 onClick={() => setMobileMenuOpen(true)}
