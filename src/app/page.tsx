@@ -340,7 +340,7 @@ interface ClinicalMedia {
   patientId: string;
   name: string;
   type: string;
-  category: "Clinical Photos" | "X-rays" | "Videos" | "Scans" | "Documents" | "Treatment Progress";
+  category: "Clinical Photos" | "Consent Video Recordings";
   url: string;
   uploadDate: string;
   uploadedBy: string;
@@ -516,9 +516,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     {
       id: "media-1",
       patientId: "DS-1001",
-      name: "panorex_xray_mehta.png",
+      name: "intraoral_photo_mehta.png",
       type: "image/png",
-      category: "X-rays",
+      category: "Clinical Photos",
       url: "https://images.unsplash.com/photo-1606811971618-4486d14f3f99?q=80&w=600&auto=format&fit=crop",
       uploadDate: "12 Aug 2026",
       uploadedBy: "Dr. Deepa Kodali",
@@ -530,10 +530,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     {
       id: "media-2",
       patientId: "DS-1001",
-      name: "clinical_report.pdf",
-      type: "application/pdf",
-      category: "Documents",
-      url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+      name: "patient_consent_recording.mp4",
+      type: "video/mp4",
+      category: "Consent Video Recordings",
+      url: "https://www.w3schools.com/html/mov_bbb.mp4",
       uploadDate: "10 Aug 2026",
       uploadedBy: "Dr. Deepa Kodali",
       treatment: "Consultation",
@@ -596,29 +596,17 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const filesArray = Array.from(e.target.files);
     
     const newMediaItems: ClinicalMedia[] = filesArray.map((file, idx) => {
-      let cat: any = "Clinical Photos";
-      if (file.type.startsWith("image/")) {
-        if (file.name.toLowerCase().includes("xray") || file.name.toLowerCase().includes("x-ray")) {
-          cat = "X-rays";
-        } else if (file.name.toLowerCase().includes("scan")) {
-          cat = "Scans";
-        }
-      } else if (file.type.startsWith("video/")) {
-        cat = "Videos";
-      } else if (file.type === "application/pdf") {
-        cat = "Documents";
-      }
+      const isVideo = file.type.startsWith("video/") || file.name.endsWith(".mp4") || file.name.endsWith(".mov") || file.name.endsWith(".avi");
+      const cat: "Clinical Photos" | "Consent Video Recordings" = isVideo ? "Consent Video Recordings" : "Clinical Photos";
       
       return {
         id: `media-${Date.now()}-${idx}`,
         patientId: selectedPatientId || "",
         name: file.name,
-        type: file.type || "image/png",
+        type: isVideo ? (file.type || "video/mp4") : (file.type || "image/png"),
         category: cat,
-        url: file.type.startsWith("video/")
+        url: isVideo
           ? "https://www.w3schools.com/html/mov_bbb.mp4"
-          : file.type === "application/pdf"
-          ? "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
           : "https://images.unsplash.com/photo-1606811971618-4486d14f3f99?q=80&w=600&auto=format&fit=crop",
         uploadDate: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
         uploadedBy: prescDoctor || (doctors[0]?.name || "Dr. Deepa Kodali")
@@ -5262,13 +5250,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   <div className="space-y-1">
                     <span className="font-bold text-slate-805 dark:text-white text-xs block">Clinical Repository</span>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                      Supported file types: Photos, X-rays, Smile Photos, Scans, PDF Clinical Reports, and Videos.
+                      Upload patient clinical photos or consent video recordings.
                     </p>
                   </div>
                   <div>
                     <input 
                       type="file" 
                       id="media-file-upload-input" 
+                      accept=".jpg,.jpeg,.png,.webp,.mp4,.mov,.avi,image/*,video/*"
                       multiple 
                       className="hidden" 
                       onChange={handleMockMediaUpload} 
@@ -5284,7 +5273,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
                 {/* Media Filter Tabs */}
                 <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none border-b border-slate-100 dark:border-slate-800 pb-2.5 shrink-0 text-[11px] font-semibold">
-                  {["All", "Clinical Photos", "X-rays", "Videos", "Scans", "Documents", "Treatment Progress"].map((cat) => {
+                  {["All", "Clinical Photos", "Consent Video Recordings"].map((cat) => {
                     const active = mediaFilter === cat;
                     return (
                       <button
@@ -5308,7 +5297,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     <div className="text-3xl mb-3">🦷</div>
                     <span className="font-bold text-slate-850 dark:text-white text-sm block mb-1">No Clinical Media Available</span>
                     <p className="max-w-md text-xs text-slate-400 dark:text-slate-550 mb-4 leading-normal font-medium">
-                      Upload patient photos, X-rays, videos, or treatment documents to build the patient's clinical history.
+                      Upload patient clinical photos or consent video recordings to build the patient's clinical history.
                     </p>
                     <Button 
                       onClick={() => document.getElementById("media-file-upload-input")?.click()}
@@ -5332,15 +5321,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           >
                             {media.type.startsWith("image/") ? (
                               <img src={media.url} alt={media.name} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300" />
-                            ) : media.type.startsWith("video/") ? (
-                              <div className="flex flex-col items-center gap-1.5 text-slate-400">
-                                <Play className="h-8 w-8 text-blue-500 animate-pulse" />
-                                <span className="text-[10px] font-semibold uppercase tracking-wider">Video Clip</span>
-                              </div>
                             ) : (
                               <div className="flex flex-col items-center gap-1.5 text-slate-400">
-                                <FileText className="h-8 w-8 text-rose-500" />
-                                <span className="text-[10px] font-semibold uppercase tracking-wider">PDF Document</span>
+                                <Play className="h-8 w-8 text-blue-500 animate-pulse" />
+                                <span className="text-[10px] font-semibold uppercase tracking-wider">Consent Video</span>
                               </div>
                             )}
 
@@ -5434,7 +5418,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 {/* Media Preview Modal */}
                 {selectedMediaForPreview && (
                   <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fadeIn">
-                    <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-3xl overflow-hidden shadow-xl flex flex-col max-h-[90vh]">
+                    <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-3xl overflow-hidden shadow-xl flex flex-col max-h-[90vh]">
                       {/* Modal Header */}
                       <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 dark:border-slate-850 shrink-0">
                         <div className="flex flex-col gap-0.5">
@@ -5456,10 +5440,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <div className="flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-slate-900/40 flex justify-center items-center">
                         {selectedMediaForPreview.type.startsWith("image/") ? (
                           <img src={selectedMediaForPreview.url} alt={selectedMediaForPreview.name} className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm" />
-                        ) : selectedMediaForPreview.type.startsWith("video/") ? (
-                          <video src={selectedMediaForPreview.url} controls className="max-w-full max-h-[60vh] rounded-lg shadow-sm" autoPlay />
                         ) : (
-                          <iframe src={selectedMediaForPreview.url} className="w-full h-[60vh] rounded-lg border border-slate-200 dark:border-slate-805" title={selectedMediaForPreview.name} />
+                          <video src={selectedMediaForPreview.url} controls className="max-w-full max-h-[60vh] rounded-lg shadow-sm" autoPlay />
                         )}
                       </div>
 
@@ -5503,7 +5485,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fadeIn">
                     <form 
                       onSubmit={handleSaveMediaMetadata}
-                      className="bg-white dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-2xl w-full max-w-md overflow-hidden shadow-xl flex flex-col p-6 space-y-4 text-xs font-semibold"
+                      className="bg-white dark:bg-slate-955 border border-slate-205 dark:border-slate-850 rounded-2xl w-full max-w-md overflow-hidden shadow-xl flex flex-col p-6 space-y-4 text-xs font-semibold"
                     >
                       <div className="flex justify-between items-center border-b pb-3 mb-2 shrink-0">
                         <span className="font-bold text-slate-850 dark:text-white text-sm">Edit Media Details</span>
@@ -5530,11 +5512,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                             onChange={e => setEditMediaCategory(e.target.value as any)}
                           >
                             <option value="Clinical Photos">Clinical Photos</option>
-                            <option value="X-rays">X-rays</option>
-                            <option value="Videos">Videos</option>
-                            <option value="Scans">Scans</option>
-                            <option value="Documents">Documents</option>
-                            <option value="Treatment Progress">Treatment Progress</option>
+                            <option value="Consent Video Recordings">Consent Video Recordings</option>
                           </select>
                         </div>
 
