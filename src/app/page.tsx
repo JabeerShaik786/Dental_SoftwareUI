@@ -688,6 +688,38 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }, 200);
   };
 
+  // --- BOOKED CALENDAR SLOT HOVER POPOVER STATE ---
+  interface HoveredSlotPopover {
+    appointment: Appointment;
+    rect: { top: number; left: number; width: number; height: number };
+  }
+
+  const [hoveredSlotPopover, setHoveredSlotPopover] = useState<HoveredSlotPopover | null>(null);
+  const slotHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleSlotMouseEnter = (rect: DOMRect, appt: Appointment) => {
+    if (slotHoverTimeoutRef.current) {
+      clearTimeout(slotHoverTimeoutRef.current);
+      slotHoverTimeoutRef.current = null;
+    }
+    setHoveredSlotPopover({
+      appointment: appt,
+      rect: {
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height
+      }
+    });
+  };
+
+  const handleSlotMouseLeave = () => {
+    if (slotHoverTimeoutRef.current) clearTimeout(slotHoverTimeoutRef.current);
+    slotHoverTimeoutRef.current = setTimeout(() => {
+      setHoveredSlotPopover(null);
+    }, 200);
+  };
+
   // Custom toast notifications and directory queries
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [patientsDirectoryQuery, setPatientsDirectoryQuery] = useState("");
@@ -2436,8 +2468,19 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         key={time}
                         type="button"
                         onClick={() => {
+                          setHoveredSlotPopover(null);
                           setSlotPatientId("");
                           setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
+                        }}
+                        onMouseEnter={(e) => {
+                          if (appt) {
+                            handleSlotMouseEnter(e.currentTarget.getBoundingClientRect(), appt);
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          if (appt) {
+                            handleSlotMouseLeave();
+                          }
                         }}
                         className={`slot-btn ${!appt && !isBlocked ? "slot-btn-empty" : ""} p-2.5 rounded-xl border text-[10px] transition-all ${
                           appt 
@@ -2451,7 +2494,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <>
                             <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
                             <div className="w-full mt-1">
-                              <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
                               <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
                                 {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
                               </span>
@@ -2515,8 +2557,19 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                         key={time}
                         type="button"
                         onClick={() => {
+                          setHoveredSlotPopover(null);
                           setSlotPatientId("");
                           setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
+                        }}
+                        onMouseEnter={(e) => {
+                          if (appt) {
+                            handleSlotMouseEnter(e.currentTarget.getBoundingClientRect(), appt);
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          if (appt) {
+                            handleSlotMouseLeave();
+                          }
                         }}
                         className={`slot-btn ${!appt && !isBlocked ? "slot-btn-empty" : ""} p-2.5 rounded-xl border text-[10px] transition-all ${
                           appt 
@@ -2530,7 +2583,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <>
                             <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
                             <div className="w-full mt-1">
-                              <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
                               <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
                                 {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
                               </span>
@@ -7460,6 +7512,92 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
         </div>
       )}
+
+      {/* Floating Hover Popover Card for Booked Calendar Slots */}
+      {hoveredSlotPopover && (() => {
+        const { appointment: app, rect } = hoveredSlotPopover;
+        const pat = patients.find(p => p.id === app.patientId);
+        const patPhone = pat?.phone || "+91 99000 11000";
+        const patId = pat?.id || app.patientId || "DS-1001";
+
+        const popoverWidth = 270;
+        const popoverHeight = 220;
+
+        let left = rect.left + rect.width + 10;
+        if (typeof window !== "undefined" && left + popoverWidth > window.innerWidth - 20) {
+          left = Math.max(10, rect.left - popoverWidth - 10);
+        }
+
+        let top = rect.top;
+        if (typeof window !== "undefined" && top + popoverHeight > window.innerHeight - 20) {
+          top = Math.max(10, window.innerHeight - popoverHeight - 20);
+        }
+
+        return (
+          <div
+            style={{ top: `${top}px`, left: `${left}px`, width: `${popoverWidth}px`, zIndex: 9999 }}
+            onMouseEnter={() => {
+              if (slotHoverTimeoutRef.current) {
+                clearTimeout(slotHoverTimeoutRef.current);
+                slotHoverTimeoutRef.current = null;
+              }
+            }}
+            onMouseLeave={() => {
+              if (slotHoverTimeoutRef.current) clearTimeout(slotHoverTimeoutRef.current);
+              slotHoverTimeoutRef.current = setTimeout(() => {
+                setHoveredSlotPopover(null);
+              }, 200);
+            }}
+            onClick={() => {
+              setHoveredSlotPopover(null);
+              setSlotPatientId("");
+              setSelectedSlotData({ date: app.date, time: app.time, appointment: app });
+            }}
+            className="fixed bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xl text-xs space-y-2.5 animate-fadeIn cursor-pointer"
+          >
+            {/* Header: Patient Name & Status Badge */}
+            <div className="flex justify-between items-start gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+              <div className="min-w-0 flex-1">
+                <span className="font-bold text-sm text-slate-900 dark:text-white block leading-snug truncate">{app.patientName}</span>
+                <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 block mt-0.5">ID: {patId}</span>
+              </div>
+              <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider shrink-0 ${
+                app.status === "Scheduled" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300" :
+                app.status === "Checked In" || app.status === "Waiting" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300" :
+                app.status === "In Procedure" ? "bg-orange-100 text-orange-700 dark:bg-orange-900/60 dark:text-orange-300" :
+                app.status === "Completed" ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300" : "bg-slate-100 text-slate-600"
+              }`}>
+                {app.status}
+              </span>
+            </div>
+
+            {/* Details List */}
+            <div className="space-y-1.5 text-[11px] text-slate-600 dark:text-slate-300 font-medium">
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-normal">Appt Time:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{app.time}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-normal">Doctor:</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{app.doctor}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-normal">Treatment:</span>
+                <span className="font-semibold text-blue-600 dark:text-blue-400 truncate max-w-[140px]">{app.treatment}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-normal">Mobile:</span>
+                <span className="font-medium text-slate-700 dark:text-slate-300">{patPhone}</span>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between text-[10px] text-blue-600 dark:text-blue-400 font-bold">
+              <span>Click slot to manage details</span>
+              <span>→</span>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
