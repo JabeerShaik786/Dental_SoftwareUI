@@ -134,6 +134,7 @@ interface Doctor {
   name: string;
   speciality: string;
   status: "Available" | "In Consultation" | "On Break" | "Finished Today";
+  avatar?: string;
 }
 
 interface TreatmentItem {
@@ -3386,41 +3387,79 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
             <hr className="border-slate-100 dark:border-slate-800" />
 
-            {/* Doctors Initials/Avatar Selector Grid */}
-            <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-1">All Doctors</span>
-            <div className="flex flex-wrap gap-2.5 pt-1">
-              <div 
+            {/* Doctor Filter Header */}
+            <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Doctors Directory</span>
+
+            {/* Vertical Doctor List */}
+            <div className="space-y-2 max-h-[380px] overflow-y-auto scrollbar-thin pr-0.5">
+              {/* All Doctors Pinned Row */}
+              <div
                 onClick={() => setApptSelectedDoctor("All")}
-                title="Show All Doctors"
-                className={`h-8 w-8 rounded-full font-bold text-[10px] flex items-center justify-center cursor-pointer transition-all border ${
+                className={`p-2 rounded-xl border flex items-center gap-2.5 cursor-pointer transition-all ${
                   apptSelectedDoctor === "All"
-                    ? "bg-blue-600 border-blue-700 text-white shadow-sm ring-1 ring-blue-500 ring-offset-2 dark:ring-offset-slate-955 scale-105"
-                    : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
+                    ? "bg-blue-600 border-blue-600 text-white shadow-xs"
+                    : "bg-slate-50/60 hover:bg-slate-100 dark:bg-slate-900/50 dark:hover:bg-slate-900 border-slate-100 dark:border-slate-800/70 text-slate-700 dark:text-slate-300"
                 }`}
               >
-                ALL
+                <div className={`h-10 w-10 rounded-full font-bold text-xs flex items-center justify-center shrink-0 ${
+                  apptSelectedDoctor === "All"
+                    ? "bg-white/20 text-white"
+                    : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                }`}>
+                  <Users className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className={`block font-bold text-[13px] leading-tight truncate ${apptSelectedDoctor === "All" ? "text-white" : "text-slate-900 dark:text-white"}`}>
+                    All Doctors
+                  </span>
+                  <span className={`block text-[11px] font-normal leading-tight truncate mt-0.5 ${apptSelectedDoctor === "All" ? "text-blue-100" : "text-slate-400 dark:text-slate-400"}`}>
+                    All Practitioners
+                  </span>
+                </div>
               </div>
+
+              {/* Doctor Directory Rows */}
               {doctors.map((doc, idx) => {
                 const isActive = apptSelectedDoctor === doc.name;
-                const initials = doc.name.replace("Dr. ", "").split(" ").map(n => n[0]).join("").toUpperCase();
+                const firstName = doc.name.replace(/^Dr\.\s*/i, "").split(" ")[0];
+                const initials = doc.name.replace(/^Dr\.\s*/i, "").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
                 const colors = [
-                  "bg-blue-100 border-blue-200 text-blue-700",
-                  "bg-purple-100 border-purple-200 text-purple-700",
-                  "bg-emerald-100 border-emerald-200 text-emerald-700",
-                  "bg-indigo-100 border-indigo-200 text-indigo-700",
-                  "bg-pink-100 border-pink-200 text-pink-700"
+                  "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300",
+                  "bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300",
+                  "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300",
+                  "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300",
+                  "bg-pink-100 text-pink-700 dark:bg-pink-900/60 dark:text-pink-300"
                 ];
                 const avatarColor = colors[idx % colors.length];
+
                 return (
                   <div
                     key={doc.name}
                     onClick={() => setApptSelectedDoctor(isActive ? "All" : doc.name)}
-                    title={doc.name}
-                    className={`h-8 w-8 rounded-full font-bold text-[10px] flex items-center justify-center cursor-pointer transition-all border ${avatarColor} ${
-                      isActive ? "ring-1 ring-blue-500 ring-offset-2 dark:ring-offset-slate-955 scale-105" : "hover:opacity-90"
+                    className={`p-2 rounded-xl border flex items-center gap-2.5 cursor-pointer transition-all ${
+                      isActive
+                        ? "bg-blue-600 border-blue-600 text-white shadow-xs"
+                        : "bg-slate-50/60 hover:bg-slate-100 dark:bg-slate-900/50 dark:hover:bg-slate-900 border-slate-100 dark:border-slate-800/70 text-slate-700 dark:text-slate-300"
                     }`}
                   >
-                    {initials}
+                    {doc.avatar ? (
+                      <img src={doc.avatar} alt={doc.name} className="h-10 w-10 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className={`h-10 w-10 rounded-full font-bold text-xs flex items-center justify-center shrink-0 ${
+                        isActive ? "bg-white/20 text-white" : avatarColor
+                      }`}>
+                        {initials}
+                      </div>
+                    )}
+                    
+                    <div className="min-w-0 flex-1">
+                      <span className={`block font-bold text-[13px] leading-tight truncate ${isActive ? "text-white" : "text-slate-900 dark:text-white"}`}>
+                        {firstName}
+                      </span>
+                      <span className={`block text-[11px] font-normal leading-tight truncate mt-0.5 ${isActive ? "text-blue-100" : "text-slate-400 dark:text-slate-400"}`}>
+                        {doc.speciality || "Dentist"}
+                      </span>
+                    </div>
                   </div>
                 );
               })}
