@@ -2325,433 +2325,233 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     return (
       <div className="dashboard-container space-y-4 animate-fadeIn text-slate-700">
-        {/* SECTION 1 - Weekly Appointment Calendar (TOP CENTER) */}
-        <div className="calendar-card bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3 gap-3">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="font-semibold text-[18px] text-slate-900 dark:text-white">Weekly Appointment Calendar</span>
-              <span className="bg-blue-50 text-blue-755 dark:bg-blue-955/40 dark:text-blue-400 px-2.5 py-0.5 rounded-full text-[13px] font-semibold">
-                Total Appointments Today: {kpiCounts.todayAppointments}
-              </span>
-            </div>
-            <div className="text-xs font-black text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-lg">
-              {monthYearDisplay}
-            </div>
-          </div>
- 
-          {/* Day Selector Navigation Row */}
-          <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
-            <button
-              type="button"
-              onClick={handlePrevWeek}
-              className="h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-455 flex items-center justify-center transition-all cursor-pointer select-none active:scale-90 shrink-0"
-              title="Previous Week"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            
-            <div className="flex-1 grid grid-cols-7 gap-2">
-              {CALENDAR_DAYS.map((d) => {
-                const isActive = selectedCalendarDay === d.date;
-                const hasAppts = appointments.some(a => a.date === d.date && a.status !== "Cancelled");
-                return (
-                  <button
-                    key={d.date}
-                    type="button"
-                    onClick={() => setSelectedCalendarDay(d.date)}
-                    className={`day-btn flex flex-col items-center justify-center py-2.5 rounded-xl transition-all border outline-none cursor-pointer ${
-                      isActive
-                        ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-105"
-                        : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
-                    }`}
-                  >
-                    <span className="text-[12px] font-normal uppercase tracking-wider opacity-70 mb-0.5">{d.name}</span>
-                    <span className="text-[14px] font-medium flex items-center gap-1 leading-none">
-                      {parseInt(d.date.split(" ")[0])}
-                    </span>
-                    {hasAppts && (
-                      <span className={`h-1.5 w-1.5 rounded-full mt-1.5 ${isActive ? "bg-white" : "bg-blue-600"}`} />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            
-            <button
-              type="button"
-              onClick={handleNextWeek}
-              className="h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-455 flex items-center justify-center transition-all cursor-pointer select-none active:scale-90 shrink-0"
-              title="Next Week"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Time Slots Grid (Morning vs Evening) */}
-          <div className="flex flex-col lg:flex-row gap-6 mt-4 relative">
-            {/* Morning Column */}
-            <div className="flex-1 min-w-0 space-y-3">
-              <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-[14px] border-b pb-1.5">
-                <Sun className="h-4 w-4" />
-                <span>Morning Sessions (09:00 AM - 12:45 PM)</span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {MORNING_SLOTS.map((time) => {
-                  const appt = getApptForSlot(selectedCalendarDay, time);
-                  const isBlocked = blockedSlots[`${selectedCalendarDay}_${time}`];
-                  
-                  let btnStyle = "border-slate-100/70 hover:bg-slate-50/50 dark:border-slate-900/60 dark:hover:bg-slate-900/40";
-                  let statusText = "Available";
-                  let statusBadge = null;
-
-                  if (isBlocked) {
-                    btnStyle = "bg-slate-100/50 border-slate-100 text-slate-400 dark:bg-slate-900/40 dark:border-slate-900";
-                    statusText = "Blocked";
-                  } else if (appt) {
-                    statusText = appt.patientName;
-                    const st = appt.status;
-                    if (st === "Scheduled") statusBadge = "bg-blue-600 text-white";
-                    else if (st === "Checked In" || st === "Waiting") statusBadge = "bg-emerald-600 text-white";
-                    else if (st === "In Procedure") statusBadge = "bg-orange-500 text-white";
-                    else if (st === "In Consultation") statusBadge = "bg-purple-600 text-white";
-                    else if (st === "Completed") statusBadge = "bg-slate-500 text-white";
-                    else if (st === "Cancelled") statusBadge = "bg-red-600 text-white";
-                  }
-
-                  return (
-                    <button
-                      key={time}
-                      type="button"
-                      onClick={() => {
-                        setSlotPatientId("");
-                        setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
-                      }}
-                      className={`slot-btn ${!appt && !isBlocked ? "slot-btn-empty" : ""} p-2.5 rounded-xl border text-[10px] transition-all ${
-                        appt 
-                          ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800 flex flex-col justify-between items-start text-left" 
-                          : isBlocked
-                            ? "bg-slate-100/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-900 flex flex-col justify-between items-start text-left"
-                            : "bg-slate-50/20 border-dashed border-slate-200/60 dark:bg-slate-900/10 dark:border-slate-800/40 opacity-75 flex items-center justify-center text-center"
-                      } h-20 ${btnStyle}`}
-                    >
-                      {appt ? (
-                        <>
-                          <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
-                          <div className="w-full mt-1">
-                            <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
-                            <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
-                              {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
-                            </span>
-                          </div>
-                        </>
-                      ) : isBlocked ? (
-                        <>
-                          <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
-                          <span className="slot-open-label text-[9px] font-bold flex items-center gap-1 mt-1 text-slate-400">
-                            🔒 Blocked
-                          </span>
-                        </>
-                      ) : (
-                        <span className="slot-time">{formatTo24h(time)}</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Vertical Divider */}
-            <div className="hidden lg:block w-[1px] bg-slate-200 dark:bg-slate-800 self-stretch" />
-
-            {/* Evening Column */}
-            <div className="flex-1 min-w-0 space-y-3">
-              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-[14px] border-b pb-1.5">
-                <Moon className="h-4 w-4" />
-                <span>Evening Sessions (04:30 PM - 08:15 PM)</span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {EVENING_SLOTS.map((time) => {
-                  const appt = getApptForSlot(selectedCalendarDay, time);
-                  const isBlocked = blockedSlots[`${selectedCalendarDay}_${time}`];
-                  
-                  let btnStyle = "border-slate-100/70 hover:bg-slate-50/50 dark:border-slate-900/60 dark:hover:bg-slate-900/40";
-                  let statusText = "Available";
-                  let statusBadge = null;
-
-                  if (isBlocked) {
-                    btnStyle = "bg-slate-100/50 border-slate-100 text-slate-400 dark:bg-slate-900/40 dark:border-slate-900";
-                    statusText = "Blocked";
-                  } else if (appt) {
-                    statusText = appt.patientName;
-                    const st = appt.status;
-                    if (st === "Scheduled") statusBadge = "bg-blue-600 text-white";
-                    else if (st === "Checked In" || st === "Waiting") statusBadge = "bg-emerald-600 text-white";
-                    else if (st === "In Procedure") statusBadge = "bg-orange-500 text-white";
-                    else if (st === "In Consultation") statusBadge = "bg-purple-600 text-white";
-                    else if (st === "Completed") statusBadge = "bg-slate-500 text-white";
-                    else if (st === "Cancelled") statusBadge = "bg-red-600 text-white";
-                  }
-
-                  return (
-                    <button
-                      key={time}
-                      type="button"
-                      onClick={() => {
-                        setSlotPatientId("");
-                        setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
-                      }}
-                      className={`slot-btn ${!appt && !isBlocked ? "slot-btn-empty" : ""} p-2.5 rounded-xl border text-[10px] transition-all ${
-                        appt 
-                          ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800 flex flex-col justify-between items-start text-left" 
-                          : isBlocked
-                            ? "bg-slate-100/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-900 flex flex-col justify-between items-start text-left"
-                            : "bg-slate-50/20 border-dashed border-slate-200/60 dark:bg-slate-900/10 dark:border-slate-800/40 opacity-75 flex items-center justify-center text-center"
-                      } h-20 ${btnStyle}`}
-                    >
-                      {appt ? (
-                        <>
-                          <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
-                          <div className="w-full mt-1">
-                            <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
-                            <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
-                              {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
-                            </span>
-                          </div>
-                        </>
-                      ) : isBlocked ? (
-                        <>
-                          <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
-                          <span className="slot-open-label text-[9px] font-bold flex items-center gap-1 mt-1 text-slate-400">
-                            🔒 Blocked
-                          </span>
-                        </>
-                      ) : (
-                        <span className="slot-time">{formatTo24h(time)}</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 3-Column Operational Layout */}
+        {/* TOP ROW: Weekly Appointment Calendar (LEFT) + Today's Schedule (RIGHT) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* SECTION 2 - Add Patient Panel (LEFT) */}
-          <div className="form-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
-            <span className="font-semibold text-[18px] block mb-[22px] shrink-0">Patient Registration</span>
-            
-            <form onSubmit={handleSavePatientQuick} className="flex-grow flex flex-col justify-between overflow-hidden">
-              {/* Form Content Wrapper */}
-              <div className="flex-1 overflow-y-auto pr-1.5 scrollbar-thin space-y-4 pb-2.5">
-                {/* Row 1 */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="qPatID" className="form-label-custom">Patient ID</Label>
-                    <Input id="qPatID" value={`DS-${1000 + patients.length + 1}`} disabled className="form-field-custom bg-slate-50 dark:bg-slate-900 opacity-60 cursor-not-allowed font-bold" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="qMobile" className="form-label-custom">Mobile Number</Label>
-                    <Input id="qMobile" placeholder="e.g. +91 99000 11000" value={quickMobile} onChange={e => setQuickMobile(e.target.value)} required className="form-field-custom" />
-                  </div>
-                </div>
-
-                {/* Row 2 */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="qFirstName" className="form-label-custom">First Name</Label>
-                    <Input id="qFirstName" placeholder="e.g. Rahul" value={quickFirstName} onChange={e => setQuickFirstName(e.target.value)} required className="form-field-custom" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="qLastName" className="form-label-custom">Last Name</Label>
-                    <Input id="qLastName" placeholder="e.g. Verma" value={quickLastName} onChange={e => setQuickLastName(e.target.value)} required className="form-field-custom" />
-                  </div>
-                </div>
-
-                {/* Row 3 */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="qAge" className="form-label-custom">Age</Label>
-                    <Input id="qAge" type="number" min="0" value={quickAge || ""} onChange={e => setQuickAge(parseInt(e.target.value) || 30)} required className="form-field-custom" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="qGender" className="form-label-custom">Gender</Label>
-                    <select
-                      id="qGender"
-                      className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
-                      value={quickGender}
-                      onChange={e => setQuickGender(e.target.value as "Male" | "Female")}
-                    >
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Row 4 */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="qLocation" className="form-label-custom">Location</Label>
-                    <Input id="qLocation" placeholder="e.g. Jayanagar" value={quickLocation} onChange={e => setQuickLocation(e.target.value)} className="form-field-custom" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="qBloodGroup" className="form-label-custom">Blood Group (Optional)</Label>
-                    <select
-                      id="qBloodGroup"
-                      className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
-                      value={quickBloodGroup}
-                      onChange={e => setQuickBloodGroup(e.target.value)}
-                    >
-                      <option value="">-- Choose --</option>
-                      <option value="A+">A+</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B-">B-</option>
-                      <option value="AB+">AB+</option>
-                      <option value="AB-">AB-</option>
-                      <option value="O+">O+</option>
-                      <option value="O-">O-</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Row 5 */}
-                <div className="space-y-1">
-                  <Label htmlFor="qEmail" className="form-label-custom">Email (Optional)</Label>
-                  <Input id="qEmail" type="email" placeholder="e.g. email@domain.com" value={quickEmail} onChange={e => setQuickEmail(e.target.value)} className="form-field-custom" />
-                </div>
-
-                {/* Row 6 */}
-                <div className="space-y-1">
-                  <Label htmlFor="qNotes" className="form-label-custom">Notes / Remarks</Label>
-                  <textarea
-                    id="qNotes"
-                    value={quickNotes}
-                    onChange={e => setQuickNotes(e.target.value)}
-                    rows={2}
-                    className="form-field-custom py-2 h-16 resize-none block w-full outline-none focus:ring-1 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
-                  />
-                </div>
+          {/* SECTION 1 - Weekly Appointment Calendar */}
+          <div className="calendar-card lg:col-span-8 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3 gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="font-semibold text-[18px] text-slate-900 dark:text-white">Weekly Appointment Calendar</span>
+                <span className="bg-blue-50 text-blue-755 dark:bg-blue-955/40 dark:text-blue-400 px-2.5 py-0.5 rounded-full text-[13px] font-semibold">
+                  Total Appointments Today: {kpiCounts.todayAppointments}
+                </span>
               </div>
-              
-              {/* Fixed Bottom Action Buttons docked to bottom */}
-              <div className="flex gap-2 pt-3 border-t border-slate-100/60 dark:border-slate-800/60 mt-auto shrink-0">
-                <Button type="button" variant="outline" onClick={handleClearPatientForm} className="form-btn-custom flex-1 text-[14px] font-semibold h-9 rounded-lg">Clear</Button>
-                <Button type="submit" className="form-btn-custom flex-1 text-[14px] font-semibold h-9 bg-blue-600 hover:bg-blue-500 text-white shadow-xs rounded-lg">Save Patient</Button>
-              </div>
-            </form>
-          </div>
-
-          {/* SECTION 3 - Recently Added Patients (CENTER) */}
-          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
-            <div className="flex justify-between items-center mb-3 shrink-0">
-              <span className="font-semibold text-[18px] block">Recently Added Patients</span>
-            </div>
-            
-            {/* Search, Filter, Sort Inputs */}
-            <div className="grid gap-2.5 grid-cols-3 mb-4 shrink-0">
-              <div className="col-span-3 relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search name, ID..."
-                  value={patientSearchQuery}
-                  onChange={e => setPatientSearchQuery(e.target.value)}
-                  className="h-8 pl-8 pr-2 w-full rounded-lg bg-slate-50 border border-slate-100 text-[14px] font-medium outline-none focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 dark:bg-slate-900 dark:border-slate-900/60"
-                />
-              </div>
-              <div className="relative col-span-1">
-                <select
-                  value={patientFilterGender}
-                  onChange={e => setPatientFilterGender(e.target.value)}
-                  className="h-8 w-full appearance-none rounded-lg border border-slate-100 bg-white pl-2.5 pr-8 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-900/60"
-                >
-                  <option value="All">Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none text-slate-450 dark:text-slate-400" />
-              </div>
-              <div className="relative col-span-2">
-                <select
-                  value={patientSortBy}
-                  onChange={e => setPatientSortBy(e.target.value)}
-                  className="h-8 w-full appearance-none rounded-lg border border-slate-100 bg-white pl-2.5 pr-8 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-900/60"
-                >
-                  <option value="Name-ASC">Sort: Name (A-Z)</option>
-                  <option value="Name-DESC">Sort: Name (Z-A)</option>
-                          <option value="ID-DESC">Sort: ID (Desc)</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none text-slate-450 dark:text-slate-400" />
+              <div className="text-xs font-black text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-lg">
+                {monthYearDisplay}
               </div>
             </div>
-
-            {/* Patient List container with simulated Infinite Scroll */}
-            <div className="flex-1 overflow-y-auto pr-1 flex flex-col">
-              {displayedPatients.length > 0 ? (
-                <div className="space-y-2.5 flex-1">
-                  {displayedPatients.map((pat) => (
-                    <div key={pat.id} className="patient-row py-2.5 flex justify-between items-center transition-all group border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
-                      <div className="min-w-0 flex-1 cursor-pointer" onClick={() => { setSelectedPatientId(pat.id); setActiveTab("Patients"); }}>
-                        <span className="patient-name-txt text-[16px] font-semibold text-slate-808 dark:text-slate-200 hover:text-blue-600 block truncate">{pat.name}</span>
-                        <p className="patient-sub-txt text-[12px] font-normal text-slate-455 mt-0.5">{pat.id} • {pat.phone}</p>
-                      </div>
-                      {/* Action Icons */}
-                      <div className="flex gap-1.5 ml-2">
-                        <button
-                          type="button"
-                          title="Book Appointment"
-                          onClick={() => {
-                            setSlotPatientId(pat.id);
-                            setSelectedSlotData({ date: selectedCalendarDay, time: "09:00 AM" });
-                          }}
-                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-blue-650 hover:bg-blue-50/50 dark:hover:bg-blue-955/30 transition-colors"
-                        >
-                          <CalendarDays className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          title="Dental Chart"
-                          onClick={() => {
-                            setSelectedPatientId(pat.id);
-                            setProfileSubTab("Dental Chart");
-                            setActiveTab("Patients");
-                          }}
-                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-purple-605 hover:bg-purple-50/50 dark:hover:bg-purple-955/30"
-                        >
-                          <Activity className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          title="Generate Bill"
-                          onClick={() => handleQuickGenerateBill(pat)}
-                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-emerald-605 hover:bg-emerald-50/50 dark:hover:bg-emerald-955/30"
-                        >
-                          <Receipt className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <p className="text-xs text-slate-400 py-6 text-center">No patients found</p>
-                </div>
-              )}
-            </div>
-
-            {/* Load More Button */}
-            {filteredPatients.length > patientVisibleCount && (
+   
+            {/* Day Selector Navigation Row */}
+            <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
               <button
                 type="button"
-                onClick={() => setPatientVisibleCount(prev => prev + 5)}
-                className="w-full h-8 mt-3 rounded-lg border border-dashed border-slate-300 text-slate-455 hover:bg-slate-50 text-[14px] font-bold shrink-0"
+                onClick={handlePrevWeek}
+                className="h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-455 flex items-center justify-center transition-all cursor-pointer select-none active:scale-90 shrink-0"
+                title="Previous Week"
               >
-                Load More Patients
+                <ChevronLeft className="h-4 w-4" />
               </button>
-            )}
+              
+              <div className="flex-1 grid grid-cols-7 gap-2">
+                {CALENDAR_DAYS.map((d) => {
+                  const isActive = selectedCalendarDay === d.date;
+                  const hasAppts = appointments.some(a => a.date === d.date && a.status !== "Cancelled");
+                  return (
+                    <button
+                      key={d.date}
+                      type="button"
+                      onClick={() => setSelectedCalendarDay(d.date)}
+                      className={`day-btn flex flex-col items-center justify-center py-2.5 rounded-xl transition-all border outline-none cursor-pointer ${
+                        isActive
+                          ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-105"
+                          : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
+                      }`}
+                    >
+                      <span className="text-[12px] font-normal uppercase tracking-wider opacity-70 mb-0.5">{d.name}</span>
+                      <span className="text-[14px] font-medium flex items-center gap-1 leading-none">
+                        {parseInt(d.date.split(" ")[0])}
+                      </span>
+                      {hasAppts && (
+                        <span className={`h-1.5 w-1.5 rounded-full mt-1.5 ${isActive ? "bg-white" : "bg-blue-600"}`} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <button
+                type="button"
+                onClick={handleNextWeek}
+                className="h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-455 flex items-center justify-center transition-all cursor-pointer select-none active:scale-90 shrink-0"
+                title="Next Week"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Split Sessions Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 relative">
+              {/* Vertical Column Separator Line */}
+              <div className="hidden md:block absolute left-1/2 top-1 bottom-1 w-px bg-slate-100 dark:bg-slate-800/80 -translate-x-1/2 pointer-events-none" />
+
+              {/* MORNING SLOTS */}
+              <div className="space-y-3 md:pr-2">
+                <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                  <Sun className="h-4 w-4 text-slate-700 dark:text-slate-300 shrink-0" />
+                  <span className="font-bold text-slate-900 dark:text-white text-sm">Morning Sessions</span>
+                  <span className="text-[11px] text-slate-400 font-medium ml-auto">09:00 AM - 01:00 PM</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {MORNING_SLOTS.map((time) => {
+                    const appt = getApptForSlot(selectedCalendarDay, time);
+                    const isBlocked = blockedSlots[`${selectedCalendarDay}_${time}`];
+                    
+                    let statusText = "Open Slot";
+                    let statusBadge = "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400";
+                    let btnStyle = "border-slate-200 hover:border-blue-300 dark:border-slate-800 hover:bg-blue-50/20";
+
+                    if (appt) {
+                      statusText = appt.patientName;
+                      if (appt.status === "Scheduled") {
+                        statusBadge = "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300";
+                        btnStyle = "border-blue-300 bg-blue-50/30 dark:border-blue-900 dark:bg-blue-950/20";
+                      } else if (appt.status === "Checked In" || appt.status === "Waiting") {
+                        statusBadge = "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300";
+                        btnStyle = "border-emerald-300 bg-emerald-50/30 dark:border-emerald-900 dark:bg-emerald-955/20";
+                      } else if (appt.status === "In Procedure") {
+                        statusBadge = "bg-orange-100 text-orange-700 dark:bg-orange-900/60 dark:text-orange-300";
+                        btnStyle = "border-orange-300 bg-orange-50/30 dark:border-orange-900 dark:bg-orange-955/20";
+                      } else if (appt.status === "Completed") {
+                        statusBadge = "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+                        btnStyle = "border-slate-200 bg-slate-50/40 dark:border-slate-800 dark:bg-slate-900/30";
+                      }
+                    } else if (isBlocked) {
+                      statusText = "Blocked";
+                      statusBadge = "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
+                      btnStyle = "border-slate-200 bg-slate-100/50 dark:border-slate-800 dark:bg-slate-900/50 opacity-60";
+                    }
+
+                    return (
+                      <button
+                        key={time}
+                        type="button"
+                        onClick={() => {
+                          setSlotPatientId("");
+                          setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
+                        }}
+                        className={`slot-btn ${!appt && !isBlocked ? "slot-btn-empty" : ""} p-2.5 rounded-xl border text-[10px] transition-all ${
+                          appt 
+                            ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800 flex flex-col justify-between items-start text-left" 
+                            : isBlocked
+                              ? "bg-slate-100/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-900 flex flex-col justify-between items-start text-left"
+                              : "bg-slate-50/20 border-dashed border-slate-200/60 dark:bg-slate-900/10 dark:border-slate-800/40 opacity-75 flex items-center justify-center text-center"
+                        } h-20 ${btnStyle}`}
+                      >
+                        {appt ? (
+                          <>
+                            <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
+                            <div className="w-full mt-1">
+                              <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
+                              <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
+                                {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
+                              </span>
+                            </div>
+                          </>
+                        ) : isBlocked ? (
+                          <>
+                            <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
+                            <span className="slot-open-label text-[9px] font-bold flex items-center gap-1 mt-1 text-slate-400">
+                              🔒 Blocked
+                            </span>
+                          </>
+                        ) : (
+                          <span className="slot-time">{formatTo24h(time)}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* EVENING SLOTS */}
+              <div className="space-y-3 md:pl-2">
+                <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                  <Moon className="h-4 w-4 text-slate-700 dark:text-slate-300 shrink-0" />
+                  <span className="font-bold text-slate-900 dark:text-white text-sm">Evening Sessions</span>
+                  <span className="text-[11px] text-slate-400 font-medium ml-auto">04:30 PM - 08:30 PM</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {EVENING_SLOTS.map((time) => {
+                    const appt = getApptForSlot(selectedCalendarDay, time);
+                    const isBlocked = blockedSlots[`${selectedCalendarDay}_${time}`];
+                    
+                    let statusText = "Open Slot";
+                    let statusBadge = "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400";
+                    let btnStyle = "border-slate-200 hover:border-blue-300 dark:border-slate-800 hover:bg-blue-50/20";
+
+                    if (appt) {
+                      statusText = appt.patientName;
+                      if (appt.status === "Scheduled") {
+                        statusBadge = "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300";
+                        btnStyle = "border-blue-300 bg-blue-50/30 dark:border-blue-900 dark:bg-blue-955/20";
+                      } else if (appt.status === "Checked In" || appt.status === "Waiting") {
+                        statusBadge = "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300";
+                        btnStyle = "border-emerald-300 bg-emerald-50/30 dark:border-emerald-900 dark:bg-emerald-955/20";
+                      } else if (appt.status === "In Procedure") {
+                        statusBadge = "bg-orange-100 text-orange-700 dark:bg-orange-900/60 dark:text-orange-300";
+                        btnStyle = "border-orange-300 bg-orange-50/30 dark:border-orange-900 dark:bg-orange-955/20";
+                      } else if (appt.status === "Completed") {
+                        statusBadge = "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+                        btnStyle = "border-slate-200 bg-slate-50/40 dark:border-slate-800 dark:bg-slate-900/30";
+                      }
+                    } else if (isBlocked) {
+                      statusText = "Blocked";
+                      statusBadge = "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
+                      btnStyle = "border-slate-200 bg-slate-100/50 dark:border-slate-800 dark:bg-slate-900/50 opacity-60";
+                    }
+
+                    return (
+                      <button
+                        key={time}
+                        type="button"
+                        onClick={() => {
+                          setSlotPatientId("");
+                          setSelectedSlotData({ date: selectedCalendarDay, time, appointment: appt });
+                        }}
+                        className={`slot-btn ${!appt && !isBlocked ? "slot-btn-empty" : ""} p-2.5 rounded-xl border text-[10px] transition-all ${
+                          appt 
+                            ? "bg-white shadow-xs border-slate-200/80 dark:bg-slate-955 dark:border-slate-800 flex flex-col justify-between items-start text-left" 
+                            : isBlocked
+                              ? "bg-slate-100/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-900 flex flex-col justify-between items-start text-left"
+                              : "bg-slate-50/20 border-dashed border-slate-200/60 dark:bg-slate-900/10 dark:border-slate-800/40 opacity-75 flex items-center justify-center text-center"
+                        } h-20 ${btnStyle}`}
+                      >
+                        {appt ? (
+                          <>
+                            <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
+                            <div className="w-full mt-1">
+                              <p className="slot-patient-name font-extrabold truncate text-slate-900 dark:text-white mb-1 leading-tight">{statusText}</p>
+                              <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
+                                {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
+                              </span>
+                            </div>
+                          </>
+                        ) : isBlocked ? (
+                          <>
+                            <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
+                            <span className="slot-open-label text-[9px] font-bold flex items-center gap-1 mt-1 text-slate-400">
+                              🔒 Blocked
+                            </span>
+                          </>
+                        ) : (
+                          <span className="slot-time">{formatTo24h(time)}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* SECTION 4 - Today's Schedule (RIGHT) */}
@@ -2890,6 +2690,251 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* BOTTOM ROW: Patient Registration (LEFT) + Recently Added Patients (RIGHT) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* SECTION 2 - Add Patient Panel (LEFT) */}
+          <div className="form-card lg:col-span-6 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
+            <span className="font-semibold text-[18px] block mb-[22px] shrink-0">Patient Registration</span>
+            
+            <form onSubmit={handleSavePatientQuick} className="flex-grow flex flex-col justify-between overflow-hidden">
+              {/* Form Content Wrapper */}
+              <div className="flex-1 overflow-y-auto pr-1.5 scrollbar-thin space-y-4 pb-2.5">
+                {/* Row 1 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="qPatID" className="form-label-custom">Patient ID</Label>
+                    <Input id="qPatID" value={`DS-${1000 + patients.length + 1}`} disabled className="form-field-custom bg-slate-50 dark:bg-slate-900 opacity-60 cursor-not-allowed font-bold" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="qMobile" className="form-label-custom">Mobile Number</Label>
+                    <Input id="qMobile" placeholder="e.g. +91 99000 11000" value={quickMobile} onChange={e => setQuickMobile(e.target.value)} required className="form-field-custom" />
+                  </div>
+                </div>
+
+                {/* Row 2 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="qFirstName" className="form-label-custom">First Name</Label>
+                    <Input id="qFirstName" placeholder="e.g. Rahul" value={quickFirstName} onChange={e => setQuickFirstName(e.target.value)} required className="form-field-custom" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="qLastName" className="form-label-custom">Last Name</Label>
+                    <Input id="qLastName" placeholder="e.g. Verma" value={quickLastName} onChange={e => setQuickLastName(e.target.value)} required className="form-field-custom" />
+                  </div>
+                </div>
+
+                {/* Row 3 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="qAge" className="form-label-custom">Age</Label>
+                    <Input id="qAge" type="number" min="0" value={quickAge || ""} onChange={e => setQuickAge(parseInt(e.target.value) || 30)} required className="form-field-custom" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="qGender" className="form-label-custom">Gender</Label>
+                    <select
+                      id="qGender"
+                      className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                      value={quickGender}
+                      onChange={e => setQuickGender(e.target.value as "Male" | "Female")}
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Row 4 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="qLocation" className="form-label-custom">Location</Label>
+                    <Input id="qLocation" placeholder="e.g. Jayanagar" value={quickLocation} onChange={e => setQuickLocation(e.target.value)} className="form-field-custom" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="qBloodGroup" className="form-label-custom">Blood Group (Optional)</Label>
+                    <select
+                      id="qBloodGroup"
+                      className="form-field-custom flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800"
+                      value={quickBloodGroup}
+                      onChange={e => setQuickBloodGroup(e.target.value)}
+                    >
+                      <option value="">-- Choose Blood Group --</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Row 5 - Full Width Email */}
+                <div className="space-y-1">
+                  <Label htmlFor="qEmail" className="form-label-custom">Email (Optional)</Label>
+                  <Input id="qEmail" type="email" placeholder="e.g. patient@example.com" value={quickEmail} onChange={e => setQuickEmail(e.target.value)} className="form-field-custom" />
+                </div>
+
+                {/* Row 6 - Full Width Multiline Notes */}
+                <div className="space-y-1">
+                  <Label htmlFor="qNotes" className="form-label-custom">Notes / Remarks (Optional)</Label>
+                  <textarea
+                    id="qNotes"
+                    rows={2}
+                    placeholder="Add clinical observations, allergies, or reception notes..."
+                    value={quickNotes}
+                    onChange={e => setQuickNotes(e.target.value)}
+                    className="form-field-custom flex w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-800 dark:text-slate-200 resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* Fixed Bottom Actions Footer */}
+              <div className="flex gap-2.5 pt-3 mt-1 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                <Button type="submit" className="flex-1 h-9 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-[13px] shadow-xs cursor-pointer">
+                  Save & Register
+                </Button>
+                <Button 
+                  type="button" 
+                  onClick={() => {
+                    setQuickFirstName("");
+                    setQuickLastName("");
+                    setQuickMobile("");
+                    setQuickAge(30);
+                    setQuickGender("Male");
+                    setQuickLocation("");
+                    setQuickEmail("");
+                    setQuickBloodGroup("");
+                    setQuickNotes("");
+                  }} 
+                  className="h-9 px-4 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[13px] cursor-pointer"
+                >
+                  Clear Form
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          {/* SECTION 3 - Recently Added Patients (RIGHT) */}
+          <div className="list-card lg:col-span-6 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
+            {/* Title Row */}
+            <div className="flex justify-between items-center mb-3 shrink-0">
+              <span className="font-semibold text-[18px] block">Recently Added Patients</span>
+              <span className="text-[12px] bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-bold">
+                Total: {patients.length}
+              </span>
+            </div>
+
+            {/* Filter & Sort Control Toolbar */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 mb-3.5 shrink-0">
+              {/* Search Field */}
+              <div className="sm:col-span-6 relative">
+                <Input
+                  type="text"
+                  placeholder="Search name, phone or ID..."
+                  value={patientSearchQuery}
+                  onChange={e => setPatientSearchQuery(e.target.value)}
+                  className="h-8 pl-8 pr-3 text-[14px] font-medium border-slate-100 bg-white dark:bg-slate-900 dark:border-slate-900/60"
+                />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+              </div>
+
+              {/* Gender Filter */}
+              <div className="sm:col-span-3">
+                <select
+                  value={patientFilterGender}
+                  onChange={e => setPatientFilterGender(e.target.value)}
+                  className="h-8 w-full appearance-none rounded-lg border border-slate-100 bg-white px-2.5 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-900/60"
+                >
+                  <option value="All">All Genders</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+
+              {/* Sort By */}
+              <div className="sm:col-span-3 relative">
+                <select
+                  value={patientSortBy}
+                  onChange={e => setPatientSortBy(e.target.value)}
+                  className="h-8 w-full appearance-none rounded-lg border border-slate-100 bg-white pl-2.5 pr-8 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-900/60"
+                >
+                  <option value="Name-ASC">Sort: Name (A-Z)</option>
+                  <option value="Name-DESC">Sort: Name (Z-A)</option>
+                  <option value="ID-DESC">Sort: ID (Desc)</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none text-slate-450 dark:text-slate-400" />
+              </div>
+            </div>
+
+            {/* Patient List container */}
+            <div className="flex-1 overflow-y-auto pr-1 flex flex-col">
+              {displayedPatients.length > 0 ? (
+                <div className="space-y-2.5 flex-1">
+                  {displayedPatients.map((pat) => (
+                    <div key={pat.id} className="patient-row py-2.5 flex justify-between items-center transition-all group border-b border-slate-100/50 dark:border-slate-900/40 last:border-0">
+                      <div className="min-w-0 flex-1 cursor-pointer" onClick={() => { setSelectedPatientId(pat.id); setActiveTab("Patients"); }}>
+                        <span className="patient-name-txt text-[16px] font-semibold text-slate-808 dark:text-slate-200 hover:text-blue-600 block truncate">{pat.name}</span>
+                        <p className="patient-sub-txt text-[12px] font-normal text-slate-455 mt-0.5">{pat.id} • {pat.phone}</p>
+                      </div>
+                      {/* Action Icons */}
+                      <div className="flex gap-1.5 ml-2">
+                        <button
+                          type="button"
+                          title="Book Appointment"
+                          onClick={() => {
+                            setSlotPatientId(pat.id);
+                            setSelectedSlotData({ date: selectedCalendarDay, time: "09:00 AM" });
+                          }}
+                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-blue-650 hover:bg-blue-50/50 dark:hover:bg-blue-955/30 transition-colors"
+                        >
+                          <CalendarDays className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Dental Chart"
+                          onClick={() => {
+                            setSelectedPatientId(pat.id);
+                            setProfileSubTab("Dental Chart");
+                            setActiveTab("Patients");
+                          }}
+                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-purple-605 hover:bg-purple-50/50 dark:hover:bg-purple-955/30"
+                        >
+                          <Activity className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Generate Bill"
+                          onClick={() => handleQuickGenerateBill(pat)}
+                          className="h-6 w-6 rounded-md bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-emerald-605 hover:bg-emerald-50/50 dark:hover:bg-emerald-955/30"
+                        >
+                          <Receipt className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-xs text-slate-400 py-6 text-center">No patients found</p>
+                </div>
+              )}
+            </div>
+
+            {/* Load More Button */}
+            {filteredPatients.length > patientVisibleCount && (
+              <button
+                type="button"
+                onClick={() => setPatientVisibleCount(prev => prev + 5)}
+                className="w-full h-8 mt-3 rounded-lg border border-dashed border-slate-300 text-slate-455 hover:bg-slate-50 text-[14px] font-bold shrink-0"
+              >
+                Load More Patients
+              </button>
+            )}
           </div>
         </div>
 
