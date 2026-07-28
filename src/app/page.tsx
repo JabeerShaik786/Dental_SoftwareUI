@@ -2445,7 +2445,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     if (appt) {
                       statusText = appt.patientName;
                       if (appt.status === "Scheduled") {
-                        statusBadge = "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300";
+                        statusBadge = "bg-blue-200 text-blue-900 dark:bg-blue-900 dark:text-blue-100 font-bold";
                         btnStyle = "border-blue-300 bg-blue-50/30 dark:border-blue-900 dark:bg-blue-950/20";
                       } else if (appt.status === "Checked In" || appt.status === "Waiting") {
                         statusBadge = "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300";
@@ -2534,7 +2534,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     if (appt) {
                       statusText = appt.patientName;
                       if (appt.status === "Scheduled") {
-                        statusBadge = "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300";
+                        statusBadge = "bg-blue-200 text-blue-900 dark:bg-blue-900 dark:text-blue-100 font-bold";
                         btnStyle = "border-blue-300 bg-blue-50/30 dark:border-blue-900 dark:bg-blue-955/20";
                       } else if (appt.status === "Checked In" || appt.status === "Waiting") {
                         statusBadge = "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300";
@@ -2703,7 +2703,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                                 showToast("Appointment rescheduled.", "success");
                               }
                             }}
-                            className="flex-1 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                            className="px-3.5 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer shrink-0"
                           >
                             Reschedule
                           </button>
@@ -2863,7 +2863,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     setQuickBloodGroup("");
                     setQuickNotes("");
                   }} 
-                  className="h-9 px-4 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[13px] cursor-pointer"
+                  className="h-9 px-4 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-[13px] transition-colors cursor-pointer"
                 >
                   Clear Form
                 </Button>
@@ -2884,42 +2884,43 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             {/* Filter & Sort Control Toolbar */}
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 mb-3.5 shrink-0">
               {/* Search Field */}
-              <div className="sm:col-span-6 relative">
+              <div className="sm:col-span-4 relative">
                 <Input
                   type="text"
-                  placeholder="Search name, phone or ID..."
+                  placeholder="Search"
                   value={patientSearchQuery}
                   onChange={e => setPatientSearchQuery(e.target.value)}
-                  className="h-8 pl-8 pr-3 text-[14px] font-medium border-slate-100 bg-white dark:bg-slate-900 dark:border-slate-900/60"
+                  className="h-8 pl-8 pr-2 text-[13px] font-medium border-slate-100 bg-white dark:bg-slate-900 dark:border-slate-900/60"
                 />
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
               </div>
 
               {/* Gender Filter */}
-              <div className="sm:col-span-3">
+              <div className="sm:col-span-4 relative">
                 <select
                   value={patientFilterGender}
                   onChange={e => setPatientFilterGender(e.target.value)}
-                  className="h-8 w-full appearance-none rounded-lg border border-slate-100 bg-white px-2.5 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-900/60"
+                  className="h-8 w-full appearance-none rounded-lg border border-slate-100 bg-white pl-2.5 pr-7 text-[13px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-900/60 text-slate-700 dark:text-slate-200 cursor-pointer"
                 >
                   <option value="All">All Genders</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                 </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none text-slate-400" />
               </div>
 
               {/* Sort By */}
-              <div className="sm:col-span-3 relative">
+              <div className="sm:col-span-4 relative">
                 <select
                   value={patientSortBy}
                   onChange={e => setPatientSortBy(e.target.value)}
-                  className="h-8 w-full appearance-none rounded-lg border border-slate-100 bg-white pl-2.5 pr-8 text-[14px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-900/60"
+                  className="h-8 w-full appearance-none rounded-lg border border-slate-100 bg-white pl-2.5 pr-7 text-[13px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-900/60 text-slate-700 dark:text-slate-200 cursor-pointer"
                 >
-                  <option value="Name-ASC">Sort: Name (A-Z)</option>
-                  <option value="Name-DESC">Sort: Name (Z-A)</option>
-                  <option value="ID-DESC">Sort: ID (Desc)</option>
+                  <option value="Name-ASC">Name (A-Z)</option>
+                  <option value="Name-DESC">Name (Z-A)</option>
+                  <option value="ID-DESC">ID (Desc)</option>
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none text-slate-450 dark:text-slate-400" />
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none text-slate-400" />
               </div>
             </div>
 
