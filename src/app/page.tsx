@@ -2694,9 +2694,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         </div>
 
         {/* BOTTOM ROW: Patient Registration (LEFT) + Recently Added Patients (RIGHT) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* SECTION 2 - Add Patient Panel (LEFT) */}
-          <div className="form-card lg:col-span-6 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
+          <div className="form-card lg:col-span-8 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
             <span className="font-semibold text-[18px] block mb-[22px] shrink-0">Patient Registration</span>
             
             <form onSubmit={handleSavePatientQuick} className="flex-grow flex flex-col justify-between overflow-hidden">
@@ -2820,7 +2820,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
 
           {/* SECTION 3 - Recently Added Patients (RIGHT) */}
-          <div className="list-card lg:col-span-6 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
+          <div className="list-card lg:col-span-4 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[530px]">
             {/* Title Row */}
             <div className="flex justify-between items-center mb-3 shrink-0">
               <span className="font-semibold text-[18px] block">Recently Added Patients</span>
