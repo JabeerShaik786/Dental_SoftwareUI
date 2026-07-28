@@ -2708,13 +2708,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                             Reschedule
                           </button>
 
-                          {/* ₹ Billing Button */}
+                          {/* Billing Icon Button */}
                           <button
                             type="button"
                             onClick={() => handleApptGenerateBill(app.id)}
-                            className="flex-1 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                            className="h-[34px] w-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 flex items-center justify-center transition-colors shrink-0 cursor-pointer duration-200"
+                            title="Generate Bill"
                           >
-                            ₹ Billing
+                            <Receipt className="h-[18px] w-[18px]" />
                           </button>
 
                           {/* WhatsApp Communication Button */}
