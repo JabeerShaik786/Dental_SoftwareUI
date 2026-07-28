@@ -6154,11 +6154,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       >
         <div className={`border-b border-slate-200 dark:border-slate-800 flex items-center shrink-0 transition-all duration-300 ease-in-out overflow-hidden h-20 ${
           sidebarCollapsed
-            ? "px-2 justify-center gap-1.5"
-            : "px-4 py-5 justify-between"
+            ? "px-0 justify-center flex-col py-2 gap-1.5"
+            : "px-4 py-5 justify-between flex-row"
         }`}>
           <div className={`flex items-center transition-all duration-300 ease-in-out overflow-hidden ${
-            sidebarCollapsed ? "justify-center" : "justify-start min-w-0"
+            sidebarCollapsed ? "justify-center w-full" : "justify-start min-w-0"
           }`}>
             <DentalLogo showText={!sidebarCollapsed} collapsed={sidebarCollapsed} />
           </div>
@@ -6166,7 +6166,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className={`rounded-full flex items-center justify-center hover:bg-[#EFF6FF] hover:text-blue-600 text-slate-500 transition-all duration-250 ease-in-out shrink-0 active:scale-[0.97] ${
-              sidebarCollapsed ? "h-6 w-6" : "h-8 w-8 ml-1"
+              sidebarCollapsed ? "h-6 w-6 mx-auto" : "h-8 w-8 ml-1"
             }`}
             title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
@@ -6176,12 +6176,12 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
         <div className="flex flex-col flex-grow overflow-y-auto overflow-x-hidden">
           <nav className={`space-y-2 flex-grow mt-3 transition-all duration-300 ease-in-out ${
-            sidebarCollapsed ? "p-2" : "p-3"
+            sidebarCollapsed ? "px-0 py-3" : "p-3"
           }`}>
             {menuItems.map((item) => {
               const active = activeTab === item.name && !activeConsultationApptId;
               return (
-                <div key={item.name} className="relative">
+                <div key={item.name} className="relative flex justify-center">
                   <button
                     onClick={() => selectTab(item.name)}
                     onMouseEnter={(e) => {
@@ -6193,10 +6193,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     className={`h-[42px] flex items-center rounded-[10px] text-[14px] transition-all duration-300 ease-in-out group ${
                       active ? "font-semibold bg-blue-600 text-white shadow-sm" : "font-medium text-[#334155] hover:bg-blue-50/50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white"
                     } ${
-                      sidebarCollapsed ? "w-10 justify-center px-0 mx-auto" : "w-full justify-between px-3"
+                      sidebarCollapsed ? "w-11 justify-center px-0 mx-auto" : "w-full justify-between px-3"
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
+                    <div className={`flex items-center ${sidebarCollapsed ? "justify-center gap-0 w-full" : "gap-2.5"}`}>
                       <div className="relative flex items-center justify-center h-[22px] w-[22px] shrink-0">
                         <span className={active ? "text-white" : "text-slate-500 group-hover:text-blue-600 dark:text-slate-400 dark:group-hover:text-white transition-colors"}>
                           {React.cloneElement(item.icon, { className: "h-[22px] w-[22px]" })}
@@ -6232,7 +6232,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         </div>
 
         <div className={`border-t border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-955 shrink-0 transition-all duration-300 ease-in-out ${
-          sidebarCollapsed ? "px-2 py-4 flex flex-col items-center justify-center gap-3" : "p-4"
+          sidebarCollapsed ? "px-0 py-4 flex flex-col items-center justify-center gap-3" : "p-4"
         }`}>
           {sidebarCollapsed ? (
             <div className="flex flex-col items-center gap-4 w-full">
