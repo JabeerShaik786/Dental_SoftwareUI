@@ -3390,32 +3390,27 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             {/* Doctor Filter Header */}
             <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Doctors Directory</span>
 
-            {/* Vertical Doctor List */}
-            <div className="space-y-2 max-h-[380px] overflow-y-auto scrollbar-thin pr-0.5">
+            {/* Vertical Doctor List (No internal scrollbar) */}
+            <div className="space-y-1.5 pt-0.5">
               {/* All Doctors Pinned Row */}
               <div
                 onClick={() => setApptSelectedDoctor("All")}
-                className={`p-2 rounded-xl border flex items-center gap-2.5 cursor-pointer transition-all ${
+                className={`h-[48px] px-2.5 rounded-xl border flex items-center gap-2.5 cursor-pointer transition-all ${
                   apptSelectedDoctor === "All"
                     ? "bg-blue-600 border-blue-600 text-white shadow-xs"
                     : "bg-slate-50/60 hover:bg-slate-100 dark:bg-slate-900/50 dark:hover:bg-slate-900 border-slate-100 dark:border-slate-800/70 text-slate-700 dark:text-slate-300"
                 }`}
               >
-                <div className={`h-10 w-10 rounded-full font-bold text-xs flex items-center justify-center shrink-0 ${
+                <div className={`h-9 w-9 rounded-full font-bold text-xs flex items-center justify-center shrink-0 ${
                   apptSelectedDoctor === "All"
                     ? "bg-white/20 text-white"
                     : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
                 }`}>
-                  <Users className="h-5 w-5" />
+                  <Users className="h-4 w-4" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <span className={`block font-bold text-[13px] leading-tight truncate ${apptSelectedDoctor === "All" ? "text-white" : "text-slate-900 dark:text-white"}`}>
-                    All Doctors
-                  </span>
-                  <span className={`block text-[11px] font-normal leading-tight truncate mt-0.5 ${apptSelectedDoctor === "All" ? "text-blue-100" : "text-slate-400 dark:text-slate-400"}`}>
-                    All Practitioners
-                  </span>
-                </div>
+                <span className={`font-bold text-[13px] truncate leading-none ${apptSelectedDoctor === "All" ? "text-white" : "text-slate-900 dark:text-white"}`}>
+                  All Doctors
+                </span>
               </div>
 
               {/* Doctor Directory Rows */}
@@ -3436,30 +3431,25 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   <div
                     key={doc.name}
                     onClick={() => setApptSelectedDoctor(isActive ? "All" : doc.name)}
-                    className={`p-2 rounded-xl border flex items-center gap-2.5 cursor-pointer transition-all ${
+                    className={`h-[48px] px-2.5 rounded-xl border flex items-center gap-2.5 cursor-pointer transition-all ${
                       isActive
                         ? "bg-blue-600 border-blue-600 text-white shadow-xs"
                         : "bg-slate-50/60 hover:bg-slate-100 dark:bg-slate-900/50 dark:hover:bg-slate-900 border-slate-100 dark:border-slate-800/70 text-slate-700 dark:text-slate-300"
                     }`}
                   >
                     {doc.avatar ? (
-                      <img src={doc.avatar} alt={doc.name} className="h-10 w-10 rounded-full object-cover shrink-0" />
+                      <img src={doc.avatar} alt={doc.name} className="h-9 w-9 rounded-full object-cover shrink-0" />
                     ) : (
-                      <div className={`h-10 w-10 rounded-full font-bold text-xs flex items-center justify-center shrink-0 ${
+                      <div className={`h-9 w-9 rounded-full font-bold text-xs flex items-center justify-center shrink-0 ${
                         isActive ? "bg-white/20 text-white" : avatarColor
                       }`}>
                         {initials}
                       </div>
                     )}
                     
-                    <div className="min-w-0 flex-1">
-                      <span className={`block font-bold text-[13px] leading-tight truncate ${isActive ? "text-white" : "text-slate-900 dark:text-white"}`}>
-                        {firstName}
-                      </span>
-                      <span className={`block text-[11px] font-normal leading-tight truncate mt-0.5 ${isActive ? "text-blue-100" : "text-slate-400 dark:text-slate-400"}`}>
-                        {doc.speciality || "Dentist"}
-                      </span>
-                    </div>
+                    <span className={`font-bold text-[13px] truncate leading-none ${isActive ? "text-white" : "text-slate-900 dark:text-white"}`}>
+                      {firstName}
+                    </span>
                   </div>
                 );
               })}
