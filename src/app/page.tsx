@@ -157,6 +157,9 @@ interface TreatmentItem {
   cost?: number;
   diagnosis?: string;
   date?: string;
+  treatmentPlan?: string;
+  completedVisits?: number;
+  totalVisits?: number;
 }
 
 interface ActivityItem {
@@ -1057,7 +1060,90 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   ]);
 
   const [treatments, setTreatments] = useState<TreatmentItem[]>([
-    { id: "tr-1", name: "Root Canal Therapy", patient: "Vikram Malhotra", doctor: "Dr. Sharma", stage: "Completed", notes: "Fully obturated.", nextVisit: "10 Sep 2026", prescription: "Ibuprofen 400mg" }
+    {
+      id: "tr-1",
+      name: "Root Canal Therapy",
+      patient: "Aarav Mehta",
+      doctor: "Dr. Deepa Kodali",
+      treatmentPlan: "Root Canal Treatment",
+      stage: "In Progress",
+      completedVisits: 2,
+      totalVisits: 3,
+      cost: 8500,
+      prescription: "Amoxicillin 500mg, Ibuprofen 400mg",
+      notes: "Canal obturated, temp crown placed.",
+      nextVisit: "10 Aug 2026"
+    },
+    {
+      id: "tr-2",
+      name: "Orthodontic Aligners",
+      patient: "Meera Nair",
+      doctor: "Dr. Raghuram",
+      treatmentPlan: "Orthodontic Treatment",
+      stage: "In Progress",
+      completedVisits: 4,
+      totalVisits: 12,
+      cost: 45000,
+      prescription: "Orthodontic Wax",
+      notes: "Tray 4 delivered, tracking well.",
+      nextVisit: "25 Aug 2026"
+    },
+    {
+      id: "tr-3",
+      name: "Dental Implant #16",
+      patient: "Siddharth Rao",
+      doctor: "Dr. Srinivasa",
+      treatmentPlan: "Dental Implant",
+      stage: "In Progress",
+      completedVisits: 1,
+      totalVisits: 4,
+      cost: 35000,
+      prescription: "Augmentin 625mg, Chlorhexidine Mouthwash",
+      notes: "Fixture placed, osseointegration period.",
+      nextVisit: "15 Sep 2026"
+    },
+    {
+      id: "tr-4",
+      name: "Full Mouth Scaling",
+      patient: "Priya Patel",
+      doctor: "Dr. Deepa Kodali",
+      treatmentPlan: "Scaling & Polishing",
+      stage: "Completed",
+      completedVisits: 2,
+      totalVisits: 2,
+      cost: 2500,
+      prescription: "Metrogyl Denta Gel",
+      notes: "Deep scaling & polishing completed.",
+      nextVisit: "Finished"
+    },
+    {
+      id: "tr-5",
+      name: "Zirconia Crown #24",
+      patient: "Vikram Malhotra",
+      doctor: "Dr. Priyanka Mane Pado",
+      treatmentPlan: "Crown Placement",
+      stage: "Planned",
+      completedVisits: 0,
+      totalVisits: 2,
+      cost: 12000,
+      prescription: "None",
+      notes: "Impression scheduled for next visit.",
+      nextVisit: "12 Aug 2026"
+    },
+    {
+      id: "tr-6",
+      name: "Molar Extraction #38",
+      patient: "Kavita Sharma",
+      doctor: "Dr. Krishna Teja",
+      treatmentPlan: "Extraction",
+      stage: "Planned",
+      completedVisits: 0,
+      totalVisits: 1,
+      cost: 3500,
+      prescription: "Ketorol DT",
+      notes: "Impacted third molar extraction.",
+      nextVisit: "18 Aug 2026"
+    }
   ]);
 
   // --- PATIENT PROFILE FORM SYNC & HANDLERS ---
@@ -6138,10 +6224,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         <table className="w-full text-left border-collapse text-xs font-semibold">
           <thead>
             <tr className="border-b text-[10px] text-slate-400 uppercase tracking-wider">
-              <th className="pb-2.5">Treatment Name</th>
+              <th className="pb-2.5 min-w-[140px]">Treatment Name</th>
               <th className="pb-2.5">Patient</th>
               <th className="pb-2.5">Doctor</th>
+              <th className="pb-2.5">Treatment Plan</th>
               <th className="pb-2.5">Stage</th>
+              <th className="pb-2.5">Visits</th>
+              <th className="pb-2.5 text-right">Estimated Cost (₹)</th>
               <th className="pb-2.5">Prescription</th>
               <th className="pb-2.5 text-right">Notes</th>
             </tr>
@@ -6154,20 +6243,58 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 if (activeSubTab === "Treatment Plans") return t.stage === "Planned";
                 return true;
               })
-              .map((tr) => (
-                <tr key={tr.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
-                  <td className="py-3 font-bold text-slate-900 dark:text-white">{tr.name}</td>
-                  <td className="py-3">{tr.patient}</td>
-                  <td className="py-3">{tr.doctor}</td>
-                  <td className="py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                      tr.stage === "Completed" ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"
-                    }`}>{tr.stage}</span>
-                  </td>
-                  <td className="py-3 text-slate-450">{tr.prescription}</td>
-                  <td className="py-3 text-right text-slate-500">{tr.notes}</td>
-                </tr>
-              ))}
+              .map((tr) => {
+                const total = tr.totalVisits || (tr.stage === "Completed" ? 1 : 3);
+                const completed = tr.completedVisits !== undefined ? tr.completedVisits : (tr.stage === "Completed" ? total : (tr.stage === "Planned" ? 0 : 1));
+                const planName = tr.treatmentPlan || tr.name;
+                const costVal = tr.cost !== undefined && tr.cost > 0 ? tr.cost : (planName.includes("Implant") ? 35000 : planName.includes("Crown") ? 12000 : planName.includes("Orthodontic") ? 45000 : planName.includes("Scaling") ? 2500 : planName.includes("Extraction") ? 3500 : 8500);
+
+                return (
+                  <tr key={tr.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-colors">
+                    <td className="py-3 font-bold text-slate-900 dark:text-white whitespace-nowrap">{tr.name}</td>
+                    <td className="py-3 whitespace-nowrap">{tr.patient}</td>
+                    <td className="py-3 whitespace-nowrap">{tr.doctor}</td>
+                    <td className="py-3 font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">{planName}</td>
+                    <td className="py-3 whitespace-nowrap">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                        tr.stage === "Completed"
+                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/30 dark:text-emerald-400"
+                          : tr.stage === "In Progress"
+                          ? "bg-blue-50 text-blue-700 dark:bg-blue-955/30 dark:text-blue-400"
+                          : "bg-amber-50 text-amber-700 dark:bg-amber-955/30 dark:text-amber-400"
+                      }`}>
+                        {tr.stage}
+                      </span>
+                    </td>
+                    <td className="py-3 whitespace-nowrap">
+                      {tr.stage === "Completed" ? (
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-50/80 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 text-[10px] font-bold inline-flex items-center gap-1 border border-emerald-100 dark:border-emerald-900/40">
+                          Completed ({completed} / {total})
+                        </span>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                            {completed} / {total} Visits
+                          </span>
+                          {total > 0 && (
+                            <div className="w-12 bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden shrink-0 hidden sm:block">
+                              <div
+                                className="bg-blue-600 h-full rounded-full transition-all duration-300"
+                                style={{ width: `${Math.min(100, Math.round((completed / total) * 100))}%` }}
+                              ></div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 text-right font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                      ₹{costVal.toLocaleString()}
+                    </td>
+                    <td className="py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">{tr.prescription || "None"}</td>
+                    <td className="py-3 text-right text-slate-500 dark:text-slate-400">{tr.notes || "—"}</td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>
