@@ -553,6 +553,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [mediaFilter, setMediaFilter] = useState("All");
   const [selectedMediaForPreview, setSelectedMediaForPreview] = useState<ClinicalMedia | null>(null);
   const [mediaToEdit, setMediaToEdit] = useState<ClinicalMedia | null>(null);
+  const [selectedTreatmentDetail, setSelectedTreatmentDetail] = useState<TreatmentItem | null>(null);
 
   // Consent Video Recorder states
   const [recorderState, setRecorderState] = useState<"idle" | "recording" | "paused" | "review">("idle");
@@ -6218,88 +6219,450 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     );
   };
 
-  const renderTreatmentsModule = () => (
-    <div className="space-y-6 animate-fadeIn">
-      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs overflow-x-auto">
-        <table className="w-full text-left border-collapse text-xs font-semibold">
-          <thead>
-            <tr className="border-b text-[10px] text-slate-400 uppercase tracking-wider">
-              <th className="pb-2.5 min-w-[140px]">Treatment Name</th>
-              <th className="pb-2.5">Patient</th>
-              <th className="pb-2.5">Doctor</th>
-              <th className="pb-2.5">Treatment Plan</th>
-              <th className="pb-2.5">Stage</th>
-              <th className="pb-2.5">Visits</th>
-              <th className="pb-2.5 text-right">Estimated Cost (₹)</th>
-              <th className="pb-2.5">Prescription</th>
-              <th className="pb-2.5 text-right">Notes</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-705">
-            {treatments
-              .filter((t) => {
-                if (activeSubTab === "Active Treatments") return t.stage === "In Progress";
-                if (activeSubTab === "Completed") return t.stage === "Completed";
-                if (activeSubTab === "Treatment Plans") return t.stage === "Planned";
-                return true;
-              })
-              .map((tr) => {
-                const total = tr.totalVisits || (tr.stage === "Completed" ? 1 : 3);
-                const completed = tr.completedVisits !== undefined ? tr.completedVisits : (tr.stage === "Completed" ? total : (tr.stage === "Planned" ? 0 : 1));
-                const planName = tr.treatmentPlan || tr.name;
-                const costVal = tr.cost !== undefined && tr.cost > 0 ? tr.cost : (planName.includes("Implant") ? 35000 : planName.includes("Crown") ? 12000 : planName.includes("Orthodontic") ? 45000 : planName.includes("Scaling") ? 2500 : planName.includes("Extraction") ? 3500 : 8500);
+  const renderTreatmentDetailsSection = (tr: TreatmentItem, onBack?: () => void) => {
+    const pat = patients.find(p => p.name === tr.patient || p.id === tr.patient);
+    const patName = tr.patient || "Patient";
+    const patId = pat?.id || "DS-1001";
+    const ageGender = pat ? `${pat.age || 28} / ${pat.gender || "Male"}` : "28 / Male";
+    const mobile = pat?.phone || "+91 98765 43210";
+    const startDate = tr.date || "12 Aug 2026";
+    const completionDate = tr.nextVisit || "10 Sep 2026";
+    const cost = tr.cost || (tr.name.includes("Implant") ? 35000 : tr.name.includes("Crown") ? 12000 : tr.name.includes("Orthodontic") ? 45000 : tr.name.includes("Scaling") ? 2500 : tr.name.includes("Extraction") ? 3500 : 8500);
+    const paid = tr.stage === "Completed" ? cost : Math.round(cost * 0.6);
+    const remaining = cost - paid;
+    const invId = `INV-${tr.id.replace(/\D/g, '') || '1001'}`;
 
-                return (
-                  <tr key={tr.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-colors">
-                    <td className="py-3 font-bold text-slate-900 dark:text-white whitespace-nowrap">{tr.name}</td>
-                    <td className="py-3 whitespace-nowrap">{tr.patient}</td>
-                    <td className="py-3 whitespace-nowrap">{tr.doctor}</td>
-                    <td className="py-3 font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">{planName}</td>
-                    <td className="py-3 whitespace-nowrap">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                        tr.stage === "Completed"
-                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/30 dark:text-emerald-400"
-                          : tr.stage === "In Progress"
-                          ? "bg-blue-50 text-blue-700 dark:bg-blue-955/30 dark:text-blue-400"
-                          : "bg-amber-50 text-amber-700 dark:bg-amber-955/30 dark:text-amber-400"
-                      }`}>
-                        {tr.stage}
-                      </span>
-                    </td>
-                    <td className="py-3 whitespace-nowrap">
-                      {tr.stage === "Completed" ? (
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-50/80 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 text-[10px] font-bold inline-flex items-center gap-1 border border-emerald-100 dark:border-emerald-900/40">
-                          Completed ({completed} / {total})
-                        </span>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                            {completed} / {total} Visits
-                          </span>
-                          {total > 0 && (
-                            <div className="w-12 bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden shrink-0 hidden sm:block">
-                              <div
-                                className="bg-blue-600 h-full rounded-full transition-all duration-300"
-                                style={{ width: `${Math.min(100, Math.round((completed / total) * 100))}%` }}
-                              ></div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3 text-right font-bold text-slate-900 dark:text-white whitespace-nowrap">
-                      ₹{costVal.toLocaleString()}
-                    </td>
-                    <td className="py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">{tr.prescription || "None"}</td>
-                    <td className="py-3 text-right text-slate-500 dark:text-slate-400">{tr.notes || "—"}</td>
-                  </tr>
-                );
-              })}
-          </tbody>
-        </table>
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        {/* Back button if back handler provided */}
+        {onBack && (
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+            >
+              <ChevronLeft className="h-4 w-4" /> Back to Treatments Directory
+            </button>
+          </div>
+        )}
+
+        {/* Top Information Card (Full-Width Summary Card) */}
+        <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+            <div>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400 block mb-0.5">Clinical Treatment Overview</span>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+                {tr.name}
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  tr.stage === "Completed"
+                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/30 dark:text-emerald-400"
+                    : tr.stage === "In Progress"
+                    ? "bg-blue-50 text-blue-700 dark:bg-blue-955/30 dark:text-blue-400"
+                    : "bg-amber-50 text-amber-700 dark:bg-amber-955/30 dark:text-amber-400"
+                }`}>
+                  {tr.stage}
+                </span>
+              </h2>
+            </div>
+            {onBack && (
+              <button 
+                type="button" 
+                onClick={onBack} 
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xl font-bold leading-none cursor-pointer"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-9 gap-4 text-xs font-semibold">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Patient Name</span>
+              <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5">{patName}</span>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Patient ID</span>
+              <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5">{patId}</span>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Age / Gender</span>
+              <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5">{ageGender}</span>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Mobile Number</span>
+              <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5">{mobile}</span>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Treatment Name</span>
+              <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5">{tr.treatmentPlan || tr.name}</span>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Assigned Doctor</span>
+              <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5">{tr.doctor}</span>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Start Date</span>
+              <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5">{startDate}</span>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Est. Completion</span>
+              <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5">{completionDate}</span>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Status</span>
+              <span className="font-bold text-blue-600 dark:text-blue-400 truncate block mt-0.5">{tr.stage}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Three-Column Layout (Equal Height Cards) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
+          
+          {/* 1. Treatment Plan Card (Left) */}
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col justify-between h-full space-y-4">
+            <div className="space-y-4">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white">Treatment Plan</h3>
+              </div>
+
+              {/* Vertical Timeline / Checklist */}
+              <div className="relative pl-6 space-y-4 text-xs font-semibold before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
+                {/* Step 1: Consultation */}
+                <div className="relative">
+                  <span className="absolute -left-6 top-0 h-5 w-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold shadow-xs">✓</span>
+                  <div className="space-y-0.5">
+                    <span className="font-bold text-slate-900 dark:text-white block">Consultation</span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium block">Completed 05 Aug 2026</span>
+                  </div>
+                </div>
+
+                {/* Step 2: Dental X-Ray */}
+                <div className="relative">
+                  <span className="absolute -left-6 top-0 h-5 w-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold shadow-xs">✓</span>
+                  <div className="space-y-0.5">
+                    <span className="font-bold text-slate-900 dark:text-white block">Dental X-Ray & Diagnosis</span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium block">Completed 08 Aug 2026</span>
+                  </div>
+                </div>
+
+                {/* Step 3: Cleaning */}
+                <div className="relative">
+                  <span className="absolute -left-6 top-0 h-5 w-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold shadow-xs">✓</span>
+                  <div className="space-y-0.5">
+                    <span className="font-bold text-slate-900 dark:text-white block">Prophylaxis Cleaning</span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium block">Completed 10 Aug 2026</span>
+                  </div>
+                </div>
+
+                {/* Step 4: Root Canal - Visit 2 (Current) */}
+                <div className="relative">
+                  <span className="absolute -left-6 top-0.5 h-5 w-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-extrabold ring-4 ring-blue-100 dark:ring-blue-955 animate-pulse">●</span>
+                  <div className="space-y-0.5 bg-blue-50/60 dark:bg-blue-955/40 p-2.5 rounded-lg border border-blue-100 dark:border-blue-900/40">
+                    <span className="font-bold text-blue-700 dark:text-blue-300 block">{tr.name} – Visit 2 (Current)</span>
+                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium block">In Progress • Active Session</span>
+                  </div>
+                </div>
+
+                {/* Step 5: Root Canal Completion */}
+                <div className="relative">
+                  <span className="absolute -left-6 top-0.5 h-5 w-5 rounded-full border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-center text-[9px] font-bold text-slate-400">○</span>
+                  <div className="space-y-0.5 opacity-60">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300 block">Procedure Completion</span>
+                    <span className="text-[10px] text-slate-400 font-medium block">Upcoming Visit</span>
+                  </div>
+                </div>
+
+                {/* Step 6: Crown Placement */}
+                <div className="relative">
+                  <span className="absolute -left-6 top-0.5 h-5 w-5 rounded-full border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-center text-[9px] font-bold text-slate-400">○</span>
+                  <div className="space-y-0.5 opacity-60">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300 block">Crown Placement</span>
+                    <span className="text-[10px] text-slate-400 font-medium block">Final Step</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-xs font-semibold flex justify-between items-center text-slate-500 dark:text-slate-400">
+              <span>Total Planned Visits:</span>
+              <span className="font-bold text-slate-900 dark:text-white">{tr.totalVisits || 6} Visits</span>
+            </div>
+          </div>
+
+          {/* 2. Cost Summary Card (Center) */}
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col justify-between h-full space-y-4">
+            <div>
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white">Cost Summary</h3>
+              </div>
+
+              <div className="space-y-3 text-xs font-semibold">
+                <div className="flex justify-between items-center p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/50">
+                  <span className="text-slate-600 dark:text-slate-400">Estimated Cost</span>
+                  <span className="font-bold text-sm text-slate-900 dark:text-white">₹{cost.toLocaleString()}</span>
+                </div>
+
+                <div className="flex justify-between items-center p-2.5 rounded-lg bg-emerald-50/60 dark:bg-emerald-955/30 border border-emerald-100 dark:border-emerald-900/40">
+                  <span className="text-emerald-700 dark:text-emerald-400">Paid Amount</span>
+                  <span className="font-bold text-sm text-emerald-700 dark:text-emerald-400">₹{paid.toLocaleString()}</span>
+                </div>
+
+                <div className="flex justify-between items-center p-2.5 rounded-lg bg-amber-50/60 dark:bg-amber-955/30 border border-amber-100 dark:border-amber-900/40">
+                  <span className="text-amber-700 dark:text-amber-400">Remaining Balance</span>
+                  <span className="font-bold text-sm text-amber-700 dark:text-amber-400">₹{remaining.toLocaleString()}</span>
+                </div>
+
+                <div className="pt-2 space-y-2 border-t border-slate-100 dark:border-slate-800 text-[11px]">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Last Payment</span>
+                    <span className="font-bold text-slate-700 dark:text-slate-300">₹2,500 on 12 Aug 2026 (Cash)</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Payment Status</span>
+                    <span className={`px-2 py-0.5 rounded font-bold text-[9px] ${
+                      remaining === 0 
+                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400" 
+                        : "bg-amber-50 text-amber-700 dark:bg-amber-955/40 dark:text-amber-400"
+                    }`}>
+                      {remaining === 0 ? "Paid" : "Partially Paid"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Invoice Number</span>
+                    <span className="font-bold text-blue-600 dark:text-blue-400">{invId}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+              <Button 
+                onClick={() => {
+                  const inv: InvoiceItem = {
+                    id: `INV-${Date.now().toString().slice(-4)}`,
+                    patientId: tr.patient,
+                    patientName: tr.patient,
+                    doctor: tr.doctor,
+                    treatment: tr.name,
+                    items: [{ description: tr.name, amount: cost }],
+                    discount: 0,
+                    tax: 18,
+                    subtotal: cost,
+                    total: Math.round(cost * 1.18),
+                    paidAmount: paid,
+                    status: remaining === 0 ? "Paid" : "Partially Paid",
+                    paymentDate: "12 Aug 2026",
+                    paymentLogs: []
+                  };
+                  setSelectedInvoiceForPayment(inv);
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-10 rounded-xl flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+              >
+                <Receipt className="h-4 w-4" /> Generate Invoice
+              </Button>
+            </div>
+          </div>
+
+          {/* 3. Visit Progress Card (Right) */}
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col justify-between h-full space-y-4">
+            <div className="space-y-4">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white">Visit Progress</h3>
+              </div>
+
+              {/* Overall Progress Bar */}
+              <div className="space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="flex justify-between items-center text-xs font-bold">
+                  <span className="text-slate-700 dark:text-slate-300">Overall Progress</span>
+                  <span className="text-blue-600 dark:text-blue-400">50% Complete</span>
+                </div>
+                <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                  <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: '50%' }}></div>
+                </div>
+              </div>
+
+              {/* Visits Checklist */}
+              <div className="space-y-2 text-xs font-semibold">
+                <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-955/20 text-emerald-700 dark:text-emerald-400">
+                  <span className="flex items-center gap-2 font-bold">✓ Visit 1</span>
+                  <span className="text-[10px] font-medium">05 Aug 2026</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-955/20 text-emerald-700 dark:text-emerald-400">
+                  <span className="flex items-center gap-2 font-bold">✓ Visit 2</span>
+                  <span className="text-[10px] font-medium">12 Aug 2026</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-blue-50/60 dark:bg-blue-955/40 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900/40">
+                  <span className="flex items-center gap-2 font-bold">○ Visit 3</span>
+                  <span className="text-[10px] font-bold text-blue-600">Scheduled (Next)</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-900/40 text-slate-400">
+                  <span className="flex items-center gap-2 font-semibold">○ Visit 4</span>
+                  <span className="text-[10px] font-medium">Upcoming</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Two Compact Info Cards */}
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs font-semibold">
+              <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+                <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 block">Next Visit</span>
+                <span className="font-bold text-slate-900 dark:text-white block mt-0.5 text-[11px] truncate">10 Sep 2026</span>
+                <span className="text-[10px] text-slate-400 font-medium block">09:00 AM</span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+                <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 block">Assigned Doctor</span>
+                <span className="font-bold text-slate-900 dark:text-white block mt-0.5 text-[11px] truncate">{tr.doctor}</span>
+                <span className="text-[10px] text-slate-400 font-medium block">Dentist</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Bottom Action Buttons */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Button 
+            onClick={() => {
+              showToast(`Updated progress for ${tr.name}.`, "success");
+            }}
+            className="h-10 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+          >
+            <Activity className="h-4 w-4" /> Update Treatment Progress
+          </Button>
+
+          <Button 
+            onClick={() => {
+              const inv: InvoiceItem = {
+                id: `INV-${Date.now().toString().slice(-4)}`,
+                patientId: tr.patient,
+                patientName: tr.patient,
+                doctor: tr.doctor,
+                treatment: tr.name,
+                items: [{ description: tr.name, amount: cost }],
+                discount: 0,
+                tax: 18,
+                subtotal: cost,
+                total: Math.round(cost * 1.18),
+                paidAmount: paid,
+                status: remaining === 0 ? "Paid" : "Partially Paid",
+                paymentDate: "12 Aug 2026",
+                paymentLogs: []
+              };
+              setSelectedInvoiceForPayment(inv);
+            }}
+            className="h-10 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+          >
+            <Receipt className="h-4 w-4" /> Generate Invoice
+          </Button>
+
+          <Button 
+            onClick={() => setActiveModal("addAppointment")}
+            className="h-10 rounded-xl font-bold text-xs bg-purple-600 hover:bg-purple-500 text-white flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+          >
+            <CalendarPlus className="h-4 w-4" /> Schedule Next Visit
+          </Button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  const renderTreatmentsModule = () => {
+    if (selectedTreatmentDetail) {
+      return renderTreatmentDetailsSection(selectedTreatmentDetail, () => setSelectedTreatmentDetail(null));
+    }
+
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs overflow-x-auto">
+          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
+            <span className="text-[13px] font-bold text-slate-900 dark:text-white">Active Treatment Directory</span>
+            <span className="text-[11px] text-slate-400 font-medium">Click any treatment row to view Treatment Details Dashboard</span>
+          </div>
+          <table className="w-full text-left border-collapse text-xs font-semibold">
+            <thead>
+              <tr className="border-b text-[10px] text-slate-400 uppercase tracking-wider">
+                <th className="pb-2.5 min-w-[140px]">Treatment Name</th>
+                <th className="pb-2.5">Patient</th>
+                <th className="pb-2.5">Doctor</th>
+                <th className="pb-2.5">Treatment Plan</th>
+                <th className="pb-2.5">Stage</th>
+                <th className="pb-2.5">Visits</th>
+                <th className="pb-2.5 text-right">Estimated Cost (₹)</th>
+                <th className="pb-2.5">Prescription</th>
+                <th className="pb-2.5 text-right">Notes</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-705">
+              {treatments
+                .filter((t) => {
+                  if (activeSubTab === "Active Treatments") return t.stage === "In Progress";
+                  if (activeSubTab === "Completed") return t.stage === "Completed";
+                  if (activeSubTab === "Treatment Plans") return t.stage === "Planned";
+                  return true;
+                })
+                .map((tr) => {
+                  const total = tr.totalVisits || (tr.stage === "Completed" ? 1 : 3);
+                  const completed = tr.completedVisits !== undefined ? tr.completedVisits : (tr.stage === "Completed" ? total : (tr.stage === "Planned" ? 0 : 1));
+                  const planName = tr.treatmentPlan || tr.name;
+                  const costVal = tr.cost !== undefined && tr.cost > 0 ? tr.cost : (planName.includes("Implant") ? 35000 : planName.includes("Crown") ? 12000 : planName.includes("Orthodontic") ? 45000 : planName.includes("Scaling") ? 2500 : planName.includes("Extraction") ? 3500 : 8500);
+
+                  return (
+                    <tr 
+                      key={tr.id} 
+                      onClick={() => setSelectedTreatmentDetail(tr)}
+                      className="hover:bg-blue-50/40 dark:hover:bg-slate-900/40 transition-colors cursor-pointer group"
+                    >
+                      <td className="py-3 font-bold text-slate-900 dark:text-white whitespace-nowrap group-hover:text-blue-600 dark:group-hover:text-blue-400">{tr.name}</td>
+                      <td className="py-3 whitespace-nowrap">{tr.patient}</td>
+                      <td className="py-3 whitespace-nowrap">{tr.doctor}</td>
+                      <td className="py-3 font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">{planName}</td>
+                      <td className="py-3 whitespace-nowrap">
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                          tr.stage === "Completed"
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/30 dark:text-emerald-400"
+                            : tr.stage === "In Progress"
+                            ? "bg-blue-50 text-blue-700 dark:bg-blue-955/30 dark:text-blue-400"
+                            : "bg-amber-50 text-amber-700 dark:bg-amber-955/30 dark:text-amber-400"
+                        }`}>
+                          {tr.stage}
+                        </span>
+                      </td>
+                      <td className="py-3 whitespace-nowrap">
+                        {tr.stage === "Completed" ? (
+                          <span className="px-2 py-0.5 rounded-md bg-emerald-50/80 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 text-[10px] font-bold inline-flex items-center gap-1 border border-emerald-100 dark:border-emerald-900/40">
+                            Completed ({completed} / {total})
+                          </span>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                              {completed} / {total} Visits
+                            </span>
+                            {total > 0 && (
+                              <div className="w-12 bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden shrink-0 hidden sm:block">
+                                <div
+                                  className="bg-blue-600 h-full rounded-full transition-all duration-300"
+                                  style={{ width: `${Math.min(100, Math.round((completed / total) * 100))}%` }}
+                                ></div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 text-right font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                        ₹{costVal.toLocaleString()}
+                      </td>
+                      <td className="py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">{tr.prescription || "None"}</td>
+                      <td className="py-3 text-right text-slate-500 dark:text-slate-400">{tr.notes || "—"}</td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
 
   const renderBillingModule = () => (
     <div className="space-y-6 animate-fadeIn">
