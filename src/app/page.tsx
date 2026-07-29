@@ -6395,9 +6395,18 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex justify-between items-center text-[13px] text-slate-500 dark:text-slate-400">
-              <span className="font-normal">Total Planned Visits:</span>
-              <span className="font-semibold text-slate-700 dark:text-slate-300">{totalVisits} Visits</span>
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-4">
+              <div className="flex justify-between items-center text-[13px] text-slate-500 dark:text-slate-400">
+                <span className="font-normal">Total Planned Visits:</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">{totalVisits} Visits</span>
+              </div>
+
+              <Button 
+                onClick={() => setActiveModal("addAppointment")}
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-11 rounded-xl flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+              >
+                <CalendarPlus className="h-4 w-4" /> Schedule Next Visit
+              </Button>
             </div>
           </div>
 
@@ -6473,52 +6482,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             </div>
           </div>
 
-        </div>
-
-        {/* 4. Bottom Equal-Width Action Buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Button 
-            onClick={() => {
-              showToast(`Updated progress for ${tr.name}.`, "success");
-            }}
-            className="h-11 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-          >
-            <Activity className="h-4 w-4" /> Update Treatment Progress
-          </Button>
-
-          <Button 
-            onClick={() => {
-              const inv: InvoiceItem = {
-                id: `INV-${Date.now().toString().slice(-4)}`,
-                patientId: tr.patient,
-                patientName: tr.patient,
-                doctor: tr.doctor,
-                treatment: tr.name,
-                items: [{ description: tr.name, amount: cost }],
-                discount: 0,
-                tax: 18,
-                subtotal: cost,
-                total: Math.round(cost * 1.18),
-                paidAmount: paid,
-                status: remaining === 0 ? "Paid" : "Partially Paid",
-                paymentDate: "12 Aug 2026",
-                paymentLogs: []
-              };
-              setSelectedInvoiceForPayment(inv);
-            }}
-            variant="outline"
-            className="h-11 rounded-xl font-bold text-xs border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-          >
-            <Receipt className="h-4 w-4" /> Generate Invoice
-          </Button>
-
-          <Button 
-            onClick={() => setActiveModal("addAppointment")}
-            variant="outline"
-            className="h-11 rounded-xl font-bold text-xs border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-200 flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-          >
-            <CalendarPlus className="h-4 w-4" /> Schedule Next Visit
-          </Button>
         </div>
       </div>
     );
