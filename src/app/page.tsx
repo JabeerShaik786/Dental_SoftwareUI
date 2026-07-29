@@ -1137,13 +1137,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       patient: "Kavita Sharma",
       doctor: "Dr. Krishna Teja",
       treatmentPlan: "Extraction",
-      stage: "Planned",
-      completedVisits: 0,
+      stage: "Completed",
+      completedVisits: 1,
       totalVisits: 1,
       cost: 3500,
       prescription: "Ketorol DT",
       notes: "Impacted third molar extraction.",
-      nextVisit: "18 Aug 2026"
+      nextVisit: "Finished"
     }
   ]);
 
@@ -6581,11 +6581,12 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           <table className="w-full text-left border-collapse text-xs font-semibold">
             <thead>
               <tr className="border-b text-[10px] text-slate-400 uppercase tracking-wider">
-                <th className="pb-2.5 w-1/5">Treatment Name</th>
-                <th className="pb-2.5 w-1/5">Patient</th>
-                <th className="pb-2.5 w-1/5">Doctor</th>
-                <th className="pb-2.5 w-1/5">Visits</th>
-                <th className="pb-2.5 w-1/5 text-right">Estimated Cost (₹)</th>
+                <th className="pb-2.5 w-1/6">Treatment Name</th>
+                <th className="pb-2.5 w-1/6">Patient</th>
+                <th className="pb-2.5 w-1/6">Doctor</th>
+                <th className="pb-2.5 w-1/6">Visits</th>
+                <th className="pb-2.5 w-1/6">Status</th>
+                <th className="pb-2.5 w-1/6 text-right">Estimated Cost (₹)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-705">
@@ -6594,6 +6595,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   const completed = tr.completedVisits !== undefined ? tr.completedVisits : (tr.stage === "Completed" ? total : (tr.stage === "Planned" ? 0 : 1));
                   const planName = tr.treatmentPlan || tr.name;
                   const costVal = tr.cost !== undefined && tr.cost > 0 ? tr.cost : (planName.includes("Implant") ? 35000 : planName.includes("Crown") ? 12000 : planName.includes("Orthodontic") ? 45000 : planName.includes("Scaling") ? 2500 : planName.includes("Extraction") ? 3500 : 8500);
+                  const isCompleted = tr.stage === "Completed";
 
                   return (
                     <tr 
@@ -6606,6 +6608,17 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <td className="py-3 whitespace-nowrap">{tr.doctor}</td>
                       <td className="py-3 font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
                         {completed} / {total} Visits
+                      </td>
+                      <td className="py-3 whitespace-nowrap">
+                        {isCompleted ? (
+                          <span className="h-[22px] px-2.5 rounded-full text-[11px] font-semibold inline-flex items-center gap-1 bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
+                            <span className="text-[9px]">⚪</span> Completed
+                          </span>
+                        ) : (
+                          <span className="h-[22px] px-2.5 rounded-full text-[11px] font-semibold inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40">
+                            <span className="text-[9px]">🟢</span> Active
+                          </span>
+                        )}
                       </td>
                       <td className="py-3 text-right font-bold text-slate-900 dark:text-white whitespace-nowrap">
                         ₹{costVal.toLocaleString()}
