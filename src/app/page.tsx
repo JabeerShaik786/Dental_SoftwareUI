@@ -6582,15 +6582,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           <table className="w-full text-left border-collapse text-xs font-semibold">
             <thead>
               <tr className="border-b text-[10px] text-slate-400 uppercase tracking-wider">
-                <th className="pb-2.5 min-w-[140px]">Treatment Name</th>
-                <th className="pb-2.5">Patient</th>
-                <th className="pb-2.5">Doctor</th>
-                <th className="pb-2.5">Treatment Plan</th>
-                <th className="pb-2.5">Stage</th>
-                <th className="pb-2.5">Visits</th>
-                <th className="pb-2.5 text-right">Estimated Cost (₹)</th>
-                <th className="pb-2.5">Prescription</th>
-                <th className="pb-2.5 text-right">Notes</th>
+                <th className="pb-2.5 w-1/4">Treatment Name</th>
+                <th className="pb-2.5 w-1/4">Patient</th>
+                <th className="pb-2.5 w-1/4">Doctor</th>
+                <th className="pb-2.5 w-1/4 text-right">Estimated Cost (₹)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-705">
@@ -6602,8 +6597,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   return true;
                 })
                 .map((tr) => {
-                  const total = tr.totalVisits || (tr.stage === "Completed" ? 1 : 3);
-                  const completed = tr.completedVisits !== undefined ? tr.completedVisits : (tr.stage === "Completed" ? total : (tr.stage === "Planned" ? 0 : 1));
                   const planName = tr.treatmentPlan || tr.name;
                   const costVal = tr.cost !== undefined && tr.cost > 0 ? tr.cost : (planName.includes("Implant") ? 35000 : planName.includes("Crown") ? 12000 : planName.includes("Orthodontic") ? 45000 : planName.includes("Scaling") ? 2500 : planName.includes("Extraction") ? 3500 : 8500);
 
@@ -6616,44 +6609,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <td className="py-3 font-bold text-slate-900 dark:text-white whitespace-nowrap group-hover:text-blue-600 dark:group-hover:text-blue-400">{tr.name}</td>
                       <td className="py-3 whitespace-nowrap">{tr.patient}</td>
                       <td className="py-3 whitespace-nowrap">{tr.doctor}</td>
-                      <td className="py-3 font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">{planName}</td>
-                      <td className="py-3 whitespace-nowrap">
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                          tr.stage === "Completed"
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/30 dark:text-emerald-400"
-                            : tr.stage === "In Progress"
-                            ? "bg-blue-50 text-blue-700 dark:bg-blue-955/30 dark:text-blue-400"
-                            : "bg-amber-50 text-amber-700 dark:bg-amber-955/30 dark:text-amber-400"
-                        }`}>
-                          {tr.stage}
-                        </span>
-                      </td>
-                      <td className="py-3 whitespace-nowrap">
-                        {tr.stage === "Completed" ? (
-                          <span className="px-2 py-0.5 rounded-md bg-emerald-50/80 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 text-[10px] font-bold inline-flex items-center gap-1 border border-emerald-100 dark:border-emerald-900/40">
-                            Completed ({completed} / {total})
-                          </span>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                              {completed} / {total} Visits
-                            </span>
-                            {total > 0 && (
-                              <div className="w-12 bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden shrink-0 hidden sm:block">
-                                <div
-                                  className="bg-blue-600 h-full rounded-full transition-all duration-300"
-                                  style={{ width: `${Math.min(100, Math.round((completed / total) * 100))}%` }}
-                                ></div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </td>
                       <td className="py-3 text-right font-bold text-slate-900 dark:text-white whitespace-nowrap">
                         ₹{costVal.toLocaleString()}
                       </td>
-                      <td className="py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">{tr.prescription || "None"}</td>
-                      <td className="py-3 text-right text-slate-500 dark:text-slate-400">{tr.notes || "—"}</td>
                     </tr>
                   );
                 })}
