@@ -6589,14 +6589,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-705">
-              {treatments
-                .filter((t) => {
-                  if (activeSubTab === "Active Treatments") return t.stage === "In Progress";
-                  if (activeSubTab === "Completed") return t.stage === "Completed";
-                  if (activeSubTab === "Treatment Plans") return t.stage === "Planned";
-                  return true;
-                })
-                .map((tr) => {
+              {treatments.map((tr) => {
                   const total = tr.totalVisits || (tr.stage === "Completed" ? 1 : 3);
                   const completed = tr.completedVisits !== undefined ? tr.completedVisits : (tr.stage === "Completed" ? total : (tr.stage === "Planned" ? 0 : 1));
                   const planName = tr.treatmentPlan || tr.name;
@@ -7473,7 +7466,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         </header>
 
         {/* Dynamic Inner Sub-tabs Bar (hidden if in active consultation mode) */}
-        {!activeConsultationApptId && !selectedPatientId && activeTab !== "Dashboard" && activeTab !== "Patients" && (
+        {!activeConsultationApptId && !selectedPatientId && activeTab !== "Dashboard" && activeTab !== "Patients" && activeTab !== "Treatments" && (
           <div className="bg-white dark:bg-slate-955 border-b border-slate-200 dark:border-slate-800 px-6 py-2.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none sticky top-20 z-20 shrink-0">
             {moduleSubTabs[activeTab]?.map((subTab) => {
               const active = activeSubTab === subTab;
