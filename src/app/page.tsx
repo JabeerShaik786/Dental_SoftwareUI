@@ -6575,17 +6575,17 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     return (
       <div className="space-y-6 animate-fadeIn">
         <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs overflow-x-auto">
-          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
             <span className="text-[13px] font-bold text-slate-900 dark:text-white">Active Treatment Directory</span>
-            <span className="text-[11px] text-slate-400 font-medium">Click any treatment row to view Treatment Details Dashboard</span>
           </div>
           <table className="w-full text-left border-collapse text-xs font-semibold">
             <thead>
               <tr className="border-b text-[10px] text-slate-400 uppercase tracking-wider">
-                <th className="pb-2.5 w-1/4">Treatment Name</th>
-                <th className="pb-2.5 w-1/4">Patient</th>
-                <th className="pb-2.5 w-1/4">Doctor</th>
-                <th className="pb-2.5 w-1/4 text-right">Estimated Cost (₹)</th>
+                <th className="pb-2.5 w-1/5">Treatment Name</th>
+                <th className="pb-2.5 w-1/5">Patient</th>
+                <th className="pb-2.5 w-1/5">Doctor</th>
+                <th className="pb-2.5 w-1/5">Visits</th>
+                <th className="pb-2.5 w-1/5 text-right">Estimated Cost (₹)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-705">
@@ -6597,6 +6597,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   return true;
                 })
                 .map((tr) => {
+                  const total = tr.totalVisits || (tr.stage === "Completed" ? 1 : 3);
+                  const completed = tr.completedVisits !== undefined ? tr.completedVisits : (tr.stage === "Completed" ? total : (tr.stage === "Planned" ? 0 : 1));
                   const planName = tr.treatmentPlan || tr.name;
                   const costVal = tr.cost !== undefined && tr.cost > 0 ? tr.cost : (planName.includes("Implant") ? 35000 : planName.includes("Crown") ? 12000 : planName.includes("Orthodontic") ? 45000 : planName.includes("Scaling") ? 2500 : planName.includes("Extraction") ? 3500 : 8500);
 
@@ -6609,6 +6611,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       <td className="py-3 font-bold text-slate-900 dark:text-white whitespace-nowrap group-hover:text-blue-600 dark:group-hover:text-blue-400">{tr.name}</td>
                       <td className="py-3 whitespace-nowrap">{tr.patient}</td>
                       <td className="py-3 whitespace-nowrap">{tr.doctor}</td>
+                      <td className="py-3 font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                        {completed} / {total} Visits
+                      </td>
                       <td className="py-3 text-right font-bold text-slate-900 dark:text-white whitespace-nowrap">
                         ₹{costVal.toLocaleString()}
                       </td>
