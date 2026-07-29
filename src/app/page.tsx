@@ -6223,14 +6223,23 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const pat = patients.find(p => p.name === tr.patient || p.id === tr.patient);
     const patName = tr.patient || "Patient";
     const patId = pat?.id || "DS-1001";
-    const ageGender = pat ? `${pat.age || 28} / ${pat.gender || "Male"}` : "28 / Male";
-    const mobile = pat?.phone || "+91 98765 43210";
-    const startDate = tr.date || "12 Aug 2026";
-    const completionDate = tr.nextVisit || "10 Sep 2026";
     const cost = tr.cost || (tr.name.includes("Implant") ? 35000 : tr.name.includes("Crown") ? 12000 : tr.name.includes("Orthodontic") ? 45000 : tr.name.includes("Scaling") ? 2500 : tr.name.includes("Extraction") ? 3500 : 8500);
     const paid = tr.stage === "Completed" ? cost : Math.round(cost * 0.6);
     const remaining = cost - paid;
     const invId = `INV-${tr.id.replace(/\D/g, '') || '1001'}`;
+
+    const totalVisits = tr.totalVisits || (tr.stage === "Completed" ? 1 : 6);
+    const completedVisits = tr.completedVisits !== undefined ? tr.completedVisits : (tr.stage === "Completed" ? totalVisits : (tr.stage === "Planned" ? 0 : 2));
+    const progressPct = Math.min(100, Math.round((completedVisits / totalVisits) * 100));
+
+    const timelineNodes = [
+      { num: 1, title: "Consultation", date: "05 Aug 2026", isCompleted: completedVisits >= 1, isCurrent: completedVisits === 0 },
+      { num: 2, title: "X-Ray & Prep", date: "08 Aug 2026", isCompleted: completedVisits >= 2, isCurrent: completedVisits === 1 },
+      { num: 3, title: tr.name.includes("Root") ? "Obturation" : "Procedure", date: tr.nextVisit || "10 Sep 2026", isCompleted: completedVisits >= 3, isCurrent: completedVisits === 2 },
+      { num: 4, title: "Follow-up", date: "Scheduled", isCompleted: completedVisits >= 4, isCurrent: completedVisits === 3 },
+      { num: 5, title: "Restoration", date: "Upcoming", isCompleted: completedVisits >= 5, isCurrent: completedVisits === 4 },
+      { num: 6, title: "Crown Fit", date: "Final Visit", isCompleted: completedVisits >= 6, isCurrent: completedVisits === 5 }
+    ].slice(0, Math.max(totalVisits, 4));
 
     return (
       <div className="space-y-6 animate-fadeIn text-slate-800 dark:text-slate-200">
@@ -6247,82 +6256,95 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
         )}
 
-        {/* Top Header Card (Minimal & Elegant) */}
-        <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        {/* 1. Compact Patient Header Card */}
+        <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-xs flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-white tracking-tight">
+              {tr.name}
+            </h1>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
+              Patient: <span className="font-semibold text-slate-800 dark:text-slate-200">{patName}</span>
+              <span className="mx-2 text-slate-300 dark:text-slate-700">•</span>
+              ID: <span className="font-semibold text-slate-800 dark:text-slate-200">{patId}</span>
+            </p>
+          </div>
+          {onBack && (
+            <button 
+              type="button" 
+              onClick={onBack} 
+              className="text-slate-400 hover:text-slate-700 dark:hover:text-white text-2xl font-light leading-none cursor-pointer p-1"
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        {/* 2. Horizontal Treatment Progress Timeline Card */}
+        <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-5">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1">Clinical Treatment Profile</span>
-              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-                {tr.name}
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold tracking-normal ${
-                  tr.stage === "Completed"
-                    ? "bg-emerald-50/80 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40"
-                    : tr.stage === "In Progress"
-                    ? "bg-blue-50/80 text-blue-700 dark:bg-blue-955/40 dark:text-blue-400 border border-blue-100 dark:border-blue-900/40"
-                    : "bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300 border border-slate-200 dark:border-slate-800"
-                }`}>
-                  {tr.stage}
-                </span>
-              </h1>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white tracking-tight">Treatment Progress</h2>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                {completedVisits} of {totalVisits} Visits Completed
+              </p>
             </div>
-            {onBack && (
-              <button 
-                type="button" 
-                onClick={onBack} 
-                className="text-slate-400 hover:text-slate-700 dark:hover:text-white text-2xl font-light leading-none cursor-pointer"
-              >
-                ×
-              </button>
-            )}
+
+            <div className="flex items-center gap-3 bg-slate-50/80 dark:bg-slate-900/50 p-2.5 px-4 rounded-xl border border-slate-100 dark:border-slate-800/80 shrink-0">
+              <div className="text-right">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">Overall</span>
+                <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{progressPct}% Complete</span>
+              </div>
+              <div className="w-24 bg-slate-200/80 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }}></div>
+              </div>
+            </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
-            <div>
-              <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Patient Name</span>
-              <span className="text-[15px] font-medium text-slate-900 dark:text-white block mt-1 truncate">{patName}</span>
-            </div>
-            <div>
-              <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Patient ID</span>
-              <span className="text-[15px] font-medium text-slate-900 dark:text-white block mt-1 truncate">{patId}</span>
-            </div>
-            <div>
-              <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Age / Gender</span>
-              <span className="text-[15px] font-medium text-slate-900 dark:text-white block mt-1 truncate">{ageGender}</span>
-            </div>
-            <div>
-              <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Mobile Number</span>
-              <span className="text-[15px] font-medium text-slate-900 dark:text-white block mt-1 truncate">{mobile}</span>
-            </div>
-            <div>
-              <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Procedure Plan</span>
-              <span className="text-[15px] font-medium text-slate-900 dark:text-white block mt-1 truncate">{tr.treatmentPlan || tr.name}</span>
-            </div>
-            <div>
-              <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Assigned Doctor</span>
-              <span className="text-[15px] font-medium text-slate-900 dark:text-white block mt-1 truncate">{tr.doctor}</span>
-            </div>
-            <div>
-              <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Start Date</span>
-              <span className="text-[15px] font-medium text-slate-900 dark:text-white block mt-1 truncate">{startDate}</span>
-            </div>
-            <div>
-              <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Est. Completion</span>
-              <span className="text-[15px] font-medium text-slate-900 dark:text-white block mt-1 truncate">{completionDate}</span>
-            </div>
+          {/* Legend */}
+          <div className="flex items-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500 inline-block"></span> ✓ Completed</span>
+            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue-600 inline-block"></span> ● Current Visit</span>
+            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700 inline-block"></span> ○ Upcoming</span>
+          </div>
+
+          {/* Horizontal Nodes Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 pt-1">
+            {timelineNodes.map((node, idx) => (
+              <div 
+                key={idx} 
+                className={`p-3 rounded-xl border transition-all ${
+                  node.isCurrent 
+                    ? "bg-blue-50/70 dark:bg-blue-955/40 border-blue-100 dark:border-blue-900/40 text-blue-700 dark:text-blue-300"
+                    : node.isCompleted 
+                    ? "bg-slate-50/60 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800/80 text-slate-800 dark:text-slate-200"
+                    : "bg-slate-50/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800/40 opacity-60 text-slate-400"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    Visit {node.num}
+                  </span>
+                  {node.isCompleted && <span className="h-4 w-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] font-bold">✓</span>}
+                  {node.isCurrent && <span className="h-4 w-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-bold ring-2 ring-blue-200 dark:ring-blue-900">●</span>}
+                  {!node.isCompleted && !node.isCurrent && <span className="h-4 w-4 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center text-[9px] text-slate-400">○</span>}
+                </div>
+                <span className="text-[13px] font-medium block truncate">{node.title}</span>
+                <span className="text-[11px] text-slate-400 dark:text-slate-500 block mt-0.5 truncate">{node.date}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Three-Column Grid Layout (Equal Height Cards) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+        {/* 3. Two Main Cards Side-by-Side (Treatment Plan & Cost Summary) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
           
-          {/* 1. Treatment Plan Card (Left) */}
+          {/* Card 1: Treatment Plan (Left) */}
           <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between h-full space-y-6">
             <div className="space-y-6">
-              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Treatment Plan</h2>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white tracking-tight">Treatment Plan</h2>
 
               {/* Vertical Timeline / Checklist */}
               <div className="relative pl-7 space-y-5 text-sm before:absolute before:left-3 before:top-2.5 before:bottom-2.5 before:w-0.5 before:bg-slate-200/80 dark:before:bg-slate-800">
-                {/* Step 1 */}
                 <div className="relative">
                   <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">✓</span>
                   <div className="space-y-0.5">
@@ -6331,7 +6353,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   </div>
                 </div>
 
-                {/* Step 2 */}
                 <div className="relative">
                   <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">✓</span>
                   <div className="space-y-0.5">
@@ -6340,7 +6361,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   </div>
                 </div>
 
-                {/* Step 3 */}
                 <div className="relative">
                   <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">✓</span>
                   <div className="space-y-0.5">
@@ -6349,7 +6369,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   </div>
                 </div>
 
-                {/* Step 4 (Current) */}
                 <div className="relative">
                   <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-sm ring-4 ring-blue-100 dark:ring-blue-955">●</span>
                   <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-955/40 border border-blue-100 dark:border-blue-900/40 space-y-0.5">
@@ -6358,7 +6377,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   </div>
                 </div>
 
-                {/* Step 5 */}
                 <div className="relative opacity-60">
                   <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-400 flex items-center justify-center text-xs font-medium">○</span>
                   <div className="space-y-0.5">
@@ -6367,7 +6385,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   </div>
                 </div>
 
-                {/* Step 6 */}
                 <div className="relative opacity-60">
                   <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-400 flex items-center justify-center text-xs font-medium">○</span>
                   <div className="space-y-0.5">
@@ -6380,14 +6397,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex justify-between items-center text-[13px] text-slate-500 dark:text-slate-400">
               <span className="font-normal">Total Planned Visits:</span>
-              <span className="font-semibold text-slate-700 dark:text-slate-300">{tr.totalVisits || 6} Visits</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">{totalVisits} Visits</span>
             </div>
           </div>
 
-          {/* 2. Cost Summary Card (Center) */}
+          {/* Card 2: Cost Summary (Right) */}
           <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between h-full space-y-6">
             <div className="space-y-6">
-              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Cost Summary</h2>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white tracking-tight">Cost Summary</h2>
 
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-3.5 rounded-xl bg-slate-50/60 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/80">
@@ -6456,69 +6473,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             </div>
           </div>
 
-          {/* 3. Visit Progress Card (Right) */}
-          <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between h-full space-y-6">
-            <div className="space-y-6">
-              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Visit Progress</h2>
-
-              {/* Thinner, Refined Progress Bar */}
-              <div className="space-y-2 p-3.5 rounded-xl bg-slate-50/60 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/80">
-                <div className="flex justify-between items-center text-xs font-semibold">
-                  <span className="text-slate-500 dark:text-slate-400">Overall Progress</span>
-                  <span className="text-blue-600 dark:text-blue-400 font-bold">50% Complete</span>
-                </div>
-                <div className="w-full bg-slate-200/80 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-                  <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: '50%' }}></div>
-                </div>
-              </div>
-
-              {/* Visits Checklist */}
-              <div className="space-y-2.5 text-[13px]">
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300">
-                  <span className="flex items-center gap-2 font-medium">
-                    <span className="text-emerald-500 font-bold">✓</span> Visit 1
-                  </span>
-                  <span className="text-slate-400 text-xs">05 Aug 2026</span>
-                </div>
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300">
-                  <span className="flex items-center gap-2 font-medium">
-                    <span className="text-emerald-500 font-bold">✓</span> Visit 2
-                  </span>
-                  <span className="text-slate-400 text-xs">12 Aug 2026</span>
-                </div>
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-955/40 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900/40">
-                  <span className="flex items-center gap-2 font-semibold">
-                    <span className="text-blue-600 font-bold">○</span> Visit 3
-                  </span>
-                  <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Scheduled (Next)</span>
-                </div>
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/30 dark:bg-slate-900/20 text-slate-400">
-                  <span className="flex items-center gap-2 font-normal">
-                    <span>○</span> Visit 4
-                  </span>
-                  <span className="text-xs">Upcoming</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Two Compact Info Cards */}
-            <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100 dark:border-slate-800/80 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50/60 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/80">
-                <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Next Visit</span>
-                <span className="text-[14px] font-semibold text-slate-900 dark:text-white block mt-1 truncate">10 Sep 2026</span>
-                <span className="text-[12px] text-slate-400 block mt-0.5">09:00 AM</span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50/60 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/80">
-                <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Assigned Doctor</span>
-                <span className="text-[14px] font-semibold text-slate-900 dark:text-white block mt-1 truncate">{tr.doctor}</span>
-                <span className="text-[12px] text-slate-400 block mt-0.5">Dentist</span>
-              </div>
-            </div>
-          </div>
-
         </div>
 
-        {/* Bottom Equal-Width Action Buttons (Primary Blue & Refined Secondary Styling) */}
+        {/* 4. Bottom Equal-Width Action Buttons */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Button 
             onClick={() => {
