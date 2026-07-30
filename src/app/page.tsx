@@ -6259,7 +6259,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         {/* 1. Compact Patient Header Card */}
         <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-xs flex justify-between items-center">
           <div>
-            <h1 className="text-[16px] font-semibold leading-6 text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-[14px] font-semibold leading-5 text-slate-900 dark:text-white tracking-tight">
               {tr.name}
             </h1>
             <p className="text-[12px] font-normal text-slate-400 dark:text-slate-500 mt-1">
@@ -6283,7 +6283,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-5">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-[16px] font-semibold leading-6 text-slate-900 dark:text-white tracking-tight">Treatment Progress</h2>
+              <h2 className="text-[14px] font-semibold leading-5 text-slate-900 dark:text-white tracking-tight">Treatment Progress</h2>
               <p className="text-[14px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
                 {completedVisits} of {totalVisits} Visits Completed
               </p>
@@ -6341,7 +6341,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           {/* Card 1: Treatment Plan (Left) */}
           <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between h-full space-y-6">
             <div className="space-y-6">
-              <h2 className="text-[16px] font-semibold leading-6 text-slate-900 dark:text-white tracking-tight">Treatment Plan</h2>
+              <h2 className="text-[14px] font-semibold leading-5 text-slate-900 dark:text-white tracking-tight">Treatment Plan</h2>
 
               {/* Vertical Timeline / Checklist */}
               <div className="relative pl-7 space-y-5 text-sm before:absolute before:left-3 before:top-2.5 before:bottom-2.5 before:w-0.5 before:bg-slate-200/80 dark:before:bg-slate-800">
@@ -6413,7 +6413,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           {/* Card 2: Cost Summary (Right) */}
           <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between h-full space-y-6">
             <div className="space-y-6">
-              <h2 className="text-[16px] font-semibold leading-6 text-slate-900 dark:text-white tracking-tight">Cost Summary</h2>
+              <h2 className="text-[14px] font-semibold leading-5 text-slate-900 dark:text-white tracking-tight">Cost Summary</h2>
 
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-3.5 rounded-xl bg-slate-50/60 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/80">
