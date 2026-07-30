@@ -6259,13 +6259,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         {/* 1. Compact Patient Header Card */}
         <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-xs flex justify-between items-center">
           <div>
-            <h1 className="text-[16px] sm:text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-[14px] font-medium leading-[18px] text-slate-900 dark:text-white tracking-tight">
               {tr.name}
             </h1>
-            <p className="text-[12px] font-normal text-slate-400 dark:text-slate-500 mt-1">
-              Patient: <span className="text-[14px] font-medium text-slate-800 dark:text-slate-200">{patName}</span>
+            <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-1">
+              Patient: <span className="text-[12px] font-medium text-slate-800 dark:text-slate-200">{patName}</span>
               <span className="mx-2 text-slate-300 dark:text-slate-700">•</span>
-              ID: <span className="text-[14px] font-medium text-slate-800 dark:text-slate-200">{patId}</span>
+              ID: <span className="text-[12px] font-medium text-slate-800 dark:text-slate-200">{patId}</span>
             </p>
           </div>
           {onBack && (
@@ -6283,16 +6283,16 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-5">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-[16px] font-semibold text-slate-900 dark:text-white tracking-tight">Treatment Progress</h2>
-              <p className="text-[14px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+              <h2 className="text-[12px] font-semibold text-slate-900 dark:text-white tracking-tight">Treatment Progress</h2>
+              <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
                 {completedVisits} of {totalVisits} Visits Completed
               </p>
             </div>
 
             <div className="flex items-center gap-3 bg-slate-50/80 dark:bg-slate-900/50 p-2.5 px-4 rounded-xl border border-slate-100 dark:border-slate-800/80 shrink-0">
               <div className="text-right">
-                <span className="text-[12px] font-medium uppercase tracking-wider text-slate-400 block">Overall</span>
-                <span className="text-[14px] font-medium text-blue-600 dark:text-blue-400">{progressPct}% Complete</span>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400 block">Overall</span>
+                <span className="text-[12px] font-medium text-blue-600 dark:text-blue-400">{progressPct}% Complete</span>
               </div>
               <div className="w-24 bg-slate-200/80 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
                 <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }}></div>
@@ -6301,7 +6301,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-4 text-[12px] font-normal text-slate-400 dark:text-slate-500 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+          <div className="flex items-center gap-4 text-[10px] font-normal text-slate-400 dark:text-slate-500 pt-2 border-t border-slate-100 dark:border-slate-800/80">
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500 inline-block"></span> ✓ Completed</span>
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue-600 inline-block"></span> ● Current Visit</span>
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700 inline-block"></span> ○ Upcoming</span>
@@ -6321,15 +6321,15 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 }`}
               >
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[12px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
                     Visit {node.num}
                   </span>
                   {node.isCompleted && <span className="h-4 w-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] font-bold">✓</span>}
                   {node.isCurrent && <span className="h-4 w-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-bold ring-2 ring-blue-200 dark:ring-blue-900">●</span>}
                   {!node.isCompleted && !node.isCurrent && <span className="h-4 w-4 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center text-[9px] text-slate-400">○</span>}
                 </div>
-                <span className="text-[14px] font-medium block truncate">{node.title}</span>
-                <span className="text-[12px] font-normal text-slate-400 dark:text-slate-500 block mt-0.5 truncate">{node.date}</span>
+                <span className="text-[12px] font-medium block truncate">{node.title}</span>
+                <span className="text-[10px] font-normal text-slate-400 dark:text-slate-500 block mt-0.5 truncate">{node.date}</span>
               </div>
             ))}
           </div>
@@ -6341,64 +6341,64 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           {/* Card 1: Treatment Plan (Left) */}
           <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between h-full space-y-6">
             <div className="space-y-6">
-              <h2 className="text-[16px] font-semibold text-slate-900 dark:text-white tracking-tight">Treatment Plan</h2>
+              <h2 className="text-[12px] font-semibold text-slate-900 dark:text-white tracking-tight">Treatment Plan</h2>
 
               {/* Vertical Timeline / Checklist */}
               <div className="relative pl-7 space-y-5 text-sm before:absolute before:left-3 before:top-2.5 before:bottom-2.5 before:w-0.5 before:bg-slate-200/80 dark:before:bg-slate-800">
                 <div className="relative">
                   <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">✓</span>
                   <div className="space-y-0.5">
-                    <span className="text-[14px] font-medium text-slate-900 dark:text-white block">Consultation & Assessment</span>
-                    <span className="text-[12px] font-normal text-slate-400 dark:text-slate-500 block">Completed 05 Aug 2026</span>
+                    <span className="text-[12px] font-medium text-slate-900 dark:text-white block">Consultation & Assessment</span>
+                    <span className="text-[10px] font-normal text-slate-400 dark:text-slate-500 block">Completed 05 Aug 2026</span>
                   </div>
                 </div>
 
                 <div className="relative">
                   <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">✓</span>
                   <div className="space-y-0.5">
-                    <span className="text-[14px] font-medium text-slate-900 dark:text-white block">Dental X-Ray & Imaging</span>
-                    <span className="text-[12px] font-normal text-slate-400 dark:text-slate-500 block">Completed 08 Aug 2026</span>
+                    <span className="text-[12px] font-medium text-slate-900 dark:text-white block">Dental X-Ray & Imaging</span>
+                    <span className="text-[10px] font-normal text-slate-400 dark:text-slate-500 block">Completed 08 Aug 2026</span>
                   </div>
                 </div>
 
                 <div className="relative">
                   <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">✓</span>
                   <div className="space-y-0.5">
-                    <span className="text-[14px] font-medium text-slate-900 dark:text-white block">Prophylaxis Cleaning</span>
-                    <span className="text-[12px] font-normal text-slate-400 dark:text-slate-500 block">Completed 10 Aug 2026</span>
+                    <span className="text-[12px] font-medium text-slate-900 dark:text-white block">Prophylaxis Cleaning</span>
+                    <span className="text-[10px] font-normal text-slate-400 dark:text-slate-500 block">Completed 10 Aug 2026</span>
                   </div>
                 </div>
 
                 <div className="relative">
                   <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-sm ring-4 ring-blue-100 dark:ring-blue-955">●</span>
                   <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-955/40 border border-blue-100 dark:border-blue-900/40 space-y-0.5">
-                    <span className="text-[14px] font-semibold text-blue-700 dark:text-blue-300 block">{tr.name} – Visit 2 (Current)</span>
-                    <span className="text-[12px] font-normal text-blue-600 dark:text-blue-400 block">Active Procedure Session</span>
+                    <span className="text-[12px] font-semibold text-blue-700 dark:text-blue-300 block">{tr.name} – Visit 2 (Current)</span>
+                    <span className="text-[10px] font-normal text-blue-600 dark:text-blue-400 block">Active Procedure Session</span>
                   </div>
                 </div>
 
                 <div className="relative opacity-60">
                   <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-400 flex items-center justify-center text-xs font-medium">○</span>
                   <div className="space-y-0.5">
-                    <span className="text-[14px] font-medium text-slate-700 dark:text-slate-300 block">Procedure Completion</span>
-                    <span className="text-[12px] font-normal text-slate-400 block">Upcoming Visit</span>
+                    <span className="text-[12px] font-medium text-slate-700 dark:text-slate-300 block">Procedure Completion</span>
+                    <span className="text-[10px] font-normal text-slate-400 block">Upcoming Visit</span>
                   </div>
                 </div>
 
                 <div className="relative opacity-60">
                   <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-400 flex items-center justify-center text-xs font-medium">○</span>
                   <div className="space-y-0.5">
-                    <span className="text-[14px] font-medium text-slate-700 dark:text-slate-300 block">Crown Placement</span>
-                    <span className="text-[12px] font-normal text-slate-400 block">Final Step</span>
+                    <span className="text-[12px] font-medium text-slate-700 dark:text-slate-300 block">Crown Placement</span>
+                    <span className="text-[10px] font-normal text-slate-400 block">Final Step</span>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-4">
-              <div className="flex justify-between items-center text-[12px] font-medium text-slate-400 dark:text-slate-500">
+              <div className="flex justify-between items-center text-[10px] font-medium text-slate-400 dark:text-slate-500">
                 <span>Total Planned Visits:</span>
-                <span className="text-[14px] font-medium text-slate-700 dark:text-slate-300">{totalVisits} Visits</span>
+                <span className="text-[12px] font-medium text-slate-700 dark:text-slate-300">{totalVisits} Visits</span>
               </div>
 
               <Button 
@@ -6413,32 +6413,32 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           {/* Card 2: Cost Summary (Right) */}
           <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between h-full space-y-6">
             <div className="space-y-6">
-              <h2 className="text-[16px] font-semibold text-slate-900 dark:text-white tracking-tight">Cost Summary</h2>
+              <h2 className="text-[12px] font-semibold text-slate-900 dark:text-white tracking-tight">Cost Summary</h2>
 
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-3.5 rounded-xl bg-slate-50/60 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/80">
-                  <span className="text-[12px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">Estimated Cost</span>
-                  <span className="text-[14px] font-medium text-slate-900 dark:text-white">₹{cost.toLocaleString()}</span>
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">Estimated Cost</span>
+                  <span className="text-[12px] font-medium text-slate-900 dark:text-white">₹{cost.toLocaleString()}</span>
                 </div>
 
                 <div className="flex justify-between items-center p-3.5 rounded-xl bg-emerald-50/40 dark:bg-emerald-955/20 border border-emerald-100/60 dark:border-emerald-900/30">
-                  <span className="text-[12px] font-medium uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Paid Amount</span>
-                  <span className="text-[14px] font-medium text-emerald-700 dark:text-emerald-400">₹{paid.toLocaleString()}</span>
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Paid Amount</span>
+                  <span className="text-[12px] font-medium text-emerald-700 dark:text-emerald-400">₹{paid.toLocaleString()}</span>
                 </div>
 
                 <div className="flex justify-between items-center p-3.5 rounded-xl bg-amber-50/40 dark:bg-amber-955/20 border border-amber-100/60 dark:border-amber-900/30">
-                  <span className="text-[12px] font-medium uppercase tracking-wider text-amber-700 dark:text-amber-400">Remaining Balance</span>
-                  <span className="text-[14px] font-medium text-amber-700 dark:text-amber-400">₹{remaining.toLocaleString()}</span>
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-amber-700 dark:text-amber-400">Remaining Balance</span>
+                  <span className="text-[12px] font-medium text-amber-700 dark:text-amber-400">₹{remaining.toLocaleString()}</span>
                 </div>
 
                 <div className="pt-3 space-y-2.5">
-                  <div className="flex justify-between items-center text-[12px]">
-                    <span className="font-medium text-slate-400 dark:text-slate-500">Last Payment</span>
-                    <span className="text-[14px] font-medium text-slate-700 dark:text-slate-300">₹2,500 on 12 Aug 2026 (Cash)</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">Last Payment</span>
+                    <span className="text-[12px] font-medium text-slate-700 dark:text-slate-300">₹2,500 on 12 Aug 2026 (Cash)</span>
                   </div>
-                  <div className="flex justify-between items-center text-[12px]">
-                    <span className="font-medium text-slate-400 dark:text-slate-500">Payment Status</span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[12px] font-medium ${
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">Payment Status</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-medium ${
                       remaining === 0 
                         ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40" 
                         : "bg-amber-50 text-amber-700 dark:bg-amber-955/40 dark:text-amber-400 border border-amber-100 dark:border-amber-900/40"
@@ -6446,9 +6446,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       {remaining === 0 ? "Paid" : "Partially Paid"}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-[12px]">
-                    <span className="font-medium text-slate-400 dark:text-slate-500">Invoice Number</span>
-                    <span className="text-[14px] font-medium text-blue-600 dark:text-blue-400">{invId}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">Invoice Number</span>
+                    <span className="text-[12px] font-medium text-blue-600 dark:text-blue-400">{invId}</span>
                   </div>
                 </div>
               </div>
