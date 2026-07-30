@@ -7185,9 +7185,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         <header className="h-20 bg-white dark:bg-slate-955 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 flex items-center justify-between px-6 shrink-0">
           
           <div className="flex items-center gap-7 flex-grow">
-            <span className="text-[22px] font-bold text-slate-900 dark:text-white shrink-0 hidden md:inline-block">
-              {activeTab === "Dashboard" && !sidebarCollapsed ? null : activeTab}
-            </span>
+            {sidebarCollapsed && (
+              <span className="text-[22px] font-bold text-slate-900 dark:text-white shrink-0 hidden md:inline-block">
+                {activeTab}
+              </span>
+            )}
             <div className="flex items-center gap-3 flex-grow max-w-[540px] w-full relative">
               <button
                 onClick={() => setMobileMenuOpen(true)}
