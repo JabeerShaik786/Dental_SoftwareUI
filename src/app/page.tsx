@@ -128,11 +128,13 @@ interface InvoiceItem {
   treatment: string;
   items: { description: string; amount: number }[];
   discount: number; // in percentage
+  discountType?: "percentage" | "fixed";
+  discountValue?: number;
   tax: number; // in percentage
   subtotal: number;
   total: number;
   paidAmount: number;
-  status: "Paid" | "Partially Paid" | "Pending";
+  status: "Paid" | "Partially Paid" | "Unpaid" | "Pending";
   paymentDate: string;
   paymentLogs: { method: string; amount: number; date: string }[];
 }
@@ -451,6 +453,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [payUpi, setPayUpi] = useState(0);
   const [payCard, setPayCard] = useState(0);
   const [payDiscountPercent, setPayDiscountPercent] = useState(0);
+  const [payDiscountType, setPayDiscountType] = useState<"percentage" | "fixed">("percentage");
+  const [payDiscountValue, setPayDiscountValue] = useState(0);
+  const [paymentCollectAmt, setPaymentCollectAmt] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<string>("Cash");
   const [payTaxPercent, setPayTaxPercent] = useState(18); // Default 18% GST
   const [payCustomItems, setPayCustomItems] = useState<{ description: string; amount: number }[]>([]);
   const [newCustomDesc, setNewCustomDesc] = useState("");
@@ -1861,22 +1867,26 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     e.preventDefault();
     if (!selectedInvoiceForPayment) return;
 
-    const collectedTotal = payCash + payUpi + payCard;
+    const collectedTotal = paymentCollectAmt;
     const finalInvoiceTotal = calculateInvoiceTotal();
 
     const paymentLogs = [...selectedInvoiceForPayment.paymentLogs];
     const logDate = "12 Aug 2026";
-    if (payCash > 0) paymentLogs.push({ method: "Cash", amount: payCash, date: logDate });
-    if (payUpi > 0) paymentLogs.push({ method: "UPI", amount: payUpi, date: logDate });
-    if (payCard > 0) paymentLogs.push({ method: "Card", amount: payCard, date: logDate });
+    if (paymentCollectAmt > 0) {
+      paymentLogs.push({ method: paymentMethod, amount: paymentCollectAmt, date: logDate });
+    }
 
     const totalPaidAmount = selectedInvoiceForPayment.paidAmount + collectedTotal;
-    let finalStatus: InvoiceItem["status"] = "Pending";
+    let finalStatus: InvoiceItem["status"] = "Unpaid";
     if (totalPaidAmount >= finalInvoiceTotal) {
       finalStatus = "Paid";
     } else if (totalPaidAmount > 0) {
       finalStatus = "Partially Paid";
     }
+
+    const calculatedDiscountAmt = calculateInvoiceDiscountAmount();
+    const calculatedSubtotal = calculateInvoiceSubtotal();
+    const calculatedDiscountPct = calculatedSubtotal > 0 ? Math.round((calculatedDiscountAmt / calculatedSubtotal) * 100) : 0;
 
     // Update in invoices state
     setInvoices(prev =>
@@ -1885,9 +1895,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           return {
             ...inv,
             items: [...inv.items, ...payCustomItems],
-            discount: payDiscountPercent,
+            discount: calculatedDiscountPct,
+            discountType: payDiscountType,
+            discountValue: payDiscountValue,
             tax: payTaxPercent,
-            subtotal: calculateInvoiceSubtotal(),
+            subtotal: calculatedSubtotal,
             total: finalInvoiceTotal,
             paidAmount: totalPaidAmount,
             status: finalStatus,
@@ -1916,9 +1928,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const receiptSnapshot: InvoiceItem = {
       ...selectedInvoiceForPayment,
       items: [...selectedInvoiceForPayment.items, ...payCustomItems],
-      discount: payDiscountPercent,
+      discount: calculatedDiscountPct,
+      discountType: payDiscountType,
+      discountValue: payDiscountValue,
       tax: payTaxPercent,
-      subtotal: calculateInvoiceSubtotal(),
+      subtotal: calculatedSubtotal,
       total: finalInvoiceTotal,
       paidAmount: totalPaidAmount,
       status: finalStatus,
@@ -1942,6 +1956,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setPayCustomItems(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const calculateInvoiceDiscountAmount = () => {
+    const sub = calculateInvoiceSubtotal();
+    if (payDiscountType === "percentage") {
+      return Math.round(sub * (payDiscountValue / 100));
+    }
+    return Math.min(sub, payDiscountValue);
+  };
+
   const calculateInvoiceSubtotal = () => {
     if (!selectedInvoiceForPayment) return 0;
     const baseSub = selectedInvoiceForPayment.items.reduce((sum, item) => sum + item.amount, 0);
@@ -1951,7 +1973,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
   const calculateInvoiceTotal = () => {
     const sub = calculateInvoiceSubtotal();
-    const discountAmt = Math.round(sub * (payDiscountPercent / 100));
+    const discountAmt = calculateInvoiceDiscountAmount();
     const taxAmt = Math.round((sub - discountAmt) * (payTaxPercent / 100));
     return sub - discountAmt + taxAmt;
   };
@@ -6588,29 +6610,42 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     }`}>{inv.status}</span>
                   </td>
                   <td className="py-3 text-center">
-                    {inv.status !== "Paid" ? (
-                      <button
-                        onClick={() => {
-                          setSelectedInvoiceForPayment(inv);
-                          setPayCash(0);
-                          setPayUpi(0);
-                          setPayCard(0);
-                          setPayDiscountPercent(inv.discount);
-                          setPayTaxPercent(inv.tax);
-                          setPayCustomItems([]);
-                        }}
-                        className="h-7 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px]"
-                      >
-                        Collect Payment
-                      </button>
-                    ) : (
+                    <div className="flex items-center justify-center gap-1.5">
                       <button
                         onClick={() => setLastGeneratedReceipt(inv)}
-                        className="text-slate-500 hover:underline text-[10px] font-bold"
+                        className="h-7 px-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 font-bold text-[10px] cursor-pointer"
                       >
-                        View Receipt
+                        Generate Invoice
                       </button>
-                    )}
+                      <button
+                        onClick={() => {
+                          setLastGeneratedReceipt(inv);
+                          setTimeout(() => {
+                            window.print();
+                          }, 150);
+                        }}
+                        className="h-7 px-2.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-bold text-[10px] flex items-center gap-1 cursor-pointer"
+                      >
+                        <Printer className="h-3 w-3" /> Print
+                      </button>
+                      {inv.status !== "Paid" && (
+                        <button
+                          onClick={() => {
+                            setSelectedInvoiceForPayment(inv);
+                            setPaymentCollectAmt(inv.total - inv.paidAmount);
+                            setPaymentMethod("Cash");
+                            setPayDiscountType(inv.discountType || "percentage");
+                            setPayDiscountValue(inv.discountValue || inv.discount);
+                            setPayDiscountPercent(inv.discount);
+                            setPayTaxPercent(inv.tax);
+                            setPayCustomItems([]);
+                          }}
+                          className="h-7 px-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] cursor-pointer"
+                        >
+                          Collect Payment
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -7713,7 +7748,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
               <span className="font-bold text-base text-slate-900">
-                Collect Split Payment: Invoice {selectedInvoiceForPayment.id}
+                Collect Payment & Apply Discount: Invoice {selectedInvoiceForPayment.id}
               </span>
               <button onClick={() => setSelectedInvoiceForPayment(null)} className="text-slate-400">
                 <X className="h-4 w-4" />
@@ -7751,66 +7786,96 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                     <Input placeholder="Item Description" value={newCustomDesc} onChange={e => setNewCustomDesc(e.target.value)} />
                     <Input type="number" placeholder="Cost" value={newCustomAmt || ""} onChange={e => setNewCustomAmt(parseInt(e.target.value) || 0)} />
                   </div>
-                  <button type="button" onClick={addCustomBillingItem} className="w-full h-8 rounded-lg border border-dashed border-blue-500 text-blue-600 font-bold">
+                  <button type="button" onClick={addCustomBillingItem} className="w-full h-8 rounded-lg border border-dashed border-blue-500 text-blue-600 font-bold cursor-pointer">
                     Add custom item
                   </button>
                 </div>
               </div>
 
-              {/* Billing computations & Payment split */}
+              {/* Billing computations & Payment details */}
               <div className="space-y-4">
-                <span className="font-bold block uppercase text-[10px] text-slate-400">Total Calculation & Splits</span>
+                <span className="font-bold block uppercase text-[10px] text-slate-400">Total Calculation & Discounts</span>
                 
                 <div className="grid grid-cols-2 gap-2 text-[11px]">
                   <div className="space-y-1">
-                    <Label>Discount (%)</Label>
-                    <Input type="number" value={payDiscountPercent || ""} onChange={e => setPayDiscountPercent(parseInt(e.target.value) || 0)} />
+                    <Label>Discount Type</Label>
+                    <select
+                      className="flex h-9 w-full rounded-md border border-slate-200 bg-white dark:bg-slate-905 px-3 py-1 text-xs focus:outline-none dark:border-slate-800 text-slate-808 dark:text-slate-200"
+                      value={payDiscountType}
+                      onChange={e => setPayDiscountType(e.target.value as "percentage" | "fixed")}
+                    >
+                      <option value="percentage">Percentage (%)</option>
+                      <option value="fixed">Fixed Amount (₹)</option>
+                    </select>
                   </div>
                   <div className="space-y-1">
-                    <Label>Tax / GST (%)</Label>
-                    <Input type="number" value={payTaxPercent || ""} onChange={e => setPayTaxPercent(parseInt(e.target.value) || 0)} />
+                    <Label>Discount Value</Label>
+                    <Input
+                      type="number"
+                      value={payDiscountValue || ""}
+                      onChange={e => setPayDiscountValue(Math.max(0, parseInt(e.target.value) || 0))}
+                    />
                   </div>
                 </div>
 
-                <div className="p-3 border rounded-xl bg-blue-50/30 text-xs space-y-1 font-bold">
+                <div className="p-3 border rounded-xl bg-blue-50/30 dark:bg-slate-900/30 text-xs space-y-1.5 font-bold">
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
                     <span>₹{calculateInvoiceSubtotal().toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-red-600">
+                  <div className="flex justify-between text-red-600 dark:text-red-400">
                     <span>Discount:</span>
-                    <span>- ₹{Math.round(calculateInvoiceSubtotal() * (payDiscountPercent / 100)).toLocaleString()}</span>
+                    <span>- ₹{calculateInvoiceDiscountAmount().toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-slate-600">
-                    <span>Tax:</span>
-                    <span>+ ₹{Math.round((calculateInvoiceSubtotal() - Math.round(calculateInvoiceSubtotal() * (payDiscountPercent / 100))) * (payTaxPercent / 100)).toLocaleString()}</span>
+                  <div className="flex justify-between text-slate-650 dark:text-slate-400">
+                    <span>Tax ({payTaxPercent}%):</span>
+                    <span>+ ₹{Math.round((calculateInvoiceSubtotal() - calculateInvoiceDiscountAmount()) * (payTaxPercent / 100)).toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-sm font-black pt-1 border-t">
+                  <div className="flex justify-between text-sm font-black pt-1.5 border-t border-slate-200 dark:border-slate-800">
                     <span>Total:</span>
                     <span>₹{calculateInvoiceTotal().toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-500 pt-1 border-t border-dashed border-slate-200 dark:border-slate-800">
+                    <span>Paid Amount (So Far):</span>
+                    <span>₹{selectedInvoiceForPayment.paidAmount.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-blue-650 dark:text-blue-400 font-extrabold">
+                    <span>Remaining Balance:</span>
+                    <span>₹{Math.max(0, calculateInvoiceTotal() - selectedInvoiceForPayment.paidAmount).toLocaleString()}</span>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <span className="font-bold text-[10px] block">Splitted Payment allocations</span>
-                  <div className="grid grid-cols-3 gap-2">
+                  <span className="font-bold text-[10px] block uppercase text-slate-400">Payment Collection Details</span>
+                  <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <Label>Cash Amount</Label>
-                      <Input type="number" value={payCash || ""} onChange={e => setPayCash(parseInt(e.target.value) || 0)} />
+                      <Label>Amount to Collect (₹)</Label>
+                      <Input
+                        type="number"
+                        value={paymentCollectAmt || ""}
+                        max={calculateInvoiceTotal() - selectedInvoiceForPayment.paidAmount}
+                        onChange={e => setPaymentCollectAmt(Math.max(0, parseInt(e.target.value) || 0))}
+                        required
+                      />
                     </div>
                     <div className="space-y-1">
-                      <Label>UPI Amount</Label>
-                      <Input type="number" value={payUpi || ""} onChange={e => setPayUpi(parseInt(e.target.value) || 0)} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Card Amount</Label>
-                      <Input type="number" value={payCard || ""} onChange={e => setPayCard(parseInt(e.target.value) || 0)} />
+                      <Label>Payment Method</Label>
+                      <select
+                        className="flex h-9 w-full rounded-md border border-slate-200 bg-white dark:bg-slate-905 px-3 py-1 text-xs focus:outline-none dark:border-slate-800 text-slate-808 dark:text-slate-200"
+                        value={paymentMethod}
+                        onChange={e => setPaymentMethod(e.target.value)}
+                      >
+                        <option value="Cash">Cash</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Credit/Debit Card">Credit/Debit Card</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                      </select>
                     </div>
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 rounded-xl mt-2 flex items-center justify-center gap-1.5 shadow-md">
-                  Collect ₹{(payCash + payUpi + payCard).toLocaleString()}
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 rounded-xl mt-2 flex items-center justify-center gap-1.5 shadow-md cursor-pointer">
+                  Collect ₹{paymentCollectAmt.toLocaleString()} ({paymentMethod})
                 </Button>
               </div>
             </form>
@@ -7820,114 +7885,185 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
       {/* Receipt Modal (Design printer-friendly print logs) */}
       {lastGeneratedReceipt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/50 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/50 backdrop-blur-xs p-4 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-md bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden text-xs font-semibold"
+            className="w-full max-w-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden text-xs font-semibold my-8"
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b">
-              <span className="font-bold text-sm">Clinical Receipt</span>
-              <button onClick={() => setLastGeneratedReceipt(null)} className="text-slate-400">
+            {/* Header - Not printed */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 no-print">
+              <span className="font-bold text-sm text-slate-900 dark:text-white">Professional Clinical Invoice & Receipt</span>
+              <button onClick={() => setLastGeneratedReceipt(null)} className="text-slate-400 hover:text-slate-650 dark:hover:text-slate-200">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
-              <div className="text-center border-b pb-4">
-                <span className="text-base font-black text-blue-600 block">APEX DENTAL CLINIC</span>
-                <p className="text-[9px] text-slate-450 mt-1 uppercase tracking-widest font-bold">Clinical payment receipt statement</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500 border-b pb-3">
-                <p>Invoice ID: <strong className="text-slate-800">{lastGeneratedReceipt.id}</strong></p>
-                <p>Date: <strong className="text-slate-800">{lastGeneratedReceipt.paymentDate}</strong></p>
-                <p>Patient Name: <strong className="text-slate-800">{lastGeneratedReceipt.patientName}</strong></p>
-                <p>Doctor: <strong className="text-slate-800">{lastGeneratedReceipt.doctor}</strong></p>
-              </div>
-
-              {/* Items table */}
-              <div className="space-y-1.5 border-b pb-3 text-[11px]">
-                {lastGeneratedReceipt.items.map((item, idx) => (
-                  <div key={idx} className="flex justify-between">
-                    <span>{item.description}</span>
-                    <span>₹{item.amount.toLocaleString()}</span>
-                  </div>
-                ))}
-                {lastGeneratedReceipt.discount > 0 && (
-                  <div className="flex justify-between text-red-650">
-                    <span>Discount ({lastGeneratedReceipt.discount}%):</span>
-                    <span>- ₹{Math.round(lastGeneratedReceipt.subtotal * (lastGeneratedReceipt.discount / 100)).toLocaleString()}</span>
-                  </div>
-                )}
-                {lastGeneratedReceipt.tax > 0 && (
-                  <div className="flex justify-between text-slate-500">
-                    <span>Tax ({lastGeneratedReceipt.tax}%):</span>
-                    <span>+ ₹{Math.round((lastGeneratedReceipt.subtotal - Math.round(lastGeneratedReceipt.subtotal * (lastGeneratedReceipt.discount / 100))) * (lastGeneratedReceipt.tax / 100)).toLocaleString()}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-between items-center text-xs font-black border-b pb-3">
-                <span>Total Amount:</span>
-                <span>₹{lastGeneratedReceipt.total.toLocaleString()}</span>
-              </div>
-
-              <div className="flex justify-between items-center text-xs text-emerald-600 font-extrabold border-b pb-3">
-                <span>Paid Amount:</span>
-                <span>₹{lastGeneratedReceipt.paidAmount.toLocaleString()}</span>
-              </div>
-
-              {lastGeneratedReceipt.total - lastGeneratedReceipt.paidAmount > 0 && (
-                <div className="flex justify-between items-center text-xs text-red-600 font-extrabold border-b pb-3">
-                  <span>Balance Outstanding:</span>
-                  <span>₹{(lastGeneratedReceipt.total - lastGeneratedReceipt.paidAmount).toLocaleString()}</span>
+            {/* Printable Content Section */}
+            <div id="print-area" className="p-8 space-y-6 bg-white dark:bg-slate-955 text-slate-808 dark:text-slate-200">
+              
+              {/* Clinic details header */}
+              <div className="flex justify-between items-start border-b pb-4 border-slate-100 dark:border-slate-800">
+                <div>
+                  <span className="text-[18px] font-black text-blue-600 tracking-tight block">APEX DENTAL CLINIC</span>
+                  <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                    123, Sector 5, HSR Layout, Bengaluru - 560102<br />
+                    Phone: +91 99000 11000 | Email: billing@apexdental.com
+                  </p>
                 </div>
-              )}
+                <div className="text-right">
+                  <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">INVOICE & RECEIPT</span>
+                  <span className="text-[14px] font-black text-slate-900 dark:text-white block mt-0.5">{lastGeneratedReceipt.id}</span>
+                  <span className="text-[10px] text-slate-400 block mt-1">Date: {lastGeneratedReceipt.paymentDate}</span>
+                </div>
+              </div>
 
-              <div className="space-y-1.5 text-[10px] text-slate-500 border-b pb-3">
-                <span className="font-bold uppercase tracking-wider block text-[8px] text-slate-400">Transactions logs</span>
-                {lastGeneratedReceipt.paymentLogs.map((log, idx) => (
-                  <div key={idx} className="flex justify-between">
-                    <span>{log.method} Method</span>
-                    <span>₹{log.amount.toLocaleString()}</span>
+              {/* Patient & Doctor details */}
+              <div className="grid grid-cols-2 gap-4 bg-slate-50/50 dark:bg-slate-900/20 p-4 rounded-xl border border-slate-100 dark:border-slate-800/80">
+                <div className="space-y-1">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">PATIENT DETAILS</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white block">{lastGeneratedReceipt.patientName}</span>
+                  <span className="text-[10px] text-slate-450 block">ID: {lastGeneratedReceipt.patientId}</span>
+                </div>
+                <div className="space-y-1 text-right">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">CLINICAL DETAILS</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white block">Dr. {lastGeneratedReceipt.doctor}</span>
+                  <span className="text-[10px] text-slate-455 block">Treatment: {lastGeneratedReceipt.treatment}</span>
+                </div>
+              </div>
+
+              {/* Itemized charges table */}
+              <div className="space-y-2">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">TREATMENT CHARGES STATEMENT</span>
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50/80 dark:bg-slate-900/40 text-slate-400 text-[10px] border-b border-slate-100 dark:border-slate-800 uppercase tracking-wider">
+                        <th className="py-2 px-3 font-bold">Description</th>
+                        <th className="py-2 px-3 font-bold text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                      {lastGeneratedReceipt.items.map((item, idx) => (
+                        <tr key={idx} className="text-slate-700 dark:text-slate-300">
+                          <td className="py-2.5 px-3 font-medium">{item.description}</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900 dark:text-white font-mono">₹{item.amount.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Calculations and summary */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                {/* Transaction history logs */}
+                <div className="space-y-2">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">TRANSACTION HISTORY</span>
+                  {lastGeneratedReceipt.paymentLogs && lastGeneratedReceipt.paymentLogs.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {lastGeneratedReceipt.paymentLogs.map((log, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-[10px] bg-slate-50/20 dark:bg-slate-900/10 p-2 rounded-lg border border-slate-100/50 dark:border-slate-850">
+                          <span className="text-slate-500 font-medium">{log.method} Allocation</span>
+                          <span className="text-slate-808 dark:text-slate-200 font-bold font-mono">₹{log.amount.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-slate-450 italic block">No payment records found.</span>
+                  )}
+                </div>
+
+                {/* Computation blocks */}
+                <div className="space-y-2 bg-slate-50/30 dark:bg-slate-900/10 p-3.5 rounded-xl border border-slate-100 dark:border-slate-850">
+                  <div className="flex justify-between text-[11px] text-slate-500">
+                    <span>Subtotal:</span>
+                    <span className="font-mono">₹{lastGeneratedReceipt.subtotal.toLocaleString()}</span>
                   </div>
-                ))}
+                  
+                  {lastGeneratedReceipt.discountValue !== undefined && lastGeneratedReceipt.discountValue > 0 ? (
+                    <div className="flex justify-between text-[11px] text-red-600 dark:text-red-400">
+                      <span>Discount ({lastGeneratedReceipt.discountType === "percentage" ? `${lastGeneratedReceipt.discountValue}%` : `₹${lastGeneratedReceipt.discountValue}`}):</span>
+                      <span className="font-mono">- ₹{Math.round(lastGeneratedReceipt.discountType === "percentage" ? (lastGeneratedReceipt.subtotal * (lastGeneratedReceipt.discountValue / 100)) : lastGeneratedReceipt.discountValue).toLocaleString()}</span>
+                    </div>
+                  ) : lastGeneratedReceipt.discount > 0 ? (
+                    <div className="flex justify-between text-[11px] text-red-600 dark:text-red-400">
+                      <span>Discount ({lastGeneratedReceipt.discount}%):</span>
+                      <span className="font-mono">- ₹{Math.round(lastGeneratedReceipt.subtotal * (lastGeneratedReceipt.discount / 100)).toLocaleString()}</span>
+                    </div>
+                  ) : null}
+
+                  {lastGeneratedReceipt.tax > 0 && (
+                    <div className="flex justify-between text-[11px] text-slate-505">
+                      <span>GST ({lastGeneratedReceipt.tax}%):</span>
+                      <span className="font-mono">
+                        + ₹{Math.round(
+                          (lastGeneratedReceipt.subtotal - 
+                           Math.round(
+                             lastGeneratedReceipt.discountType === "percentage" 
+                               ? (lastGeneratedReceipt.subtotal * ((lastGeneratedReceipt.discountValue || lastGeneratedReceipt.discount) / 100)) 
+                               : (lastGeneratedReceipt.discountValue || 0)
+                           )
+                          ) * (lastGeneratedReceipt.tax / 100)
+                        ).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-xs font-black pt-1.5 border-t border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
+                    <span>Grand Total:</span>
+                    <span className="font-mono">₹{lastGeneratedReceipt.total.toLocaleString()}</span>
+                  </div>
+
+                  <div className="flex justify-between text-[11px] text-emerald-600 dark:text-emerald-400 font-extrabold pt-1 border-t border-dashed border-slate-200 dark:border-slate-800">
+                    <span>Paid Amount:</span>
+                    <span className="font-mono">₹{lastGeneratedReceipt.paidAmount.toLocaleString()}</span>
+                  </div>
+
+                  <div className="flex justify-between text-[11px] font-extrabold border-t border-slate-200 dark:border-slate-800">
+                    <span className="text-slate-500">Status:</span>
+                    <span className={`${
+                      lastGeneratedReceipt.status === "Paid" ? "text-emerald-600 dark:text-emerald-400" :
+                      lastGeneratedReceipt.status === "Partially Paid" ? "text-amber-600 dark:text-amber-400" :
+                      "text-red-600 dark:text-red-400"
+                    }`}>{lastGeneratedReceipt.status}</span>
+                  </div>
+
+                  {lastGeneratedReceipt.total - lastGeneratedReceipt.paidAmount > 0 && (
+                    <div className="flex justify-between text-[11px] text-red-650 dark:text-red-400 font-extrabold">
+                      <span>Outstanding Balance:</span>
+                      <span className="font-mono">₹{(lastGeneratedReceipt.total - lastGeneratedReceipt.paidAmount).toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Action buttons */}
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => {
-                    alert("Triggering device print queue...");
-                    window.print();
-                  }}
-                  className="h-9 rounded-lg border flex items-center justify-center gap-1.5 font-bold hover:bg-slate-50"
-                >
-                  <Printer className="h-4 w-4" /> Print
-                </button>
-                <button
-                  onClick={() => alert("PDF downloaded successfully to device.")}
-                  className="h-9 rounded-lg border flex items-center justify-center gap-1.5 font-bold hover:bg-slate-50"
-                >
-                  <Download className="h-4 w-4" /> Download PDF
-                </button>
+              {/* Thank you message */}
+              <div className="text-center pt-4 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-400">
+                <p className="font-bold">Thank you for visiting Apex Dental Clinic!</p>
+                <p className="mt-0.5">Please retain this copy for insurance or future references.</p>
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-1">
-                <button
-                  onClick={() => alert("Receipt shared via email channels.")}
-                  className="h-9 rounded-lg border flex items-center justify-center gap-1.5 font-bold hover:bg-slate-50"
-                >
-                  <Mail className="h-4 w-4" /> Email Receipt
-                </button>
-                <button
-                  onClick={() => setLastGeneratedReceipt(null)}
-                  className="h-9 rounded-lg bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center gap-1.5 font-bold shadow-xs"
-                >
-                  Close Receipt
-                </button>
-              </div>
+
             </div>
+
+            {/* Action buttons footer - Not printed */}
+            <div className="p-5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2.5 no-print">
+              <button
+                onClick={() => {
+                  window.print();
+                }}
+                className="h-10 rounded-xl bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center gap-1.5 font-bold shadow-xs cursor-pointer"
+              >
+                <Printer className="h-4 w-4" /> Print Invoice
+              </button>
+              <button
+                onClick={() => setLastGeneratedReceipt(null)}
+                className="h-10 rounded-xl bg-white hover:bg-slate-55 border border-slate-200 dark:bg-slate-950 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-808 dark:text-slate-200 flex items-center justify-center font-bold cursor-pointer"
+              >
+                Close Preview
+              </button>
+            </div>
+
           </motion.div>
         </div>
       )}

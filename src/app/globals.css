@@ -469,3 +469,28 @@
 .animate-scaleIn {
   animation: scaleIn 0.15s ease-out forwards;
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #print-area, #print-area * {
+    visibility: visible;
+  }
+  #print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  /* Hide print buttons and layout wrappers during print */
+  #print-area .no-print {
+    display: none !important;
+  }
+}
