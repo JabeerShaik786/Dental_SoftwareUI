@@ -7079,13 +7079,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           sidebarCollapsed ? "w-[68px]" : "w-[200px]"
         }`}
       >
-        <div className={`border-b border-slate-200 dark:border-slate-800 flex items-center shrink-0 transition-all duration-300 ease-in-out overflow-hidden h-20 ${
+        <div className={`border-b border-slate-200 dark:border-slate-800 flex items-center shrink-0 transition-all duration-300 ease-in-out h-20 ${
           sidebarCollapsed
             ? "px-0 justify-center flex-col py-2 gap-1.5"
             : "px-4 py-5 justify-between flex-row"
         }`}>
-          <div className={`flex items-center transition-all duration-300 ease-in-out overflow-hidden ${
-            sidebarCollapsed ? "justify-center w-full" : "justify-start min-w-0"
+          <div className={`flex items-center transition-all duration-300 ease-in-out ${
+            sidebarCollapsed ? "justify-center w-full" : "justify-start flex-1 min-w-0"
           }`}>
             <DentalLogo showText={!sidebarCollapsed} collapsed={sidebarCollapsed} />
           </div>

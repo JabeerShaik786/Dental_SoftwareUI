@@ -8,7 +8,7 @@ interface DentalLogoProps {
 
 export function DentalLogo({ className = "", showText = true, collapsed = false }: DentalLogoProps) {
   return (
-    <div className={`flex items-center transition-all duration-300 ${collapsed ? "gap-2" : "gap-3"} ${className}`}>
+    <div className={`flex items-center transition-all duration-300 ${collapsed ? "gap-2" : "gap-2"} ${className}`}>
       <div className={`relative flex items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 shadow-md shadow-blue-500/20 transition-all duration-300 ${
         collapsed ? "h-8 w-8" : "h-10 w-10"
       }`}>
@@ -26,12 +26,12 @@ export function DentalLogo({ className = "", showText = true, collapsed = false 
         </svg>
       </div>
       <div className={`flex flex-col text-left transition-all duration-300 ease-in-out origin-left ${
-        showText ? "opacity-100 max-w-[200px]" : "opacity-0 max-w-0 overflow-hidden pointer-events-none"
+        showText ? "opacity-100 w-auto min-w-0" : "opacity-0 max-w-0 overflow-hidden pointer-events-none"
       }`}>
-        <span className="text-[22px] font-bold tracking-tight text-[#0F172A] dark:text-white leading-none whitespace-nowrap">
+        <span className="text-[18px] font-bold tracking-tight text-[#0F172A] dark:text-white leading-none whitespace-nowrap">
           Health OS
         </span>
-        <span className="text-[11px] font-medium tracking-normal text-slate-400 dark:text-slate-500 mt-[3px] whitespace-nowrap">
+        <span className="text-[10px] font-medium tracking-normal text-slate-400 dark:text-slate-505 mt-[3px] whitespace-nowrap">
           Dental Practice
         </span>
       </div>
