@@ -31,9 +31,6 @@ export function DentalLogo({ className = "", showText = true, collapsed = false 
         <span className="text-[18px] font-bold tracking-tight text-[#0F172A] dark:text-white leading-none whitespace-nowrap">
           Health OS
         </span>
-        <span className="text-[10px] font-medium tracking-normal text-slate-400 dark:text-slate-505 mt-[3px] whitespace-nowrap">
-          Dental Practice
-        </span>
       </div>
     </div>
   );
