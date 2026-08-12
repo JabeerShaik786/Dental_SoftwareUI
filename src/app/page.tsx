@@ -3024,7 +3024,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => {
-                              const phoneNumber = patientPhone.replace(/\D/g, "");
+                              const phoneNumber = "918639754722";
                               const message = `Hello ${app.patientName},
 
 This is a reminder from Apex Clinic regarding your dental appointment.
