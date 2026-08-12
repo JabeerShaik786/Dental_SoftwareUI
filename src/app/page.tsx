@@ -3024,8 +3024,23 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => {
-                              console.log("Open WhatsApp communication workflow");
-                              alert(`Opening WhatsApp chat communication workflow with ${app.patientName} (${patientPhone}).`);
+                              const phoneNumber = patientPhone.replace(/\D/g, "");
+                              const message = `Hello ${app.patientName},
+
+This is a reminder from Apex Clinic regarding your dental appointment.
+
+🦷 Treatment: ${app.treatment}
+📅 Date: ${app.date}
+🕒 Time: ${app.time}
+
+Please arrive 10 minutes before your scheduled appointment.
+
+If you need to reschedule, please reply to this message.
+
+Thank you,
+Apex Clinic`;
+                              const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+                              window.open(whatsappUrl, "_blank", "noopener,noreferrer");
                             }}
                             className="h-[34px] w-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-[#25D366]/10 hover:text-[#25D366] hover:border-[#25D366]/20 flex items-center justify-center transition-colors shrink-0 cursor-pointer duration-200"
                             title="WhatsApp Communication"
