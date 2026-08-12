@@ -13,6 +13,7 @@ import {
   Receipt,
   BarChart3,
   Settings,
+  Building,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -6793,115 +6794,283 @@ Apex Clinic`;
   );
 
   const renderSettingsModule = () => (
-    <div className="space-y-6 animate-fadeIn">
-      {activeSubTab === "Clinic" && (
-        <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs max-w-xl text-xs font-semibold">
-          <span className="font-bold text-sm block mb-4">Clinic Profile Settings</span>
+    <div className="space-y-6 animate-fadeIn max-w-6xl mx-auto pb-8 text-slate-800 dark:text-slate-200">
+      {/* Settings Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Settings</h1>
+        <p className="text-sm font-normal text-slate-500 dark:text-slate-400 mt-1">
+          Manage your clinic, team, account, and application preferences.
+        </p>
+      </div>
+
+      {/* Grid of Sections */}
+      <div className="space-y-6">
+
+        {/* 1. Clinic Profile Section */}
+        <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-5">
+          <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+            <div className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-955/50 border border-blue-100 dark:border-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <Building className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-[16px] sm:text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Clinic Profile</h2>
+              <p className="text-[13px] font-normal text-slate-500 dark:text-slate-400 mt-0.5">
+                Manage your clinic details, receptionist information, and physical address.
+              </p>
+            </div>
+          </div>
+
           <form className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>Clinic Name</Label>
-                <Input defaultValue="Apex Dental Clinic" />
+                <Label className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Clinic Name</Label>
+                <Input defaultValue="Apex Dental Clinic" className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[13px]" />
               </div>
               <div className="space-y-1.5">
-                <Label>Receptionist User</Label>
-                <Input defaultValue="Anjali" />
+                <Label className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Receptionist User</Label>
+                <Input defaultValue="Anjali" className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[13px]" />
               </div>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Clinic Phone / Contact</Label>
+                <Input defaultValue="+91 98765 43210" className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[13px]" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Clinic Email</Label>
+                <Input defaultValue="contact@apexdental.com" className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[13px]" />
+              </div>
+            </div>
+
             <div className="space-y-1.5">
-              <Label>Address</Label>
-              <Input defaultValue="12, MG Road, Bengaluru" />
+              <Label className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Address</Label>
+              <Input defaultValue="12, MG Road, Bengaluru, Karnataka - 560001" className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[13px]" />
             </div>
-            <Button type="button" onClick={() => alert("Clinic configurations saved.")} className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-4 rounded-lg">Save Settings</Button>
+
+            <div className="pt-2 flex justify-end">
+              <Button 
+                type="button" 
+                onClick={() => {
+                  showToast("Clinic configurations saved.", "success");
+                }} 
+                className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-5 rounded-xl text-xs cursor-pointer shadow-xs"
+              >
+                Save Settings
+              </Button>
+            </div>
           </form>
         </div>
-      )}
 
-      {activeSubTab === "Doctors" && (
-        <div className="max-w-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs font-semibold">
-          <span className="font-bold text-sm block mb-4">Doctors Registry</span>
-          <div className="space-y-3">
-            {doctors.map(doc => (
-              <div key={doc.name} className="flex justify-between items-center p-3 border rounded-xl bg-slate-50/50">
-                <div>
-                  <span className="font-bold text-slate-900 block">{doc.name}</span>
-                  <p className="text-[10px] text-slate-450 mt-0.5">{doc.speciality}</p>
-                </div>
-                <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-full font-bold text-[9px]">{doc.status}</span>
+        {/* 2. Doctors & Staff Section */}
+        <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-5">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-955/50 border border-indigo-100 dark:border-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <Users className="h-5 w-5" />
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {activeSubTab === "Staff" && (
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs font-semibold max-w-2xl">
-          <span className="font-bold text-sm block mb-3">Clinic Staff Directories</span>
-          <div className="space-y-2">
-            {[
-              { name: "Sneha Rao", role: "Senior Nurse / Hygienist" },
-              { name: "Amit Kumar", role: "Desk Operations" }
-            ].map((st, i) => (
-              <div key={i} className="p-3 border rounded-xl flex justify-between items-center bg-slate-50/50">
-                <div>
-                  <span className="font-bold text-slate-800 block">{st.name}</span>
-                  <p className="text-[10px] text-slate-450 mt-0.5">{st.role}</p>
-                </div>
-                <span className="text-[10px] font-bold text-slate-500">Active</span>
+              <div>
+                <h2 className="text-[16px] sm:text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Doctors & Staff</h2>
+                <p className="text-[13px] font-normal text-slate-500 dark:text-slate-400 mt-0.5">
+                  Doctors and staff members associated with the clinic practice.
+                </p>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {activeSubTab === "Users" && (
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs font-semibold max-w-xl">
-          <span className="font-bold text-sm block mb-3">System Login Accounts</span>
-          <div className="p-3 border rounded-xl flex justify-between items-center bg-slate-50/20">
-            <div>
-              <span className="font-bold block">Dr. Sharma</span>
-              <p className="text-[10px] text-slate-400">admin@healthos.com</p>
             </div>
-            <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full text-[9px] font-bold">Admin</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Doctors Sub-list */}
+            <div className="space-y-3">
+              <span className="text-[12px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Doctors Registry</span>
+              <div className="space-y-2">
+                {doctors.map(doc => (
+                  <div key={doc.name} className="flex justify-between items-center p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold text-xs flex items-center justify-center shrink-0">
+                        {doc.name.replace("Dr. ", "")[0]}
+                      </div>
+                      <div>
+                        <span className="text-[14px] font-medium text-slate-900 dark:text-white block">{doc.name}</span>
+                        <p className="text-[12px] font-normal text-slate-400 dark:text-slate-500 mt-0.5">{doc.speciality}</p>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 rounded-full font-medium text-[12px]">
+                      {doc.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Staff Sub-list */}
+            <div className="space-y-3">
+              <span className="text-[12px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Clinic Staff Directories</span>
+              <div className="space-y-2">
+                {[
+                  { name: "Sneha Rao", role: "Senior Nurse / Hygienist", status: "Active" },
+                  { name: "Amit Kumar", role: "Desk Operations & Billing", status: "Active" }
+                ].map((st, i) => (
+                  <div key={i} className="flex justify-between items-center p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center shrink-0">
+                        {st.name[0]}
+                      </div>
+                      <div>
+                        <span className="text-[14px] font-medium text-slate-900 dark:text-white block">{st.name}</span>
+                        <p className="text-[12px] font-normal text-slate-400 dark:text-slate-500 mt-0.5">{st.role}</p>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-full font-medium text-[12px]">
+                      {st.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
-      )}
 
-      {activeSubTab === "Preferences" && (
-        <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs font-semibold max-w-xl space-y-4">
-          <span className="font-bold text-sm block">System Preferences</span>
-          <div className="flex items-center justify-between py-2 border-b">
-            <span>Currency Symbol</span>
-            <span className="font-bold text-slate-700">INR (₹)</span>
+        {/* 3. Users & Access Section */}
+        <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-5">
+          <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+            <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-955/50 border border-emerald-100 dark:border-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <UserCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-[16px] sm:text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Users & Access</h2>
+              <p className="text-[13px] font-normal text-slate-500 dark:text-slate-400 mt-0.5">
+                Manage system login accounts, role assignments, and security permissions.
+              </p>
+            </div>
           </div>
-          <div className="flex items-center justify-between py-2 border-b">
-            <span>SMS Alerts</span>
-            <span className="font-bold text-emerald-600">Enabled</span>
+
+          <div className="space-y-3">
+            <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/40">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                  DS
+                </div>
+                <div>
+                  <span className="text-[14px] font-medium text-slate-900 dark:text-white block">Dr. Sharma</span>
+                  <p className="text-[12px] font-normal text-slate-400 dark:text-slate-500">admin@healthos.com</p>
+                </div>
+              </div>
+              <span className="bg-blue-50 text-blue-700 dark:bg-blue-955/40 dark:text-blue-400 border border-blue-100 dark:border-blue-900/40 px-3 py-1 rounded-full text-[12px] font-medium">
+                Admin
+              </span>
+            </div>
+
+            <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/40">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center shrink-0">
+                  AN
+                </div>
+                <div>
+                  <span className="text-[14px] font-medium text-slate-900 dark:text-white block">Anjali (Desk)</span>
+                  <p className="text-[12px] font-normal text-slate-400 dark:text-slate-500">reception@healthos.com</p>
+                </div>
+              </div>
+              <span className="bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-3 py-1 rounded-full text-[12px] font-medium">
+                Receptionist
+              </span>
+            </div>
           </div>
         </div>
-      )}
 
-      {activeSubTab === "Integrations" && (
-        <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs font-semibold max-w-xl space-y-3">
-          <span className="font-bold text-sm block mb-1">Integrations Portal</span>
-          <div className="p-4 border border-dashed rounded-2xl flex items-center gap-3 bg-slate-50/50">
+        {/* 4. Preferences Section */}
+        <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-5">
+          <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+            <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-955/50 border border-amber-100 dark:border-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <SlidersHorizontal className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-[16px] sm:text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Preferences</h2>
+              <p className="text-[13px] font-normal text-slate-500 dark:text-slate-400 mt-0.5">
+                General application preferences and clinic default configurations.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800/80">
+              <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Currency Symbol</span>
+              <span className="text-[14px] font-medium text-slate-900 dark:text-white">INR (₹)</span>
+            </div>
+
+            <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800/80">
+              <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">SMS & WhatsApp Notifications</span>
+              <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 rounded-full font-medium text-[12px]">
+                Enabled
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800/80">
+              <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Clinic Operating Hours</span>
+              <span className="text-[14px] font-medium text-slate-900 dark:text-white">09:00 AM – 08:00 PM</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 5. Integrations Section */}
+        <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-5">
+          <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+            <div className="h-10 w-10 rounded-xl bg-purple-50 dark:bg-purple-955/50 border border-purple-100 dark:border-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+              <Layers className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-[16px] sm:text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Integrations</h2>
+              <p className="text-[13px] font-normal text-slate-500 dark:text-slate-400 mt-0.5">
+                Connected services, external laboratory APIs, and cloud portals.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex items-center gap-3.5 bg-slate-50/50 dark:bg-slate-900/40">
             <Layers className="h-6 w-6 text-slate-400 shrink-0" />
             <div>
-              <span className="font-bold block">Apex Dental Lab API Sync</span>
-              <p className="text-[10px] text-slate-400">Link surgical post scan results to patient profiles.</p>
+              <span className="text-[14px] font-medium text-slate-900 dark:text-white block">Apex Dental Lab API Sync</span>
+              <p className="text-[12px] font-normal text-slate-400 dark:text-slate-500 mt-0.5">
+                Link surgical post scan results to patient clinical profiles seamlessly.
+              </p>
             </div>
           </div>
         </div>
-      )}
 
-      {activeSubTab === "Backup" && (
-        <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs font-semibold max-w-xl space-y-4">
-          <span className="font-bold text-sm block mb-1">Data Backup and Exports</span>
-          <Button onClick={() => alert("Clinic database backup compiled.")} className="bg-blue-600 text-white font-bold h-10 px-4 rounded-lg flex items-center gap-2">
-            <Database className="h-4 w-4" /> Trigger System Export
-          </Button>
+        {/* 6. Backup Section */}
+        <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-5">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-teal-50 dark:bg-teal-955/50 border border-teal-100 dark:border-teal-900/40 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                <Database className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-[16px] sm:text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Backup</h2>
+                <p className="text-[13px] font-normal text-slate-500 dark:text-slate-400 mt-0.5">
+                  Data backup, database exports, and disaster recovery settings.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <span className="text-[14px] font-medium text-slate-900 dark:text-white block">Clinic Database Export</span>
+              <p className="text-[12px] font-normal text-slate-400 dark:text-slate-500 mt-0.5">
+                Compile and download encrypted backup archive of all patient files, billing, and clinical logs.
+              </p>
+            </div>
+            <Button 
+              onClick={() => {
+                showToast("Clinic database backup compiled.", "success");
+              }} 
+              className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-5 rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-xs shrink-0"
+            >
+              <Database className="h-4 w-4" /> Trigger System Export
+            </Button>
+          </div>
         </div>
-      )}
+
+      </div>
     </div>
   );
 
@@ -7469,7 +7638,7 @@ Apex Clinic`;
         </header>
 
         {/* Dynamic Inner Sub-tabs Bar (hidden if in active consultation mode) */}
-        {!activeConsultationApptId && !selectedPatientId && activeTab !== "Dashboard" && activeTab !== "Patients" && activeTab !== "Treatments" && (
+        {!activeConsultationApptId && !selectedPatientId && activeTab !== "Dashboard" && activeTab !== "Patients" && activeTab !== "Treatments" && activeTab !== "Settings" && (
           <div className="bg-white dark:bg-slate-955 border-b border-slate-200 dark:border-slate-800 px-6 py-2.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none sticky top-20 z-20 shrink-0">
             {moduleSubTabs[activeTab]?.map((subTab) => {
               const active = activeSubTab === subTab;
