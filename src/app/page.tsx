@@ -3024,7 +3024,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => {
-                              const phoneNumber = "918639754722";
+                              const whatsappNumber = "918639778188";
                               const message = `Hello ${app.patientName},
 
 This is a reminder from Apex Clinic regarding your dental appointment.
@@ -3039,7 +3039,7 @@ If you need to reschedule, please reply to this message.
 
 Thank you,
 Apex Clinic`;
-                              const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+                              const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
                               window.open(whatsappUrl, "_blank", "noopener,noreferrer");
                             }}
                             className="h-[34px] w-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-[#25D366]/10 hover:text-[#25D366] hover:border-[#25D366]/20 flex items-center justify-center transition-colors shrink-0 cursor-pointer duration-200"
@@ -4379,7 +4379,25 @@ Apex Clinic`;
                     <MessageSquare className="h-3.5 w-3.5" /> Send SMS
                   </button>
                   <button 
-                    onClick={() => alert(`WhatsApp notification sent to ${selectedApptDetail.patientName}.`)}
+                    onClick={() => {
+                      const whatsappNumber = "918639778188";
+                      const message = `Hello ${selectedApptDetail.patientName},
+
+This is a reminder from Apex Clinic regarding your dental appointment.
+
+🦷 Treatment: ${selectedApptDetail.treatment}
+📅 Date: ${selectedApptDetail.date}
+🕒 Time: ${selectedApptDetail.time}
+
+Please arrive 10 minutes before your scheduled appointment.
+
+If you need to reschedule, please reply to this message.
+
+Thank you,
+Apex Clinic`;
+                      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+                      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+                    }}
                     className="py-2 text-[10px] font-bold border rounded-lg bg-slate-50 hover:bg-slate-100 flex flex-col items-center justify-center gap-1 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-355"
                   >
                     <MessageCircle className="h-3.5 w-3.5 text-emerald-600" /> WhatsApp
