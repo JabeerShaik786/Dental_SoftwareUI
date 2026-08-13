@@ -20,6 +20,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
 
 // Zod Validation Schema
 const loginSchema = z.object({
@@ -36,6 +37,8 @@ export default function LoginPage() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const supabase = createClient();
 
   const {
     register,
@@ -54,19 +57,29 @@ export default function LoginPage() {
     setIsLoading(true);
     setApiError(null);
 
-    // Simulate API Auth Request
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
 
-    if (data.email === "error@dental.com" || data.email === "error@healthos.com") {
-      setApiError("Invalid email or password. Hint: try another email.");
+      if (error) {
+        if (error.message.toLowerCase().includes("invalid login credentials")) {
+          setApiError("Invalid email or password. Please try again.");
+        } else {
+          setApiError("An authentication error occurred. Please check your credentials.");
+        }
+        setIsLoading(false);
+      } else {
+        setIsSuccess(true);
+        setIsLoading(false);
+        setTimeout(() => {
+          router.push("/");
+        }, 1500);
+      }
+    } catch {
+      setApiError("A network error occurred. Please try again later.");
       setIsLoading(false);
-    } else {
-      setIsSuccess(true);
-      setIsLoading(false);
-      // Wait 1.5 seconds to show success and redirect to dashboard
-      setTimeout(() => {
-        router.push("/");
-      }, 1500);
     }
   };
 
@@ -197,17 +210,6 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
-
-            {/* Footer */}
-            <div className="text-center mt-8 text-[15px] font-normal text-[#64748B]">
-              New to Health OS?{" "}
-              <Link
-                href="/register"
-                className="font-medium text-[16px] text-[#2563EB] hover:text-blue-500 hover:underline transition-colors"
-              >
-                Register your clinic
-              </Link>
-            </div>
           </motion.div>
         ) : (
           <motion.div

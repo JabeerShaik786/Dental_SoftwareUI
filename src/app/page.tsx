@@ -58,12 +58,14 @@ import {
   Video,
   Square,
   Circle,
-  RotateCcw
+  RotateCcw,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DentalLogo } from "@/components/dental-logo";
+import { createClient } from "@/lib/supabase/client";
 
 // Interfaces
 interface FileAttachment {
@@ -401,6 +403,38 @@ const parseClinicalNote = (noteStr: string) => {
 
 export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initialTab?: string } = {}) {
   const router = useRouter();
+  const [loadingSession, setLoadingSession] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push("/login");
+      } else {
+        setLoadingSession(false);
+      }
+    };
+
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        router.push("/login");
+      } else {
+        setLoadingSession(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router, supabase.auth]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   // Layout states
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -8041,6 +8075,17 @@ Apex Clinic`;
     searchResults.invoices.length > 0
   );
 
+  if (loadingSession) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 font-sans">
+        <Loader2 className="h-10 w-10 text-blue-600 animate-spin" />
+        <p className="text-sm text-slate-505 mt-4 dark:text-slate-400 font-medium">
+          Loading Health OS clinical workspace...
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-805 dark:bg-slate-900 dark:text-slate-100 flex font-sans antialiased overflow-hidden">
       
@@ -8147,7 +8192,7 @@ Apex Clinic`;
               </button>
               
               <button
-                onClick={() => router.push("/login")}
+                onClick={handleLogout}
                 onMouseEnter={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
                   setHoveredItem("logout");
@@ -8173,7 +8218,7 @@ Apex Clinic`;
               
               <div className="flex items-center justify-start border-t border-slate-100 dark:border-slate-800 pt-3">
                 <button
-                  onClick={() => router.push("/login")}
+                  onClick={handleLogout}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-655 hover:text-red-500 hover:underline transition-colors"
                 >
                   <LogOut className="h-3.5 w-3.5" />
@@ -8493,7 +8538,7 @@ Apex Clinic`;
 
             <div className="border-t border-slate-100 dark:border-slate-800 pt-3 flex flex-col gap-2.5">
               <button
-                onClick={() => router.push("/login")}
+                onClick={handleLogout}
                 className="text-xs font-semibold text-red-655 flex items-center gap-2 text-left"
               >
                 <LogOut className="h-4 w-4" /> Logout
