@@ -40,6 +40,7 @@ import {
   Trash2,
   DollarSign,
   Printer,
+  Pencil,
   Share2,
   Mail,
   Download,
@@ -144,6 +145,23 @@ interface Doctor {
   speciality: string;
   status: "Available" | "In Consultation" | "On Break" | "Finished Today";
   avatar?: string;
+  phone?: string;
+}
+
+interface Staff {
+  id: string;
+  name: string;
+  role: string;
+  phone: string;
+  status: "Active" | "Inactive" | "On Leave";
+}
+
+interface BackupHistoryItem {
+  id: string;
+  date: string;
+  time: string;
+  size: string;
+  status: string;
 }
 
 interface TreatmentItem {
@@ -344,7 +362,7 @@ const moduleSubTabs: Record<string, string[]> = {
   Treatments: ["Active Treatments", "Completed", "Treatment Plans"],
   Billing: ["Invoices", "Payments", "Insurance"],
   Reports: ["Revenue", "Patients", "Treatments", "Appointments"],
-  Settings: ["Clinic", "Doctors", "Staff", "Users", "Preferences", "Integrations", "Backup"]
+  Settings: ["Clinic", "Doctors", "Staff", "Integrations", "Backup"]
 };
 
 interface ClinicalMedia {
@@ -1049,12 +1067,55 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   ]);
 
   const [doctors, setDoctors] = useState<Doctor[]>([
-    { name: "Dr. Deepa Kodali", speciality: "Endodontist", status: "Available" },
-    { name: "Dr. Raghuram", speciality: "Orthodontist", status: "Available" },
-    { name: "Dr. Srinivasa", speciality: "Periodontist", status: "Available" },
-    { name: "Dr. Priyanka Mane Pado", speciality: "Pedodontist", status: "Available" },
-    { name: "Dr. Krishna Teja", speciality: "Prosthodontist", status: "Available" }
+    { name: "Dr. Deepa Kodali", speciality: "Endodontist", status: "Available", phone: "+91 98112 33445" },
+    { name: "Dr. Raghuram", speciality: "Orthodontist", status: "Available", phone: "+91 98765 43210" },
+    { name: "Dr. Srinivasa", speciality: "Periodontist", status: "Available", phone: "+91 98123 45678" },
+    { name: "Dr. Priyanka Mane Pado", speciality: "Pedodontist", status: "Available", phone: "+91 98234 56789" },
+    { name: "Dr. Krishna Teja", speciality: "Prosthodontist", status: "Available", phone: "+91 98345 67890" }
   ]);
+
+  const [staffList, setStaffList] = useState<Staff[]>([
+    { id: "st-1", name: "Sneha Rao", role: "Senior Nurse / Hygienist", phone: "+91 98765 11223", status: "Active" },
+    { id: "st-2", name: "Amit Kumar", role: "Desk Operations & Billing", phone: "+91 98765 44556", status: "Active" }
+  ]);
+
+  const [integrationsState, setIntegrationsState] = useState({
+    whatsapp: true,
+    email: true,
+    googleCalendar: false,
+    dentalLab: true
+  });
+
+  const [autoBackupEnabled, setAutoBackupEnabled] = useState(true);
+  const [backupFrequency, setBackupFrequency] = useState("Daily");
+  const [backupHistory, setBackupHistory] = useState<BackupHistoryItem[]>([
+    { id: "bk-1", date: "13 Aug 2026", time: "03:00 AM", size: "24.8 MB", status: "Completed" },
+    { id: "bk-2", date: "12 Aug 2026", time: "03:00 AM", size: "24.2 MB", status: "Completed" },
+    { id: "bk-3", date: "11 Aug 2026", time: "03:00 AM", size: "23.9 MB", status: "Completed" }
+  ]);
+
+  // Doctor & Staff Modal states
+  const [doctorModalOpen, setDoctorModalOpen] = useState(false);
+  const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
+  const [deleteDoctorConfirm, setDeleteDoctorConfirm] = useState<Doctor | null>(null);
+
+  const [staffModalOpen, setStaffModalOpen] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
+  const [deleteStaffConfirm, setDeleteStaffConfirm] = useState<Staff | null>(null);
+
+  const [restoreBackupConfirm, setRestoreBackupConfirm] = useState<BackupHistoryItem | null>(null);
+
+  // Form states for adding/editing doctor
+  const [docFormName, setDocFormName] = useState("");
+  const [docFormSpeciality, setDocFormSpeciality] = useState("General Dentist");
+  const [docFormPhone, setDocFormPhone] = useState("");
+  const [docFormStatus, setDocFormStatus] = useState<"Available" | "In Consultation" | "On Break" | "Finished Today">("Available");
+
+  // Form states for adding/editing staff
+  const [staffFormName, setStaffFormName] = useState("");
+  const [staffFormRole, setStaffFormRole] = useState("Desk Operations");
+  const [staffFormPhone, setStaffFormPhone] = useState("");
+  const [staffFormStatus, setStaffFormStatus] = useState<"Active" | "Inactive" | "On Leave">("Active");
 
   const [activities, setActivities] = useState<ActivityItem[]>([
     { id: "act-1", type: "Register", msg: "Apex Dental database initialized with 15 intake files.", time: "1 hour ago" },
@@ -6792,21 +6853,142 @@ Apex Clinic`;
   );
 
   const renderSettingsModule = () => {
-    const settingsTabs = ["Clinic", "Doctors", "Staff", "Users", "Preferences", "Integrations", "Backup"];
+    const settingsTabs = ["Clinic", "Doctors", "Staff", "Integrations", "Backup"];
     const currentTab = settingsTabs.includes(activeSubTab) ? activeSubTab : "Clinic";
+
+    // Helper handlers for Doctor Add/Edit/Delete
+    const handleOpenAddDoctor = () => {
+      setEditingDoctor(null);
+      setDocFormName("");
+      setDocFormSpeciality("General Dentist");
+      setDocFormPhone("");
+      setDocFormStatus("Available");
+      setDoctorModalOpen(true);
+    };
+
+    const handleOpenEditDoctor = (doc: Doctor) => {
+      setEditingDoctor(doc);
+      setDocFormName(doc.name);
+      setDocFormSpeciality(doc.speciality);
+      setDocFormPhone(doc.phone || "+91 98765 43210");
+      setDocFormStatus(doc.status);
+      setDoctorModalOpen(true);
+    };
+
+    const handleSaveDoctor = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!docFormName.trim()) return;
+
+      if (editingDoctor) {
+        setDoctors(prev =>
+          prev.map(d =>
+            d.name === editingDoctor.name
+              ? { ...d, name: docFormName.trim(), speciality: docFormSpeciality, phone: docFormPhone.trim(), status: docFormStatus }
+              : d
+          )
+        );
+        showToast("Doctor details updated successfully.", "success");
+      } else {
+        const newDoc: Doctor = {
+          name: docFormName.startsWith("Dr.") ? docFormName.trim() : `Dr. ${docFormName.trim()}`,
+          speciality: docFormSpeciality,
+          phone: docFormPhone.trim() || "+91 98765 43210",
+          status: docFormStatus
+        };
+        setDoctors(prev => [...prev, newDoc]);
+        showToast("New doctor registered successfully.", "success");
+      }
+      setDoctorModalOpen(false);
+    };
+
+    const handleDeleteDoctor = () => {
+      if (!deleteDoctorConfirm) return;
+      setDoctors(prev => prev.filter(d => d.name !== deleteDoctorConfirm.name));
+      showToast(`${deleteDoctorConfirm.name} removed from clinic records.`, "success");
+      setDeleteDoctorConfirm(null);
+    };
+
+    // Helper handlers for Staff Add/Edit/Delete
+    const handleOpenAddStaff = () => {
+      setEditingStaff(null);
+      setStaffFormName("");
+      setStaffFormRole("Desk Operations");
+      setStaffFormPhone("");
+      setStaffFormStatus("Active");
+      setStaffModalOpen(true);
+    };
+
+    const handleOpenEditStaff = (st: Staff) => {
+      setEditingStaff(st);
+      setStaffFormName(st.name);
+      setStaffFormRole(st.role);
+      setStaffFormPhone(st.phone);
+      setStaffFormStatus(st.status);
+      setStaffModalOpen(true);
+    };
+
+    const handleSaveStaff = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!staffFormName.trim()) return;
+
+      if (editingStaff) {
+        setStaffList(prev =>
+          prev.map(s =>
+            s.id === editingStaff.id
+              ? { ...s, name: staffFormName.trim(), role: staffFormRole.trim(), phone: staffFormPhone.trim(), status: staffFormStatus }
+              : s
+          )
+        );
+        showToast("Staff member updated successfully.", "success");
+      } else {
+        const newStaff: Staff = {
+          id: `st-${Date.now()}`,
+          name: staffFormName.trim(),
+          role: staffFormRole.trim(),
+          phone: staffFormPhone.trim() || "+91 98765 00000",
+          status: staffFormStatus
+        };
+        setStaffList(prev => [...prev, newStaff]);
+        showToast("New staff member added successfully.", "success");
+      }
+      setStaffModalOpen(false);
+    };
+
+    const handleDeleteStaff = () => {
+      if (!deleteStaffConfirm) return;
+      setStaffList(prev => prev.filter(s => s.id !== deleteStaffConfirm.id));
+      showToast(`${deleteStaffConfirm.name} removed from staff records.`, "success");
+      setDeleteStaffConfirm(null);
+    };
+
+    // Backup Action
+    const handleBackupNow = () => {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const newEntry: BackupHistoryItem = {
+        id: `bk-${Date.now()}`,
+        date: "Today",
+        time: timeStr,
+        size: "25.1 MB",
+        status: "Completed"
+      };
+      setBackupHistory(prev => [newEntry, ...prev]);
+      showToast("Clinic database backup compiled & secured.", "success");
+    };
+
+    const handleRestoreBackup = () => {
+      if (!restoreBackupConfirm) return;
+      showToast(`Database snapshot from ${restoreBackupConfirm.date} (${restoreBackupConfirm.time}) restored successfully.`, "success");
+      setRestoreBackupConfirm(null);
+    };
 
     return (
       <div className="space-y-6 animate-fadeIn max-w-6xl mx-auto text-slate-800 dark:text-slate-200">
-        {/* Page Title */}
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Settings</h1>
-        </div>
-
-        {/* Settings Container Box with Left Navigation */}
-        <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs grid grid-cols-1 md:grid-cols-12 min-h-[540px] overflow-hidden">
+        {/* NO DUPLICATE SETTINGS HEADING - Begins directly with Settings Container Box */}
+        <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs grid grid-cols-1 md:grid-cols-12 min-h-[560px] overflow-hidden">
           
-          {/* Left Settings Navigation Column */}
-          <div className="md:col-span-3 lg:col-span-3 border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800/80 p-4 space-y-1 bg-slate-50/30 dark:bg-slate-950/20">
+          {/* Left Settings Navigation Column (5 options: Clinic, Doctors, Staff, Integrations, Backup) */}
+          <div className="md:col-span-3 lg:col-span-3 border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800/80 p-4 space-y-1.5 bg-slate-50/30 dark:bg-slate-950/20">
             {settingsTabs.map((tab) => {
               const isActive = currentTab === tab;
               return (
@@ -6828,6 +7010,8 @@ Apex Clinic`;
 
           {/* Right Settings Content Column */}
           <div className="md:col-span-9 lg:col-span-9 p-6 sm:p-8 space-y-6">
+            
+            {/* 1. CLINIC */}
             {currentTab === "Clinic" && (
               <div className="space-y-6 max-w-xl">
                 <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Clinic Profile Settings</h2>
@@ -6852,7 +7036,7 @@ Apex Clinic`;
                   <div className="pt-2">
                     <Button 
                       type="button" 
-                      onClick={() => alert("Clinic configurations saved.")} 
+                      onClick={() => showToast("Clinic configurations saved.", "success")} 
                       className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-5 rounded-xl text-xs cursor-pointer shadow-xs"
                     >
                       Save Settings
@@ -6862,103 +7046,634 @@ Apex Clinic`;
               </div>
             )}
 
+            {/* 2. DOCTORS */}
             {currentTab === "Doctors" && (
-              <div className="space-y-5 max-w-2xl">
-                <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Doctors Registry</h2>
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+                  <div>
+                    <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Doctors</h2>
+                    <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">Manage practitioner profiles, specialties, and active statuses.</p>
+                  </div>
+                  <Button
+                    onClick={handleOpenAddDoctor}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-semibold h-10 px-4 rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-xs shrink-0"
+                  >
+                    <Plus className="h-4 w-4" /> Add Doctor
+                  </Button>
+                </div>
+
                 <div className="space-y-3">
                   {doctors.map(doc => (
-                    <div key={doc.name} className="flex justify-between items-center p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
-                      <div>
-                        <span className="text-[14px] font-medium text-slate-900 dark:text-white block">{doc.name}</span>
-                        <p className="text-[12px] font-normal text-slate-400 dark:text-slate-500 mt-0.5">{doc.speciality}</p>
+                    <div key={doc.name} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 gap-3">
+                      <div className="flex items-center gap-3.5">
+                        <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold text-sm flex items-center justify-center shrink-0">
+                          {doc.name.replace("Dr. ", "")[0]}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[14px] font-semibold text-slate-900 dark:text-white">{doc.name}</span>
+                            <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 rounded-full font-medium text-[11px]">
+                              {doc.status}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-slate-500 dark:text-slate-400 mt-1">
+                            <span>Specialty: <strong className="font-medium text-slate-700 dark:text-slate-300">{doc.speciality}</strong></span>
+                            <span>Phone: <strong className="font-medium text-slate-700 dark:text-slate-300">{doc.phone || "+91 98765 43210"}</strong></span>
+                          </div>
+                        </div>
                       </div>
-                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 rounded-full font-medium text-[12px]">
-                        {doc.status}
+
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        <Button
+                          variant="outline"
+                          onClick={() => handleOpenEditDoctor(doc)}
+                          className="h-8 px-3 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Pencil className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300" /> Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setDeleteDoctorConfirm(doc)}
+                          className="h-8 px-3 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 text-red-600 hover:bg-red-50 hover:border-red-200 dark:hover:bg-red-955/30 flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-red-600" /> Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 3. STAFF */}
+            {currentTab === "Staff" && (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+                  <div>
+                    <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Staff</h2>
+                    <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">Manage clinic nurses, hygienists, desk operations, and support staff.</p>
+                  </div>
+                  <Button
+                    onClick={handleOpenAddStaff}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-semibold h-10 px-4 rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-xs shrink-0"
+                  >
+                    <Plus className="h-4 w-4" /> Add Staff
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  {staffList.map(st => (
+                    <div key={st.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 gap-3">
+                      <div className="flex items-center gap-3.5">
+                        <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-sm flex items-center justify-center shrink-0">
+                          {st.name[0]}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[14px] font-semibold text-slate-900 dark:text-white">{st.name}</span>
+                            <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-full font-medium text-[11px]">
+                              {st.status}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-slate-500 dark:text-slate-400 mt-1">
+                            <span>Role: <strong className="font-medium text-slate-700 dark:text-slate-300">{st.role}</strong></span>
+                            <span>Phone: <strong className="font-medium text-slate-700 dark:text-slate-300">{st.phone}</strong></span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        <Button
+                          variant="outline"
+                          onClick={() => handleOpenEditStaff(st)}
+                          className="h-8 px-3 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Pencil className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300" /> Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setDeleteStaffConfirm(st)}
+                          className="h-8 px-3 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 text-red-600 hover:bg-red-50 hover:border-red-200 dark:hover:bg-red-955/30 flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-red-600" /> Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 4. INTEGRATIONS */}
+            {currentTab === "Integrations" && (
+              <div className="space-y-6">
+                <div className="border-b border-slate-100 dark:border-slate-800/80 pb-4">
+                  <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Integrations</h2>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">Manage the communication and external services.</p>
+                </div>
+
+                <div className="space-y-4">
+                  {/* WhatsApp */}
+                  <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-955/40 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-900/40">
+                        <MessageCircle className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <span className="text-[14px] font-semibold text-slate-900 dark:text-white block">WhatsApp</span>
+                        <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">Send appointment confirmations, reminders and patient communication through WhatsApp.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[12px] font-medium border ${
+                        integrationsState.whatsapp
+                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/40"
+                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                      }`}>
+                        {integrationsState.whatsapp ? "Enabled" : "Disabled"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIntegrationsState(prev => ({ ...prev, whatsapp: !prev.whatsapp }))}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          integrationsState.whatsapp ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
+                        }`}
+                      >
+                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                          integrationsState.whatsapp ? "translate-x-5" : "translate-x-0"
+                        }`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-955/40 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-900/40">
+                        <Mail className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <span className="text-[14px] font-semibold text-slate-900 dark:text-white block">Email</span>
+                        <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">Send appointment confirmations, reminders and notifications through email.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[12px] font-medium border ${
+                        integrationsState.email
+                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/40"
+                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                      }`}>
+                        {integrationsState.email ? "Enabled" : "Disabled"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIntegrationsState(prev => ({ ...prev, email: !prev.email }))}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          integrationsState.email ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
+                        }`}
+                      >
+                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                          integrationsState.email ? "translate-x-5" : "translate-x-0"
+                        }`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Google Calendar */}
+                  <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-955/40 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-100 dark:border-amber-900/40">
+                        <Calendar className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <span className="text-[14px] font-semibold text-slate-900 dark:text-white block">Google Calendar</span>
+                        <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">Sync appointments with Google Calendar.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[12px] font-medium border ${
+                        integrationsState.googleCalendar
+                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/40"
+                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                      }`}>
+                        {integrationsState.googleCalendar ? "Enabled" : "Disabled"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIntegrationsState(prev => ({ ...prev, googleCalendar: !prev.googleCalendar }))}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          integrationsState.googleCalendar ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
+                        }`}
+                      >
+                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                          integrationsState.googleCalendar ? "translate-x-5" : "translate-x-0"
+                        }`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Apex Dental Lab API */}
+                  <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      <div className="h-10 w-10 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-955/40 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-100 dark:border-purple-900/40">
+                        <Layers className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <span className="text-[14px] font-semibold text-slate-900 dark:text-white block">Apex Dental Lab API</span>
+                        <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">Link surgical post scan results to patient clinical profiles.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[12px] font-medium border ${
+                        integrationsState.dentalLab
+                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/40"
+                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                      }`}>
+                        {integrationsState.dentalLab ? "Enabled" : "Disabled"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIntegrationsState(prev => ({ ...prev, dentalLab: !prev.dentalLab }))}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          integrationsState.dentalLab ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
+                        }`}
+                      >
+                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                          integrationsState.dentalLab ? "translate-x-5" : "translate-x-0"
+                        }`} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 5. BACKUP */}
+            {currentTab === "Backup" && (
+              <div className="space-y-6">
+                <div className="border-b border-slate-100 dark:border-slate-800/80 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Backup</h2>
+                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 rounded-full font-medium text-[11px]">
+                        Up to date
                       </span>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                    <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">Protect your clinic data with secure backups and restore options.</p>
+                  </div>
 
-            {currentTab === "Staff" && (
-              <div className="space-y-5 max-w-2xl">
-                <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Clinic Staff Directories</h2>
-                <div className="space-y-2.5">
-                  {[
-                    { name: "Sneha Rao", role: "Senior Nurse / Hygienist" },
-                    { name: "Amit Kumar", role: "Desk Operations" }
-                  ].map((st, i) => (
-                    <div key={i} className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/40">
-                      <div>
-                        <span className="text-[14px] font-medium text-slate-800 dark:text-slate-200 block">{st.name}</span>
-                        <p className="text-[12px] font-normal text-slate-400 dark:text-slate-500 mt-0.5">{st.role}</p>
-                      </div>
-                      <span className="text-[12px] font-medium text-slate-500 dark:text-slate-400">Active</span>
+                  {/* Primary Action Button */}
+                  <Button
+                    onClick={handleBackupNow}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-semibold h-10 px-5 rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-xs shrink-0"
+                  >
+                    <Database className="h-4 w-4" /> Backup Now
+                  </Button>
+                </div>
+
+                {/* Backup Settings Grid (Auto Backup & Frequency) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between">
+                    <div>
+                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white block">Automatic Backups</span>
+                      <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">Automatically compile system snapshots.</p>
                     </div>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={() => setAutoBackupEnabled(!autoBackupEnabled)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        autoBackupEnabled ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        autoBackupEnabled ? "translate-x-5" : "translate-x-0"
+                      }`} />
+                    </button>
+                  </div>
+
+                  <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between">
+                    <div>
+                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white block">Backup Frequency</span>
+                      <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">Set automated cloud schedule.</p>
+                    </div>
+                    <select
+                      value={backupFrequency}
+                      onChange={(e) => setBackupFrequency(e.target.value)}
+                      className="h-9 px-3 text-[13px] font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none"
+                    >
+                      <option value="Daily">Daily</option>
+                      <option value="Weekly">Weekly</option>
+                      <option value="Monthly">Monthly</option>
+                    </select>
+                  </div>
                 </div>
+
+                {/* Backup Information Stats */}
+                <div className="space-y-2">
+                  <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Backup Information</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
+                      <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 block">Last Backup</span>
+                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white block mt-1">{backupHistory[0]?.date || "13 Aug 2026"}</span>
+                    </div>
+                    <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
+                      <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 block">Next Scheduled</span>
+                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white block mt-1">Tomorrow, 03:00 AM</span>
+                    </div>
+                    <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
+                      <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 block">Backup Size</span>
+                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white block mt-1">{backupHistory[0]?.size || "24.8 MB"}</span>
+                    </div>
+                    <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
+                      <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 block">Backup Status</span>
+                      <span className="text-[14px] font-semibold text-emerald-600 dark:text-emerald-400 block mt-1">Encrypted</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Backup History Table */}
+                <div className="space-y-3 pt-2">
+                  <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Backup History</span>
+                  <div className="border border-slate-100 dark:border-slate-800/80 rounded-xl overflow-hidden">
+                    <table className="w-full text-left text-[13px]">
+                      <thead className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-100 dark:border-slate-800/80 text-slate-500 dark:text-slate-400 font-medium">
+                        <tr>
+                          <th className="py-2.5 px-4">Date & Time</th>
+                          <th className="py-2.5 px-4">Backup Size</th>
+                          <th className="py-2.5 px-4">Status</th>
+                          <th className="py-2.5 px-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                        {backupHistory.map(item => (
+                          <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40">
+                            <td className="py-3 px-4 font-medium text-slate-900 dark:text-white">
+                              {item.date} • {item.time}
+                            </td>
+                            <td className="py-3 px-4 text-slate-600 dark:text-slate-400">{item.size}</td>
+                            <td className="py-3 px-4">
+                              <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 rounded-full text-[11px] font-medium">
+                                {item.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => setRestoreBackupConfirm(item)}
+                                  className="h-7 px-2.5 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 cursor-pointer"
+                                >
+                                  <RotateCcw className="h-3 w-3 text-slate-600 dark:text-slate-300" /> Restore
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => showToast(`Downloading backup snapshot (${item.size})...`, "success")}
+                                  className="h-7 px-2.5 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Download className="h-3 w-3 text-slate-600 dark:text-slate-300" /> Download
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
               </div>
             )}
 
-            {currentTab === "Users" && (
-              <div className="space-y-5 max-w-xl">
-                <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">System Login Accounts</h2>
-                <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl flex justify-between items-center bg-slate-50/20 dark:bg-slate-900/20">
-                  <div>
-                    <span className="text-[14px] font-medium text-slate-900 dark:text-white block">Dr. Sharma</span>
-                    <p className="text-[12px] font-normal text-slate-400 dark:text-slate-500 mt-0.5">admin@healthos.com</p>
-                  </div>
-                  <span className="bg-blue-50 text-blue-700 dark:bg-blue-955/40 dark:text-blue-400 border border-blue-100 dark:border-blue-900/40 px-2.5 py-0.5 rounded-full text-[12px] font-medium">
-                    Admin
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {currentTab === "Preferences" && (
-              <div className="space-y-5 max-w-xl">
-                <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">System Preferences</h2>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between py-2.5 border-b border-slate-100 dark:border-slate-800/80 text-[13px]">
-                    <span className="font-medium text-slate-700 dark:text-slate-300">Currency Symbol</span>
-                    <span className="font-medium text-slate-900 dark:text-white">INR (₹)</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2.5 border-b border-slate-100 dark:border-slate-800/80 text-[13px]">
-                    <span className="font-medium text-slate-700 dark:text-slate-300">SMS Alerts</span>
-                    <span className="font-medium text-emerald-600 dark:text-emerald-400">Enabled</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {currentTab === "Integrations" && (
-              <div className="space-y-5 max-w-xl">
-                <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Integrations Portal</h2>
-                <div className="p-4 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex items-center gap-3.5 bg-slate-50/50 dark:bg-slate-900/40">
-                  <Layers className="h-6 w-6 text-slate-400 shrink-0" />
-                  <div>
-                    <span className="text-[14px] font-medium text-slate-900 dark:text-white block">Apex Dental Lab API Sync</span>
-                    <p className="text-[12px] font-normal text-slate-400 dark:text-slate-500 mt-0.5">Link surgical post scan results to patient profiles.</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {currentTab === "Backup" && (
-              <div className="space-y-5 max-w-xl">
-                <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Data Backup and Exports</h2>
-                <Button 
-                  onClick={() => alert("Clinic database backup compiled.")} 
-                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-4 rounded-xl text-xs flex items-center gap-2 shadow-xs cursor-pointer"
-                >
-                  <Database className="h-4 w-4" /> Trigger System Export
-                </Button>
-              </div>
-            )}
           </div>
 
         </div>
+
+        {/* --- DOCTOR ADD/EDIT MODAL --- */}
+        {doctorModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5 animate-scaleIn">
+              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-[16px] font-bold text-slate-900 dark:text-white">
+                  {editingDoctor ? "Edit Doctor Information" : "Add New Doctor"}
+                </h3>
+                <button onClick={() => setDoctorModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveDoctor} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-medium">Doctor Name</Label>
+                  <Input
+                    required
+                    placeholder="e.g. Dr. Ramesh Kumar"
+                    value={docFormName}
+                    onChange={(e) => setDocFormName(e.target.value)}
+                    className="h-10 text-[13px]"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-medium">Specialty</Label>
+                  <select
+                    value={docFormSpeciality}
+                    onChange={(e) => setDocFormSpeciality(e.target.value)}
+                    className="w-full h-10 px-3 text-[13px] rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  >
+                    <option value="General Dentist">General Dentist</option>
+                    <option value="Endodontist">Endodontist</option>
+                    <option value="Orthodontist">Orthodontist</option>
+                    <option value="Periodontist">Periodontist</option>
+                    <option value="Pedodontist">Pedodontist</option>
+                    <option value="Prosthodontist">Prosthodontist</option>
+                    <option value="Oral Surgeon">Oral Surgeon</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-medium">Contact Number</Label>
+                  <Input
+                    placeholder="+91 98765 43210"
+                    value={docFormPhone}
+                    onChange={(e) => setDocFormPhone(e.target.value)}
+                    className="h-10 text-[13px]"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-medium">Status</Label>
+                  <select
+                    value={docFormStatus}
+                    onChange={(e) => setDocFormStatus(e.target.value as any)}
+                    className="w-full h-10 px-3 text-[13px] rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  >
+                    <option value="Available">Available</option>
+                    <option value="In Consultation">In Consultation</option>
+                    <option value="On Break">On Break</option>
+                    <option value="Finished Today">Finished Today</option>
+                  </select>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button type="button" variant="outline" onClick={() => setDoctorModalOpen(false)} className="h-10 px-4 text-xs">
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-5 text-xs">
+                    {editingDoctor ? "Save Changes" : "Add Doctor"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* --- DOCTOR DELETE CONFIRMATION MODAL --- */}
+        {deleteDoctorConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4 text-center animate-scaleIn">
+              <div className="h-12 w-12 rounded-full bg-red-100 dark:bg-red-955/50 text-red-600 flex items-center justify-center mx-auto">
+                <Trash2 className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-[16px] font-bold text-slate-900 dark:text-white">Remove Doctor?</h3>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">
+                  Are you sure you want to remove <strong className="font-semibold text-slate-900 dark:text-white">{deleteDoctorConfirm.name}</strong> from clinic records?
+                </p>
+              </div>
+              <div className="flex justify-center gap-3 pt-2">
+                <Button type="button" variant="outline" onClick={() => setDeleteDoctorConfirm(null)} className="h-10 px-4 text-xs">
+                  Cancel
+                </Button>
+                <Button type="button" onClick={handleDeleteDoctor} className="bg-red-600 hover:bg-red-500 text-white font-bold h-10 px-5 text-xs">
+                  Remove Doctor
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- STAFF ADD/EDIT MODAL --- */}
+        {staffModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5 animate-scaleIn">
+              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-[16px] font-bold text-slate-900 dark:text-white">
+                  {editingStaff ? "Edit Staff Member" : "Add New Staff Member"}
+                </h3>
+                <button onClick={() => setStaffModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveStaff} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-medium">Full Name</Label>
+                  <Input
+                    required
+                    placeholder="e.g. Sneha Rao"
+                    value={staffFormName}
+                    onChange={(e) => setStaffFormName(e.target.value)}
+                    className="h-10 text-[13px]"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-medium">Role</Label>
+                  <Input
+                    required
+                    placeholder="e.g. Senior Nurse / Desk Operations"
+                    value={staffFormRole}
+                    onChange={(e) => setStaffFormRole(e.target.value)}
+                    className="h-10 text-[13px]"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-medium">Contact Number</Label>
+                  <Input
+                    placeholder="+91 98765 11223"
+                    value={staffFormPhone}
+                    onChange={(e) => setStaffFormPhone(e.target.value)}
+                    className="h-10 text-[13px]"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-medium">Status</Label>
+                  <select
+                    value={staffFormStatus}
+                    onChange={(e) => setStaffFormStatus(e.target.value as any)}
+                    className="w-full h-10 px-3 text-[13px] rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="On Leave">On Leave</option>
+                  </select>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button type="button" variant="outline" onClick={() => setStaffModalOpen(false)} className="h-10 px-4 text-xs">
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-5 text-xs">
+                    {editingStaff ? "Save Changes" : "Add Staff"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* --- STAFF DELETE CONFIRMATION MODAL --- */}
+        {deleteStaffConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4 text-center animate-scaleIn">
+              <div className="h-12 w-12 rounded-full bg-red-100 dark:bg-red-955/50 text-red-600 flex items-center justify-center mx-auto">
+                <Trash2 className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-[16px] font-bold text-slate-900 dark:text-white">Remove Staff Member?</h3>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">
+                  Are you sure you want to remove <strong className="font-semibold text-slate-900 dark:text-white">{deleteStaffConfirm.name}</strong> from staff records?
+                </p>
+              </div>
+              <div className="flex justify-center gap-3 pt-2">
+                <Button type="button" variant="outline" onClick={() => setDeleteStaffConfirm(null)} className="h-10 px-4 text-xs">
+                  Cancel
+                </Button>
+                <Button type="button" onClick={handleDeleteStaff} className="bg-red-600 hover:bg-red-500 text-white font-bold h-10 px-5 text-xs">
+                  Remove Staff
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- RESTORE BACKUP CONFIRMATION MODAL --- */}
+        {restoreBackupConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 text-center animate-scaleIn">
+              <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-955/50 text-blue-600 flex items-center justify-center mx-auto">
+                <RotateCcw className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-[16px] font-bold text-slate-900 dark:text-white">Restore Database Backup?</h3>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">
+                  Are you sure you want to restore the database backup from <strong className="font-semibold text-slate-900 dark:text-white">{restoreBackupConfirm.date} ({restoreBackupConfirm.time})</strong>? Current session modifications will be overwritten with snapshot data.
+                </p>
+              </div>
+              <div className="flex justify-center gap-3 pt-2">
+                <Button type="button" variant="outline" onClick={() => setRestoreBackupConfirm(null)} className="h-10 px-4 text-xs">
+                  Cancel
+                </Button>
+                <Button type="button" onClick={handleRestoreBackup} className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-5 text-xs">
+                  Confirm Restore
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     );
   };
