@@ -360,7 +360,7 @@ const moduleSubTabs: Record<string, string[]> = {
   Appointments: ["Today", "Queue", "History"],
   Patients: ["All Patients", "Add Patient", "Dental Chart"],
   Treatments: ["Active Treatments", "Completed", "Treatment Plans"],
-  Billing: ["Invoices", "Payments", "Insurance"],
+  Billing: ["Invoices", "Payments"],
   Reports: ["Revenue", "Patients", "Treatments", "Appointments"],
   Settings: ["Clinic", "Doctors", "Staff", "Integrations", "Backup"]
 };
@@ -6679,7 +6679,6 @@ Apex Clinic`;
                 <th className="pb-2.5">Invoice Number</th>
                 <th className="pb-2.5">Patient</th>
                 <th className="pb-2.5">Subtotal</th>
-                <th className="pb-2.5">Tax / Discount</th>
                 <th className="pb-2.5">Total Payable</th>
                 <th className="pb-2.5">Paid Amount</th>
                 <th className="pb-2.5">Status</th>
@@ -6694,7 +6693,6 @@ Apex Clinic`;
                   </td>
                   <td className="py-3">{inv.patientName}</td>
                   <td className="py-3">₹{inv.subtotal.toLocaleString()}</td>
-                  <td className="py-3 text-slate-405">{inv.tax}% Tax / {inv.discount}% Disc</td>
                   <td className="py-3 font-black">₹{inv.total.toLocaleString()}</td>
                   <td className="py-3 text-emerald-600 font-extrabold">₹{inv.paidAmount.toLocaleString()}</td>
                   <td className="py-3">
@@ -6707,7 +6705,7 @@ Apex Clinic`;
                     <div className="flex items-center justify-center gap-1.5">
                       <button
                         onClick={() => setLastGeneratedReceipt(inv)}
-                        className="h-7 px-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 font-bold text-[10px] cursor-pointer"
+                        className="h-7 px-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-955/40 dark:text-blue-400 font-bold text-[10px] cursor-pointer"
                       >
                         Generate Invoice
                       </button>
@@ -6759,26 +6757,6 @@ Apex Clinic`;
                   <p className="text-slate-450 mt-0.5 text-[10px]">Method: {pay.method} • Invoice: {pay.invId} • Doctor: {pay.doctor} • Date: {pay.date}</p>
                 </div>
                 <span className="font-black text-slate-900">₹{pay.amount.toLocaleString()}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {activeSubTab === "Insurance" && (
-        <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs font-semibold space-y-4">
-          <span className="font-bold text-sm block">Insurance claims status</span>
-          <div className="divide-y">
-            {[
-              { provider: "Max Life Dental", patient: "Aarav Mehta", amt: "₹5,000", status: "Approved" },
-              { provider: "HDFC Ergo Oral", patient: "Kabir Singh", amt: "₹3,500", status: "Approved" }
-            ].map((claim, i) => (
-              <div key={i} className="py-3.5 flex justify-between items-center">
-                <div>
-                  <span className="font-bold text-slate-808 block">{claim.patient}</span>
-                  <p className="text-slate-450 mt-0.5 text-[10px]">Provider: {claim.provider} • Claim: {claim.amt}</p>
-                </div>
-                <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold text-[9px]">{claim.status}</span>
               </div>
             ))}
           </div>
