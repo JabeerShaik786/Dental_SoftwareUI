@@ -6753,7 +6753,7 @@ Apex Clinic`;
             {invoices.flatMap(inv => inv.paymentLogs.map((log, idx) => ({ ...log, patient: inv.patientName, invId: inv.id, doctor: inv.doctor, key: `${inv.id}-${idx}` }))).map((pay) => (
               <div key={pay.key} className="py-3.5 flex justify-between items-center">
                 <div>
-                  <span className="font-bold text-slate-808 block">{pay.patient}</span>
+                  <span className="font-bold text-slate-800 block">{pay.patient}</span>
                   <p className="text-slate-450 mt-0.5 text-[10px]">Method: {pay.method} • Invoice: {pay.invId} • Doctor: {pay.doctor} • Date: {pay.date}</p>
                 </div>
                 <span className="font-black text-slate-900">₹{pay.amount.toLocaleString()}</span>
@@ -6765,70 +6765,257 @@ Apex Clinic`;
     </div>
   );
 
-  const renderReportsModule = () => (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Timeframe selector filters */}
-      <div className="flex items-center gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-        <TrendingUp className="h-4 w-4 text-blue-600 animate-pulse" />
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Reports Timeframe:</span>
-        {(["Today", "Week", "Month", "Year"] as const).map((tf) => {
-          const active = reportsFilter === tf;
-          return (
-            <button
-              key={tf}
-              onClick={() => setReportsFilter(tf)}
-              className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
-                active ? "bg-blue-600 text-white shadow-xs" : "text-slate-505 hover:bg-slate-50"
-              }`}
-            >
-              {tf}
-            </button>
-          );
-        })}
-      </div>
+  const renderReportsModule = () => {
+    // Dynamic New vs Returning Analytics Calculation based on reportsFilter
+    const getNewVsReturningData = () => {
+      if (reportsFilter === "Today") {
+        return {
+          summary: {
+            newRev: 12500,
+            returningRev: 24000,
+            totalRev: 36500,
+            returningShare: "65.8%",
+            newCount: 2,
+            returningCount: 4
+          },
+          bars: [
+            { label: "Morning", newVal: 4500, returnVal: 9000 },
+            { label: "Afternoon", newVal: 3000, returnVal: 7500 },
+            { label: "Evening", newVal: 5000, returnVal: 7500 }
+          ]
+        };
+      } else if (reportsFilter === "Week") {
+        return {
+          summary: {
+            newRev: 42500,
+            returningRev: 88000,
+            totalRev: 130500,
+            returningShare: "67.4%",
+            newCount: 8,
+            returningCount: 15
+          },
+          bars: [
+            { label: "Mon", newVal: 6000, returnVal: 12000 },
+            { label: "Tue", newVal: 8500, returnVal: 16000 },
+            { label: "Wed", newVal: 5000, returnVal: 11000 },
+            { label: "Thu", newVal: 9000, returnVal: 18000 },
+            { label: "Fri", newVal: 4000, returnVal: 9000 },
+            { label: "Sat", newVal: 7000, returnVal: 15000 },
+            { label: "Sun", newVal: 3000, returnVal: 7000 }
+          ]
+        };
+      } else if (reportsFilter === "Month") {
+        return {
+          summary: {
+            newRev: 145000,
+            returningRev: 310000,
+            totalRev: 455000,
+            returningShare: "68.1%",
+            newCount: 22,
+            returningCount: 52
+          },
+          bars: [
+            { label: "Week 1", newVal: 32000, returnVal: 70000 },
+            { label: "Week 2", newVal: 38000, returnVal: 82000 },
+            { label: "Week 3", newVal: 35000, returnVal: 76000 },
+            { label: "Week 4", newVal: 40000, returnVal: 82000 }
+          ]
+        };
+      } else {
+        // Year View (Jan - Dec Monthly Comparison)
+        return {
+          summary: {
+            newRev: 281000,
+            returningRev: 519500,
+            totalRev: 800500,
+            returningShare: "64.9%",
+            newCount: 62,
+            returningCount: 114
+          },
+          bars: [
+            { label: "Jan", newVal: 18500, returnVal: 32000 },
+            { label: "Feb", newVal: 21000, returnVal: 35500 },
+            { label: "Mar", newVal: 15500, returnVal: 29000 },
+            { label: "Apr", newVal: 24000, returnVal: 41000 },
+            { label: "May", newVal: 19000, returnVal: 38000 },
+            { label: "Jun", newVal: 22500, returnVal: 44000 },
+            { label: "Jul", newVal: 26000, returnVal: 48000 },
+            { label: "Aug", newVal: 28500, returnVal: 52000 },
+            { label: "Sep", newVal: 23000, returnVal: 45000 },
+            { label: "Oct", newVal: 27000, returnVal: 50000 },
+            { label: "Nov", newVal: 25000, returnVal: 47000 },
+            { label: "Dec", newVal: 31000, returnVal: 58000 }
+          ]
+        };
+      }
+    };
 
-      {/* Analytics KPI reporting grid */}
-      <section className="grid gap-4 grid-cols-2 md:grid-cols-4">
-        {[
-          { title: "Total Revenue", count: `₹${reportStats.revenue.toLocaleString()}`, desc: "Collected earnings", icon: <DollarSign className="h-4 w-4 text-blue-500" /> },
-          { title: "Patient Directory", count: reportStats.patients, desc: "Active clinical files", icon: <Users className="h-4 w-4 text-cyan-500" /> },
-          { title: "Treatments Completed", count: reportStats.treatments, desc: "Finished checkouts", icon: <Stethoscope className="h-4 w-4 text-purple-500" /> },
-          { title: "Appointments logged", count: reportStats.appointments, desc: "Total scheduled units", icon: <Calendar className="h-4 w-4 text-amber-500" /> }
-        ].map((stat, i) => (
-          <div key={i} className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
-            <div className="flex justify-between items-center text-slate-400">
-              <span className="text-[10px] font-bold uppercase tracking-wider">{stat.title}</span>
-              {stat.icon}
-            </div>
-            <div className="mt-4">
-              <span className="text-2xl font-black text-slate-900 dark:text-white">{stat.count}</span>
-              <p className="text-[10px] text-slate-400 mt-1 font-medium">{stat.desc}</p>
-            </div>
-          </div>
-        ))}
-      </section>
+    const analyticsData = getNewVsReturningData();
 
-      {/* SVG charts mock representation */}
-      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
-        <span className="font-bold text-sm block">Revenue Performance Chart</span>
-        <div className="h-48 w-full flex items-end justify-between gap-4 pt-8">
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        {/* Timeframe selector filters */}
+        <div className="flex items-center gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+          <TrendingUp className="h-4 w-4 text-blue-600 animate-pulse" />
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Reports Timeframe:</span>
+          {(["Today", "Week", "Month", "Year"] as const).map((tf) => {
+            const active = reportsFilter === tf;
+            return (
+              <button
+                key={tf}
+                onClick={() => setReportsFilter(tf)}
+                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                  active ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
+                }`}
+              >
+                {tf}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Analytics KPI reporting grid */}
+        <section className="grid gap-4 grid-cols-2 md:grid-cols-4">
           {[
-            { label: "Mon", val: "h-20" },
-            { label: "Tue", val: "h-36" },
-            { label: "Wed", val: "h-28" },
-            { label: "Thu", val: "h-40" },
-            { label: "Fri", val: "h-16" },
-            { label: "Sat", val: "h-32" },
-          ].map((bar, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-2">
-              <div className={`w-full rounded-t-lg bg-blue-600/80 hover:bg-blue-650 transition-all ${bar.val}`} />
-              <span className="text-[10px] text-slate-400 font-bold">{bar.label}</span>
+            { title: "Total Revenue", count: `₹${reportStats.revenue.toLocaleString()}`, desc: "Collected earnings", icon: <DollarSign className="h-4 w-4 text-blue-500" /> },
+            { title: "Patient Directory", count: reportStats.patients, desc: "Active clinical files", icon: <Users className="h-4 w-4 text-cyan-500" /> },
+            { title: "Treatments Completed", count: reportStats.treatments, desc: "Finished checkouts", icon: <Stethoscope className="h-4 w-4 text-purple-500" /> },
+            { title: "Appointments logged", count: reportStats.appointments, desc: "Total scheduled units", icon: <Calendar className="h-4 w-4 text-amber-500" /> }
+          ].map((stat, i) => (
+            <div key={i} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+              <div className="flex justify-between items-center text-slate-400">
+                <span className="text-[10px] font-bold uppercase tracking-wider">{stat.title}</span>
+                {stat.icon}
+              </div>
+              <div className="mt-4">
+                <span className="text-2xl font-black text-slate-900 dark:text-white">{stat.count}</span>
+                <p className="text-[10px] text-slate-400 mt-1 font-medium">{stat.desc}</p>
+              </div>
             </div>
           ))}
+        </section>
+
+        {/* Existing Revenue Performance Chart */}
+        <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
+          <span className="font-bold text-sm block text-slate-900 dark:text-white">Revenue Performance Chart</span>
+          <div className="h-48 w-full flex items-end justify-between gap-4 pt-8">
+            {[
+              { label: "Mon", val: "h-20" },
+              { label: "Tue", val: "h-36" },
+              { label: "Wed", val: "h-28" },
+              { label: "Thu", val: "h-40" },
+              { label: "Fri", val: "h-16" },
+              { label: "Sat", val: "h-32" },
+            ].map((bar, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                <div className={`w-full rounded-t-lg bg-blue-600/80 hover:bg-blue-650 transition-all ${bar.val}`} />
+                <span className="text-[10px] text-slate-400 font-bold">{bar.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* NEW VS RETURNING PATIENTS ANALYTICS CARD */}
+        <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-6">
+          {/* Header & Legend */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+            <div>
+              <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                New vs Returning Patients
+              </h2>
+              <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Compare revenue generated from new and returning patients.
+              </p>
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center gap-4 text-[12px] font-medium shrink-0">
+              <div className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded-full bg-blue-600 inline-block" />
+                <span className="text-slate-700 dark:text-slate-300">New Patients</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded-full bg-indigo-600 inline-block" />
+                <span className="text-slate-700 dark:text-slate-300">Returning Patients</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Summary Metrics Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">NEW PATIENT REVENUE</span>
+              <span className="text-[18px] font-bold text-blue-600 dark:text-blue-400 block mt-1">₹{analyticsData.summary.newRev.toLocaleString()}</span>
+              <span className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5 block">{analyticsData.summary.newCount} patients</span>
+            </div>
+
+            <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">RETURNING PATIENT REVENUE</span>
+              <span className="text-[18px] font-bold text-indigo-600 dark:text-indigo-400 block mt-1">₹{analyticsData.summary.returningRev.toLocaleString()}</span>
+              <span className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5 block">{analyticsData.summary.returningCount} patients</span>
+            </div>
+
+            <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">TOTAL REVENUE</span>
+              <span className="text-[18px] font-bold text-slate-900 dark:text-white block mt-1">₹{analyticsData.summary.totalRev.toLocaleString()}</span>
+              <span className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5 block">{analyticsData.summary.newCount + analyticsData.summary.returningCount} total patients</span>
+            </div>
+
+            <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">RETURNING SHARE</span>
+              <span className="text-[18px] font-bold text-emerald-600 dark:text-emerald-400 block mt-1">{analyticsData.summary.returningShare}</span>
+              <span className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5 block">Repeat visit ratio</span>
+            </div>
+          </div>
+
+          {/* Grouped Bar Chart */}
+          <div className="pt-2">
+            <div className="h-60 w-full flex items-end justify-between gap-2 sm:gap-4 pt-10 px-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+              {analyticsData.bars.map((bar, i) => {
+                const maxVal = Math.max(...analyticsData.bars.map(b => Math.max(b.newVal, b.returnVal))) || 1;
+                const newPct = Math.round((bar.newVal / maxVal) * 100);
+                const returnPct = Math.round((bar.returnVal / maxVal) * 100);
+
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                    
+                    {/* Tooltip on Hover */}
+                    <div className="absolute -top-12 z-20 hidden group-hover:flex flex-col items-center pointer-events-none transition-all duration-150">
+                      <div className="bg-slate-900 text-white text-[11px] py-1.5 px-3 rounded-lg shadow-lg font-medium whitespace-nowrap space-y-0.5">
+                        <span className="font-semibold block text-slate-300 border-b border-slate-800 pb-0.5 mb-0.5">{bar.label} Breakdown</span>
+                        <span className="text-blue-300 block">New Patients: ₹{bar.newVal.toLocaleString()}</span>
+                        <span className="text-indigo-300 block">Returning Patients: ₹{bar.returnVal.toLocaleString()}</span>
+                      </div>
+                      <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
+                    </div>
+
+                    {/* Grouped Bars Container */}
+                    <div className="w-full flex items-end justify-center gap-1.5 h-full">
+                      {/* New Patient Bar */}
+                      <div 
+                        style={{ height: `${Math.max(newPct, 8)}%` }} 
+                        className="w-1/2 max-w-[24px] sm:max-w-[28px] bg-blue-600 hover:bg-blue-500 rounded-t-md transition-all duration-300"
+                      />
+                      {/* Returning Patient Bar */}
+                      <div 
+                        style={{ height: `${Math.max(returnPct, 8)}%` }} 
+                        className="w-1/2 max-w-[24px] sm:max-w-[28px] bg-indigo-600 hover:bg-indigo-500 rounded-t-md transition-all duration-300"
+                      />
+                    </div>
+
+                    {/* Bar Label */}
+                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-2.5 truncate max-w-[48px] text-center">
+                      {bar.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderSettingsModule = () => {
     const settingsTabs = ["Clinic", "Doctors", "Staff", "Integrations", "Backup"];
