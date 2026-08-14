@@ -360,7 +360,7 @@ const menuItems = [
 const moduleSubTabs: Record<string, string[]> = {
   Dashboard: ["Overview"],
   Appointments: ["Today", "Queue", "History"],
-  Patients: ["All Patients", "Patient Analytics", "Add Patient", "Dental Chart"],
+  Patients: ["All Patients", "Add Patient", "Dental Chart"],
   Treatments: ["Active Treatments", "Completed", "Treatment Plans"],
   Billing: ["Invoices", "Payments"],
   Reports: ["Revenue", "Patients", "Treatments", "Appointments"],
@@ -6205,357 +6205,8 @@ Apex Clinic`;
       );
     }
 
-    const getPatientsAnalyticsData = () => {
-      let newCount = 8;
-      let returningCount = 15;
-      let newRev = 42500;
-      let returningRev = 88000;
-
-      if (patientsPeriod === "Today") {
-        newCount = 2;
-        returningCount = 4;
-        newRev = 12500;
-        returningRev = 24000;
-      } else if (patientsPeriod === "This Week") {
-        newCount = 8;
-        returningCount = 15;
-        newRev = 42500;
-        returningRev = 88000;
-      } else if (patientsPeriod === "This Month") {
-        newCount = 22;
-        returningCount = 52;
-        newRev = 145000;
-        returningRev = 310000;
-      } else if (patientsPeriod === "Last Month") {
-        newCount = 18;
-        returningCount = 48;
-        newRev = 132000;
-        returningRev = 285000;
-      } else if (patientsPeriod === "This Year" || patientsPeriod === "Custom Range") {
-        newCount = 62;
-        returningCount = 114;
-        newRev = 281000;
-        returningRev = 519500;
-      }
-
-      const totalRev = newRev + returningRev;
-      const totalPts = newCount + returningCount;
-      const newAvg = newCount > 0 ? Math.round(newRev / newCount) : 0;
-      const returningAvg = returningCount > 0 ? Math.round(returningRev / returningCount) : 0;
-      const overallAvg = totalPts > 0 ? Math.round(totalRev / totalPts) : 0;
-      const retentionPct = totalPts > 0 ? `${((returningCount / totalPts) * 100).toFixed(1)}%` : "0%";
-
-      const monthlyData = [
-        { month: "January", newPatients: 12, returningPatients: 18, newRevenue: 18500, returningRevenue: 32000 },
-        { month: "February", newPatients: 15, returningPatients: 21, newRevenue: 21000, returningRevenue: 35500 },
-        { month: "March", newPatients: 19, returningPatients: 25, newRevenue: 25500, returningRevenue: 42000 },
-        { month: "April", newPatients: 14, returningPatients: 22, newRevenue: 24000, returningRevenue: 41000 },
-        { month: "May", newPatients: 16, returningPatients: 24, newRevenue: 22000, returningRevenue: 39000 },
-        { month: "June", newPatients: 18, returningPatients: 28, newRevenue: 26000, returningRevenue: 44000 }
-      ];
-
-      return {
-        newPatients: { periodCount: newCount, totalCount: patients.length, revenue: newRev, avgRevenue: newAvg },
-        returningPatients: { periodCount: returningCount, totalCount: patients.length * 2, revenue: returningRev, avgRevenue: returningAvg },
-        totalRevenue: totalRev,
-        totalPatients: totalPts,
-        overallAvgRevenue: overallAvg,
-        retentionRate: retentionPct,
-        monthlyData,
-        insights: {
-          newGrowth: "+18.4%",
-          highestMonth: "March (₹67,500)",
-          topCategory: "Returning Patients (62.3% Share)"
-        }
-      };
-    };
-
-    const analyticsData = getPatientsAnalyticsData();
-
     return (
       <div className="space-y-6 animate-fadeIn">
-        {activeSubTab === "Patient Analytics" && (
-          <div className="space-y-6 animate-fadeIn">
-            {/* Time Period Filter Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-              <div className="flex items-center gap-2.5">
-                <TrendingUp className="h-4 w-4 text-blue-600 animate-pulse" />
-                <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Period Filter:</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {(["Today", "This Week", "This Month", "Last Month", "This Year", "Custom Range"] as const).map((period) => {
-                  const active = patientsPeriod === period;
-                  return (
-                    <button
-                      key={period}
-                      onClick={() => setPatientsPeriod(period)}
-                      className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                        active ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
-                      }`}
-                    >
-                      {period}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Section 1 & 2: New & Returning Patients Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* New Patients Card */}
-              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-3">
-                <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[10px] font-bold uppercase tracking-wider">NEW PATIENTS</span>
-                  <Users className="h-4 w-4 text-blue-500" />
-                </div>
-                <div>
-                  <span className="text-2xl font-black text-blue-600 dark:text-blue-400">
-                    {analyticsData.newPatients.periodCount}
-                  </span>
-                  <p className="text-[11px] text-slate-400 mt-0.5 font-medium">Total registered: {analyticsData.newPatients.totalCount}</p>
-                </div>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Revenue:</span>
-                  <span className="font-bold text-slate-900 dark:text-white">₹{analyticsData.newPatients.revenue.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Avg Revenue/Patient:</span>
-                  <span className="font-bold text-blue-600 dark:text-blue-400">₹{analyticsData.newPatients.avgRevenue.toLocaleString()}</span>
-                </div>
-              </div>
-
-              {/* Returning Patients Card */}
-              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-3">
-                <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[10px] font-bold uppercase tracking-wider">RETURNING PATIENTS</span>
-                  <UserCheck className="h-4 w-4 text-indigo-500" />
-                </div>
-                <div>
-                  <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
-                    {analyticsData.returningPatients.periodCount}
-                  </span>
-                  <p className="text-[11px] text-slate-400 mt-0.5 font-medium">Active returnees: {analyticsData.returningPatients.totalCount}</p>
-                </div>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Revenue:</span>
-                  <span className="font-bold text-slate-900 dark:text-white">₹{analyticsData.returningPatients.revenue.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Avg Revenue/Patient:</span>
-                  <span className="font-bold text-indigo-600 dark:text-indigo-400">₹{analyticsData.returningPatients.avgRevenue.toLocaleString()}</span>
-                </div>
-              </div>
-
-              {/* Total Combined Patients Card */}
-              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-3">
-                <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[10px] font-bold uppercase tracking-wider">TOTAL PATIENT REVENUE</span>
-                  <DollarSign className="h-4 w-4 text-emerald-500" />
-                </div>
-                <div>
-                  <span className="text-2xl font-black text-slate-900 dark:text-white">
-                    ₹{analyticsData.totalRevenue.toLocaleString()}
-                  </span>
-                  <p className="text-[11px] text-slate-400 mt-0.5 font-medium">{analyticsData.totalPatients} active patients in period</p>
-                </div>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Overall Avg/Patient:</span>
-                  <span className="font-bold text-slate-900 dark:text-white">₹{analyticsData.overallAvgRevenue.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Repeat Retention Rate:</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{analyticsData.retentionRate}</span>
-                </div>
-              </div>
-
-              {/* Patient Growth Rate */}
-              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-3">
-                <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[10px] font-bold uppercase tracking-wider">NEW PATIENT GROWTH</span>
-                  <TrendingUp className="h-4 w-4 text-cyan-500" />
-                </div>
-                <div>
-                  <span className="text-2xl font-black text-cyan-600 dark:text-cyan-400">
-                    {analyticsData.insights.newGrowth}
-                  </span>
-                  <p className="text-[11px] text-slate-400 mt-0.5 font-medium">Compared to prior period</p>
-                </div>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Highest Month:</span>
-                  <span className="font-bold text-slate-900 dark:text-white">{analyticsData.insights.highestMonth}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Top Category:</span>
-                  <span className="font-bold text-cyan-600 dark:text-cyan-400">{analyticsData.insights.topCategory}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Section 3: New vs Returning Comparison Chart & Metrics */}
-            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-4">
-                <div>
-                  <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
-                    New vs Returning Patients Comparison
-                  </h2>
-                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    Compare patient counts, total revenue, and average spend per visit.
-                  </p>
-                </div>
-                {/* Legend */}
-                <div className="flex items-center gap-4 text-[12px] font-medium shrink-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-3 w-3 rounded-full bg-blue-600 inline-block" />
-                    <span className="text-slate-700 dark:text-slate-300">New Patients</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-3 w-3 rounded-full bg-indigo-600 inline-block" />
-                    <span className="text-slate-700 dark:text-slate-300">Returning Patients</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Comparison Metrics Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">PATIENT COUNT</span>
-                  <div className="flex justify-between items-baseline pt-1">
-                    <span className="text-sm font-semibold text-blue-600">New: {analyticsData.newPatients.periodCount}</span>
-                    <span className="text-sm font-semibold text-indigo-600">Returning: {analyticsData.returningPatients.periodCount}</span>
-                  </div>
-                  <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 flex overflow-hidden">
-                    <div style={{ width: `${(analyticsData.newPatients.periodCount / Math.max(1, analyticsData.totalPatients)) * 100}%` }} className="bg-blue-600" />
-                    <div style={{ width: `${(analyticsData.returningPatients.periodCount / Math.max(1, analyticsData.totalPatients)) * 100}%` }} className="bg-indigo-600" />
-                  </div>
-                </div>
-
-                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">REVENUE CONTRIBUTION</span>
-                  <div className="flex justify-between items-baseline pt-1">
-                    <span className="text-sm font-semibold text-blue-600">New: ₹{analyticsData.newPatients.revenue.toLocaleString()}</span>
-                    <span className="text-sm font-semibold text-indigo-600">Returning: ₹{analyticsData.returningPatients.revenue.toLocaleString()}</span>
-                  </div>
-                  <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 flex overflow-hidden">
-                    <div style={{ width: `${(analyticsData.newPatients.revenue / Math.max(1, analyticsData.totalRevenue)) * 100}%` }} className="bg-blue-600" />
-                    <div style={{ width: `${(analyticsData.returningPatients.revenue / Math.max(1, analyticsData.totalRevenue)) * 100}%` }} className="bg-indigo-600" />
-                  </div>
-                </div>
-
-                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">AVG REVENUE / PATIENT</span>
-                  <div className="flex justify-between items-baseline pt-1">
-                    <span className="text-sm font-semibold text-blue-600">New: ₹{analyticsData.newPatients.avgRevenue.toLocaleString()}</span>
-                    <span className="text-sm font-semibold text-indigo-600">Returning: ₹{analyticsData.returningPatients.avgRevenue.toLocaleString()}</span>
-                  </div>
-                  <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 flex overflow-hidden">
-                    <div style={{ width: `${(analyticsData.newPatients.avgRevenue / Math.max(1, analyticsData.newPatients.avgRevenue + analyticsData.returningPatients.avgRevenue)) * 100}%` }} className="bg-blue-600" />
-                    <div style={{ width: `${(analyticsData.returningPatients.avgRevenue / Math.max(1, analyticsData.newPatients.avgRevenue + analyticsData.returningPatients.avgRevenue)) * 100}%` }} className="bg-indigo-600" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Grouped Bar Chart */}
-              <div className="pt-2">
-                <div className="h-60 w-full flex items-end justify-between gap-2 sm:gap-4 pt-10 px-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
-                  {analyticsData.monthlyData.map((m, i) => {
-                    const maxVal = Math.max(...analyticsData.monthlyData.map(b => Math.max(b.newRevenue, b.returningRevenue))) || 1;
-                    const newPct = Math.round((m.newRevenue / maxVal) * 100);
-                    const returnPct = Math.round((m.returningRevenue / maxVal) * 100);
-
-                    return (
-                      <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group relative">
-                        {/* Tooltip */}
-                        <div className="absolute -top-14 z-20 hidden group-hover:flex flex-col items-center pointer-events-none transition-all duration-150">
-                          <div className="bg-slate-900 text-white text-[11px] py-1.5 px-3 rounded-lg shadow-lg font-medium whitespace-nowrap space-y-0.5">
-                            <span className="font-semibold block text-slate-300 border-b border-slate-800 pb-0.5 mb-0.5">{m.month} Analysis</span>
-                            <span className="text-blue-300 block">New: {m.newPatients} Pts (₹{m.newRevenue.toLocaleString()})</span>
-                            <span className="text-indigo-300 block">Returning: {m.returningPatients} Pts (₹{m.returningRevenue.toLocaleString()})</span>
-                          </div>
-                          <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
-                        </div>
-
-                        <div className="w-full flex items-end justify-center gap-1.5 h-full">
-                          <div style={{ height: `${Math.max(newPct, 8)}%` }} className="w-1/2 max-w-[24px] sm:max-w-[28px] bg-blue-600 hover:bg-blue-500 rounded-t-md transition-all duration-300" />
-                          <div style={{ height: `${Math.max(returnPct, 8)}%` }} className="w-1/2 max-w-[24px] sm:max-w-[28px] bg-indigo-600 hover:bg-indigo-500 rounded-t-md transition-all duration-300" />
-                        </div>
-
-                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-2.5 truncate max-w-[48px] text-center">
-                          {m.month}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Section 4: Monthly Analysis Table */}
-            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-4">
-              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/80 pb-3">
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Monthly Patient & Revenue Breakdown</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Month-by-month trajectory for new and returning visits.</p>
-                </div>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs font-semibold">
-                  <thead>
-                    <tr className="border-b text-[10px] text-slate-400 uppercase tracking-wider bg-slate-50/50 dark:bg-slate-900/40">
-                      <th className="py-2.5 px-3">Month</th>
-                      <th className="py-2.5 px-3">New Patients</th>
-                      <th className="py-2.5 px-3">Returning Patients</th>
-                      <th className="py-2.5 px-3">New Revenue</th>
-                      <th className="py-2.5 px-3">Returning Revenue</th>
-                      <th className="py-2.5 px-3 text-right">Total Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-700 dark:text-slate-300">
-                    {analyticsData.monthlyData.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
-                        <td className="py-3 px-3 font-bold text-slate-900 dark:text-white">{row.month}</td>
-                        <td className="py-3 px-3 text-blue-600 dark:text-blue-400 font-semibold">{row.newPatients} patients</td>
-                        <td className="py-3 px-3 text-indigo-600 dark:text-indigo-400 font-semibold">{row.returningPatients} patients</td>
-                        <td className="py-3 px-3">₹{row.newRevenue.toLocaleString()}</td>
-                        <td className="py-3 px-3">₹{row.returningRevenue.toLocaleString()}</td>
-                        <td className="py-3 px-3 text-right font-black text-slate-900 dark:text-white">₹{(row.newRevenue + row.returningRevenue).toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Section 6: Key Insights */}
-            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
-                <Activity className="h-4 w-4 text-blue-600" />
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">Patient Insights & Growth Summary</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-semibold">
-                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">RETENTION PERFORMANCE</span>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">Returning Patient Rate: <span className="text-emerald-600 dark:text-emerald-400">{analyticsData.retentionRate}</span></p>
-                  <p className="text-[11px] text-slate-500 font-normal">Strong clinical patient satisfaction and repeat consultations.</p>
-                </div>
-
-                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">REVENUE LEADERSHIP</span>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">Peak Revenue Month: <span className="text-blue-600 dark:text-blue-400">{analyticsData.insights.highestMonth}</span></p>
-                  <p className="text-[11px] text-slate-500 font-normal">Generated highest monthly collection from patient treatments.</p>
-                </div>
-
-                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">TOP PERFORMING CATEGORY</span>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">{analyticsData.insights.topCategory}</p>
-                  <p className="text-[11px] text-slate-500 font-normal">Generates majority share of practice clinic earnings.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {activeSubTab === "All Patients" && (
           <>
             <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col md:flex-row justify-between items-center gap-4">
@@ -7137,70 +6788,462 @@ Apex Clinic`;
     </div>
   );
 
-  const renderReportsModule = () => (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Timeframe selector filters */}
-      <div className="flex items-center gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-        <TrendingUp className="h-4 w-4 text-blue-600 animate-pulse" />
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Reports Timeframe:</span>
-        {(["Today", "Week", "Month", "Year"] as const).map((tf) => {
-          const active = reportsFilter === tf;
-          return (
-            <button
-              key={tf}
-              onClick={() => setReportsFilter(tf)}
-              className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                active ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
-              }`}
-            >
-              {tf}
-            </button>
-          );
-        })}
-      </div>
+  const renderReportsModule = () => {
+    // Current active sub-tab inside Reports (defaults to Revenue if invalid)
+    const currentSubTab = ["Revenue", "Patients", "Treatments", "Appointments"].includes(activeSubTab)
+      ? activeSubTab
+      : "Revenue";
 
-      {/* Analytics KPI reporting grid */}
-      <section className="grid gap-4 grid-cols-2 md:grid-cols-4">
-        {[
-          { title: "Total Revenue", count: `₹${reportStats.revenue.toLocaleString()}`, desc: "Collected earnings", icon: <DollarSign className="h-4 w-4 text-blue-500" /> },
-          { title: "Patient Directory", count: reportStats.patients, desc: "Active clinical files", icon: <Users className="h-4 w-4 text-cyan-500" /> },
-          { title: "Treatments Completed", count: reportStats.treatments, desc: "Finished checkouts", icon: <Stethoscope className="h-4 w-4 text-purple-500" /> },
-          { title: "Appointments logged", count: reportStats.appointments, desc: "Total scheduled units", icon: <Calendar className="h-4 w-4 text-amber-500" /> }
-        ].map((stat, i) => (
-          <div key={i} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
-            <div className="flex justify-between items-center text-slate-400">
-              <span className="text-[10px] font-bold uppercase tracking-wider">{stat.title}</span>
-              {stat.icon}
+    // Helper calculation for Reports -> Patients Analytics
+    const getPatientAnalyticsData = () => {
+      let newCount = 12;
+      let returningCount = 24;
+      let newRev = 46200;
+      let returningRev = 92400;
+      let newGrowth = "+14.2%";
+      let returningGrowth = "+18.6%";
+
+      if (reportsFilter === "Today") {
+        newCount = 3;
+        returningCount = 6;
+        newRev = 11500;
+        returningRev = 23000;
+        newGrowth = "+5.0%";
+        returningGrowth = "+12.0%";
+      } else if (reportsFilter === "Week") {
+        newCount = 8;
+        returningCount = 16;
+        newRev = 30800;
+        returningRev = 61600;
+        newGrowth = "+8.5%";
+        returningGrowth = "+15.2%";
+      } else if (reportsFilter === "Month") {
+        newCount = 22;
+        returningCount = 45;
+        newRev = 84700;
+        returningRev = 173250;
+        newGrowth = "+12.4%";
+        returningGrowth = "+21.0%";
+      } else if (reportsFilter === "Year" || reportsFilter === "Custom") {
+        newCount = 98;
+        returningCount = 184;
+        newRev = 377300;
+        returningRev = 708400;
+        newGrowth = "+22.1%";
+        returningGrowth = "+28.4%";
+      }
+
+      const totalRev = newRev + returningRev;
+      const totalPts = newCount + returningCount;
+      const avgRevPerPt = totalPts > 0 ? Math.round(totalRev / totalPts) : 0;
+      const returningRate = totalPts > 0 ? ((returningCount / totalPts) * 100).toFixed(1) + "%" : "0%";
+      const avgRevPerNew = newCount > 0 ? Math.round(newRev / newCount) : 0;
+      const avgRevPerReturning = returningCount > 0 ? Math.round(returningRev / returningCount) : 0;
+
+      const monthlyPatientTrends = [
+        { month: "Jan", newPts: 12, returningPts: 18, newRev: 46200, returningRev: 69300 },
+        { month: "Feb", newPts: 15, returningPts: 21, newRev: 57750, returningRev: 80850 },
+        { month: "Mar", newPts: 19, returningPts: 25, newRev: 73150, returningRev: 96250 },
+        { month: "Apr", newPts: 14, returningPts: 22, newRev: 53900, returningRev: 84700 },
+        { month: "May", newPts: 16, returningPts: 24, newRev: 61600, returningRev: 92400 },
+        { month: "Jun", newPts: 18, returningPts: 28, newRev: 69300, returningRev: 107800 }
+      ];
+
+      return {
+        newCount,
+        returningCount,
+        totalPts,
+        newRev,
+        returningRev,
+        totalRev,
+        avgRevPerPt,
+        returningRate,
+        avgRevPerNew,
+        avgRevPerReturning,
+        newGrowth,
+        returningGrowth,
+        highestRevMonth: "March (₹1,69,400)",
+        highestAcquisitionMonth: "March (19 New Patients)",
+        monthlyPatientTrends
+      };
+    };
+
+    const patientStats = getPatientAnalyticsData();
+
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        {/* SUB-TAB 1: REVENUE */}
+        {currentSubTab === "Revenue" && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* Timeframe selector filters */}
+            <div className="flex items-center gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+              <TrendingUp className="h-4 w-4 text-blue-600 animate-pulse" />
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Reports Timeframe:</span>
+              {(["Today", "Week", "Month", "Year"] as const).map((tf) => {
+                const active = reportsFilter === tf;
+                return (
+                  <button
+                    key={tf}
+                    onClick={() => setReportsFilter(tf)}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                      active ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
+                    }`}
+                  >
+                    {tf}
+                  </button>
+                );
+              })}
             </div>
-            <div className="mt-4">
-              <span className="text-2xl font-black text-slate-900 dark:text-white">{stat.count}</span>
-              <p className="text-[10px] text-slate-400 mt-1 font-medium">{stat.desc}</p>
+
+            {/* Analytics KPI reporting grid */}
+            <section className="grid gap-4 grid-cols-2 md:grid-cols-4">
+              {[
+                { title: "Total Revenue", count: `₹${reportStats.revenue.toLocaleString()}`, desc: "Collected earnings", icon: <DollarSign className="h-4 w-4 text-blue-500" /> },
+                { title: "Patient Directory", count: reportStats.patients, desc: "Active clinical files", icon: <Users className="h-4 w-4 text-cyan-500" /> },
+                { title: "Treatments Completed", count: reportStats.treatments, desc: "Finished checkouts", icon: <Stethoscope className="h-4 w-4 text-purple-500" /> },
+                { title: "Appointments logged", count: reportStats.appointments, desc: "Total scheduled units", icon: <Calendar className="h-4 w-4 text-amber-500" /> }
+              ].map((stat, i) => (
+                <div key={i} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+                  <div className="flex justify-between items-center text-slate-400">
+                    <span className="text-[10px] font-bold uppercase tracking-wider">{stat.title}</span>
+                    {stat.icon}
+                  </div>
+                  <div className="mt-4">
+                    <span className="text-2xl font-black text-slate-900 dark:text-white">{stat.count}</span>
+                    <p className="text-[10px] text-slate-400 mt-1 font-medium">{stat.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </section>
+
+            {/* Existing Revenue Performance Chart */}
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
+              <span className="font-bold text-sm block text-slate-900 dark:text-white">Revenue Performance Chart</span>
+              <div className="h-48 w-full flex items-end justify-between gap-4 pt-8">
+                {[
+                  { label: "Mon", val: "h-20" },
+                  { label: "Tue", val: "h-36" },
+                  { label: "Wed", val: "h-28" },
+                  { label: "Thu", val: "h-40" },
+                  { label: "Fri", val: "h-16" },
+                  { label: "Sat", val: "h-32" },
+                ].map((bar, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                    <div className={`w-full rounded-t-lg bg-blue-600/80 hover:bg-blue-650 transition-all ${bar.val}`} />
+                    <span className="text-[10px] text-slate-400 font-bold">{bar.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        ))}
-      </section>
+        )}
 
-      {/* Existing Revenue Performance Chart */}
-      <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
-        <span className="font-bold text-sm block text-slate-900 dark:text-white">Revenue Performance Chart</span>
-        <div className="h-48 w-full flex items-end justify-between gap-4 pt-8">
-          {[
-            { label: "Mon", val: "h-20" },
-            { label: "Tue", val: "h-36" },
-            { label: "Wed", val: "h-28" },
-            { label: "Thu", val: "h-40" },
-            { label: "Fri", val: "h-16" },
-            { label: "Sat", val: "h-32" },
-          ].map((bar, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-2">
-              <div className={`w-full rounded-t-lg bg-blue-600/80 hover:bg-blue-650 transition-all ${bar.val}`} />
-              <span className="text-[10px] text-slate-400 font-bold">{bar.label}</span>
+        {/* SUB-TAB 2: PATIENTS (DEDICATED PATIENT ANALYTICS DASHBOARD) */}
+        {currentSubTab === "Patients" && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* 2. TOP FILTER */}
+            <div className="flex items-center gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+              <TrendingUp className="h-4 w-4 text-blue-600 animate-pulse" />
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Timeframe:</span>
+              {(["Today", "Week", "Month", "Year", "Custom"] as const).map((tf) => {
+                const active = reportsFilter === tf;
+                return (
+                  <button
+                    key={tf}
+                    onClick={() => setReportsFilter(tf as any)}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                      active ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
+                    }`}
+                  >
+                    {tf}
+                  </button>
+                );
+              })}
             </div>
-          ))}
-        </div>
+
+            {/* 3. SUMMARY CARDS */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">NEW PATIENTS</span>
+                <span className="text-2xl font-black text-blue-600 dark:text-blue-400 block">{patientStats.newCount}</span>
+                <span className="text-[11px] text-slate-400 font-medium block">New patients</span>
+              </div>
+
+              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">RETURNING PATIENTS</span>
+                <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 block">{patientStats.returningCount}</span>
+                <span className="text-[11px] text-slate-400 font-medium block">Returning patients</span>
+              </div>
+
+              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">AVERAGE REVENUE / PATIENT</span>
+                <span className="text-2xl font-black text-slate-900 dark:text-white block">₹{patientStats.avgRevPerPt.toLocaleString()}</span>
+                <span className="text-[11px] text-slate-400 font-medium block">Average revenue</span>
+              </div>
+
+              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">RETURNING PATIENT RATE</span>
+                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 block">{patientStats.returningRate}</span>
+                <span className="text-[11px] text-slate-400 font-medium block">Repeat patient ratio</span>
+              </div>
+            </div>
+
+            {/* 4. NEW VS RETURNING PATIENTS CHART */}
+            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+                <div>
+                  <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                    New vs Returning Patients
+                  </h2>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Compare patient visits and revenue generated by new and returning patients.
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 text-[12px] font-medium shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-blue-600 inline-block" />
+                    <span className="text-slate-700 dark:text-slate-300">New Patients</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-indigo-600 inline-block" />
+                    <span className="text-slate-700 dark:text-slate-300">Returning Patients</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">PATIENT VISITS COMPARISON</span>
+                  <div className="flex justify-between items-baseline pt-1 text-sm font-semibold">
+                    <span className="text-blue-600">New: {patientStats.newCount}</span>
+                    <span className="text-indigo-600">Returning: {patientStats.returningCount}</span>
+                  </div>
+                  <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 flex overflow-hidden">
+                    <div style={{ width: `${(patientStats.newCount / Math.max(1, patientStats.totalPts)) * 100}%` }} className="bg-blue-600" />
+                    <div style={{ width: `${(patientStats.returningCount / Math.max(1, patientStats.totalPts)) * 100}%` }} className="bg-indigo-600" />
+                  </div>
+                </div>
+
+                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">PATIENT SHARE RATIO</span>
+                  <div className="flex justify-between items-baseline pt-1 text-sm font-semibold">
+                    <span className="text-blue-600">New Share: {((patientStats.newCount / Math.max(1, patientStats.totalPts)) * 100).toFixed(1)}%</span>
+                    <span className="text-indigo-600">Returning Share: {patientStats.returningRate}</span>
+                  </div>
+                  <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 flex overflow-hidden">
+                    <div style={{ width: `${(patientStats.newCount / Math.max(1, patientStats.totalPts)) * 100}%` }} className="bg-blue-600" />
+                    <div style={{ width: `${(patientStats.returningCount / Math.max(1, patientStats.totalPts)) * 100}%` }} className="bg-indigo-600" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 5. REVENUE COMPARISON */}
+            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-6">
+              <div>
+                <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                  Revenue by Patient Type
+                </h2>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Detailed earnings breakdown and average spend comparison.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-semibold">
+                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-blue-50/30 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">NEW PATIENT REVENUE</span>
+                  <span className="text-lg font-bold text-blue-600 dark:text-blue-400 block">₹{patientStats.newRev.toLocaleString()}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">From {patientStats.newCount} new registrations</span>
+                </div>
+
+                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-indigo-50/30 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">RETURNING PATIENT REVENUE</span>
+                  <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400 block">₹{patientStats.returningRev.toLocaleString()}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">From {patientStats.returningCount} repeat visits</span>
+                </div>
+
+                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">AVG REVENUE / NEW PATIENT</span>
+                  <span className="text-lg font-bold text-blue-600 dark:text-blue-400 block">₹{patientStats.avgRevPerNew.toLocaleString()}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Average spend per new patient</span>
+                </div>
+
+                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">AVG REVENUE / RETURNING</span>
+                  <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400 block">₹{patientStats.avgRevPerReturning.toLocaleString()}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Average spend per returnee</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 6. MONTHLY PATIENT TREND */}
+            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-6">
+              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                <div>
+                  <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                    Monthly Patient Trends
+                  </h2>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Month-by-month new vs returning patient volume.
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 text-[12px] font-medium shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-blue-600 inline-block" />
+                    <span className="text-slate-700 dark:text-slate-300">New Patients</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-indigo-600 inline-block" />
+                    <span className="text-slate-700 dark:text-slate-300">Returning Patients</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grouped Bar Chart */}
+              <div className="pt-2">
+                <div className="h-56 w-full flex items-end justify-between gap-3 sm:gap-6 pt-8 px-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                  {patientStats.monthlyPatientTrends.map((m, i) => {
+                    const maxCount = Math.max(...patientStats.monthlyPatientTrends.map(b => Math.max(b.newPts, b.returningPts))) || 1;
+                    const newPct = Math.round((m.newPts / maxCount) * 100);
+                    const returnPct = Math.round((m.returningPts / maxCount) * 100);
+
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                        {/* Tooltip */}
+                        <div className="absolute -top-12 z-20 hidden group-hover:flex flex-col items-center pointer-events-none transition-all duration-150">
+                          <div className="bg-slate-900 text-white text-[11px] py-1.5 px-3 rounded-lg shadow-lg font-medium whitespace-nowrap space-y-0.5">
+                            <span className="font-semibold block text-slate-300 border-b border-slate-800 pb-0.5 mb-0.5">{m.month} Patients</span>
+                            <span className="text-blue-300 block">New: {m.newPts} Patients</span>
+                            <span className="text-indigo-300 block">Returning: {m.returningPts} Patients</span>
+                          </div>
+                          <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
+                        </div>
+
+                        <div className="w-full flex items-end justify-center gap-1.5 h-full">
+                          <div style={{ height: `${Math.max(newPct, 12)}%` }} className="w-1/2 max-w-[24px] sm:max-w-[28px] bg-blue-600 hover:bg-blue-500 rounded-t-md transition-all duration-300" />
+                          <div style={{ height: `${Math.max(returnPct, 12)}%` }} className="w-1/2 max-w-[24px] sm:max-w-[28px] bg-indigo-600 hover:bg-indigo-500 rounded-t-md transition-all duration-300" />
+                        </div>
+
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-2.5 text-center">
+                          {m.month}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* 7. MONTHLY REVENUE TREND */}
+            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-4">
+              <div className="border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                  Monthly Revenue by Patient Type
+                </h2>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Monthly financial comparison between new and returning patient revenue.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {patientStats.monthlyPatientTrends.map((m, idx) => (
+                  <div key={idx} className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-2 text-xs font-semibold">
+                    <span className="font-bold text-slate-900 dark:text-white text-sm block border-b border-slate-200/60 dark:border-slate-800 pb-1">{m.month}</span>
+                    <div className="flex justify-between items-center text-blue-600 dark:text-blue-400">
+                      <span>New:</span>
+                      <span className="font-mono">₹{m.newRev.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-indigo-600 dark:text-indigo-400">
+                      <span>Returning:</span>
+                      <span className="font-mono">₹{m.returningRev.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-1 border-t border-slate-200/60 dark:border-slate-800 font-bold text-slate-900 dark:text-white">
+                      <span>Total:</span>
+                      <span className="font-mono">₹{(m.newRev + m.returningRev).toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 8. PATIENT INSIGHTS */}
+            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                <Activity className="h-4 w-4 text-blue-600" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Patient Insights</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-semibold">
+                <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">NEW PATIENT GROWTH</span>
+                  <span className="text-base font-bold text-blue-600 dark:text-blue-400 block">{patientStats.newGrowth}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Versus previous period</span>
+                </div>
+
+                <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">RETURNING PATIENT GROWTH</span>
+                  <span className="text-base font-bold text-indigo-600 dark:text-indigo-400 block">{patientStats.returningGrowth}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Versus previous period</span>
+                </div>
+
+                <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">RETURNING PATIENT %</span>
+                  <span className="text-base font-bold text-emerald-600 dark:text-emerald-400 block">{patientStats.returningRate}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Repeat visit percentage</span>
+                </div>
+
+                <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">AVG REVENUE PER PATIENT</span>
+                  <span className="text-base font-bold text-slate-900 dark:text-white block">₹{patientStats.avgRevPerPt.toLocaleString()}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Combined average spend</span>
+                </div>
+
+                <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">AVG REVENUE / NEW PATIENT</span>
+                  <span className="text-base font-bold text-blue-600 dark:text-blue-400 block">₹{patientStats.avgRevPerNew.toLocaleString()}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">New acquisition average</span>
+                </div>
+
+                <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">AVG REVENUE / RETURNING</span>
+                  <span className="text-base font-bold text-indigo-600 dark:text-indigo-400 block">₹{patientStats.avgRevPerReturning.toLocaleString()}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Repeat patient average</span>
+                </div>
+
+                <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">HIGHEST REVENUE MONTH</span>
+                  <span className="text-base font-bold text-slate-900 dark:text-white block">{patientStats.highestRevMonth}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Peak billing volume</span>
+                </div>
+
+                <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">HIGHEST ACQUISITION MONTH</span>
+                  <span className="text-base font-bold text-blue-600 dark:text-blue-400 block">{patientStats.highestAcquisitionMonth}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Peak new intake volume</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SUB-TAB 3: TREATMENTS */}
+        {currentSubTab === "Treatments" && (
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4 text-xs font-semibold">
+            <span className="font-bold text-sm block">Treatments Analytics & Performance</span>
+            <p className="text-slate-500 font-medium">Detailed treatment procedures breakdown, completion rates, and specialty distribution.</p>
+          </div>
+        )}
+
+        {/* SUB-TAB 4: APPOINTMENTS */}
+        {currentSubTab === "Appointments" && (
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4 text-xs font-semibold">
+            <span className="font-bold text-sm block">Appointments & Schedule Analytics</span>
+            <p className="text-slate-500 font-medium">Slot utilization logs, cancellation metrics, and practitioner scheduling stats.</p>
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderSettingsModule = () => {
     const settingsTabs = ["Clinic", "Doctors", "Staff", "Integrations", "Backup"];
