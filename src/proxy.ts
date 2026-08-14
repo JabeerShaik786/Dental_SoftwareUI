@@ -6,9 +6,12 @@ export async function proxy(request: NextRequest) {
     request,
   })
 
+  const urlEnv = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
+  const keyEnv = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'placeholder'
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    urlEnv,
+    keyEnv,
     {
       cookies: {
         getAll() {

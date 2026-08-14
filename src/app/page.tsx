@@ -509,7 +509,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [payDiscountValue, setPayDiscountValue] = useState(0);
   const [paymentCollectAmt, setPaymentCollectAmt] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<string>("Cash");
-  const [payTaxPercent, setPayTaxPercent] = useState(18); // Default 18% GST
+  const [payTaxPercent, setPayTaxPercent] = useState(0);
   const [payCustomItems, setPayCustomItems] = useState<{ description: string; amount: number }[]>([]);
   const [newCustomDesc, setNewCustomDesc] = useState("");
   const [newCustomAmt, setNewCustomAmt] = useState(0);
@@ -1049,7 +1049,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [invProcedure, setInvProcedure] = useState("");
   const [invAmount, setInvAmount] = useState("");
   const [invDiscount, setInvDiscount] = useState("0");
-  const [invTax, setInvTax] = useState("18");
+  const [invTax, setInvTax] = useState("0");
   const [invPaid, setInvPaid] = useState("0");
   const [invMode, setInvMode] = useState("UPI GPay");
 
@@ -1081,7 +1081,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     { id: "DS-1009", name: "Arjun Nair", phone: "+91 98760 12345", age: 36, gender: "Male", address: "Bannerghatta, Bengaluru", visit: "20 Jul 2026", medicalNotes: "Aspirin Sensitivity", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
     { id: "DS-1010", name: "Neha Joshi", phone: "+91 95400 98765", age: 29, gender: "Female", address: "Sadashivanagar, Bengaluru", visit: "15 Jul 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
     { id: "DS-1011", name: "Vikram Malhotra", phone: "+91 98112 34567", age: 50, gender: "Male", address: "Ulsoor, Bengaluru", visit: "10 Jul 2026", medicalNotes: "Diabetes type 2", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
-    { id: "DS-1012", name: "Meera Nair", phone: "+91 99104 56789", age: 33, gender: "Female", address: "Cox Town, Bengaluru", visit: "05 Jul 2026", medicalNotes: "None", balance: "₹770", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
+    { id: "DS-1012", name: "Meera Nair", phone: "+91 99104 56789", age: 33, gender: "Female", address: "Cox Town, Bengaluru", visit: "05 Jul 2026", medicalNotes: "None", balance: "₹500", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
     { id: "DS-1013", name: "Siddharth Roy", phone: "+91 98765 89012", age: 42, gender: "Male", address: "Frazer Town, Bengaluru", visit: "01 Jul 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
     { id: "DS-1014", name: "Aditi Rao", phone: "+91 95400 34567", age: 25, gender: "Female", address: "Kalyan Nagar, Bengaluru", visit: "25 Jun 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
     { id: "DS-1015", name: "Rajesh Khanna", phone: "+91 98100 90123", age: 60, gender: "Male", address: "Richmond Town, Bengaluru", visit: "15 Jun 2026", medicalNotes: "Penicillin Allergy", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] }
@@ -1096,8 +1096,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   ]);
 
   const [invoices, setInvoices] = useState<InvoiceItem[]>([
-    { id: "INV-1001", patientId: "DS-1011", patientName: "Vikram Malhotra", doctor: "Dr. Deepa Kodali", treatment: "Consultation", items: [{ description: "Consultation Fee", amount: 500 }, { description: "Pain Reliever pills", amount: 300 }], discount: 10, tax: 18, subtotal: 800, total: 850, paidAmount: 850, status: "Paid", paymentDate: "10 Aug 2026", paymentLogs: [{ method: "UPI GPay", amount: 850, date: "10 Aug 2026" }] },
-    { id: "INV-1002", patientId: "DS-1012", patientName: "Meera Nair", doctor: "Dr. Raghuram", treatment: "Scaling", items: [{ description: "Scaling and Polishing", amount: 1500 }], discount: 0, tax: 18, subtotal: 1500, total: 1770, paidAmount: 1000, status: "Partially Paid", paymentDate: "05 Aug 2026", paymentLogs: [{ method: "Cash", amount: 1000, date: "05 Aug 2026" }] }
+    { id: "INV-1001", patientId: "DS-1011", patientName: "Vikram Malhotra", doctor: "Dr. Deepa Kodali", treatment: "Consultation", items: [{ description: "Consultation Fee", amount: 500 }, { description: "Pain Reliever pills", amount: 300 }], discount: 10, tax: 0, subtotal: 800, total: 720, paidAmount: 720, status: "Paid", paymentDate: "10 Aug 2026", paymentLogs: [{ method: "UPI GPay", amount: 720, date: "10 Aug 2026" }] },
+    { id: "INV-1002", patientId: "DS-1012", patientName: "Meera Nair", doctor: "Dr. Raghuram", treatment: "Scaling", items: [{ description: "Scaling and Polishing", amount: 1500 }], discount: 0, tax: 0, subtotal: 1500, total: 1500, paidAmount: 1000, status: "Partially Paid", paymentDate: "05 Aug 2026", paymentLogs: [{ method: "Cash", amount: 1000, date: "05 Aug 2026" }] }
   ]);
 
   const [doctors, setDoctors] = useState<Doctor[]>([
@@ -1425,8 +1425,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       const newInvId = `INV-${Date.now().toString().slice(-4)}`;
       const costAmount = Number(chartCost) || 0;
       const subtotal = costAmount;
-      const taxAmount = Math.round(subtotal * 0.18);
-      const total = subtotal + taxAmount;
+      const total = subtotal;
       
       const newInvoice: InvoiceItem = {
         id: newInvId,
@@ -1436,7 +1435,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         treatment: chartTreatmentName.trim(),
         items: [{ description: `${chartTreatmentName.trim()} on Tooth ${toothDisplay}`, amount: costAmount }],
         discount: 0,
-        tax: 18,
+        tax: 0,
         subtotal,
         total,
         paidAmount: 0,
@@ -1505,8 +1504,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     if (newTrStatus === "Completed") {
       const newInvId = `INV-${Date.now().toString().slice(-4)}`;
       const subtotal = costAmt;
-      const taxAmount = Math.round(subtotal * 0.18);
-      const total = subtotal + taxAmount;
+      const total = subtotal;
       
       const newInvoice: InvoiceItem = {
         id: newInvId,
@@ -1516,7 +1514,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         treatment: newTrName.trim(),
         items: [{ description: `${newTrName.trim()}${toothNum ? ' on Tooth #' + toothNum : ''}`, amount: costAmt }],
         discount: 0,
-        tax: 18,
+        tax: 0,
         subtotal,
         total,
         paidAmount: 0,
@@ -1686,13 +1684,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     const amt = Number(invAmount) || 0;
     const disc = Number(invDiscount) || 0;
-    const tx = Number(invTax) || 0;
     const paid = Number(invPaid) || 0;
 
     const discountAmount = amt * (disc / 100);
     const subtotal = amt - discountAmount;
-    const taxAmount = Math.round(subtotal * (tx / 100));
-    const total = subtotal + taxAmount;
+    const total = subtotal;
     const pending = Math.max(0, total - paid);
 
     const newInvId = `INV-${Date.now().toString().slice(-4)}`;
@@ -1704,7 +1700,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       treatment: invProcedure.trim(),
       items: [{ description: invProcedure.trim(), amount: amt }],
       discount: disc,
-      tax: tx,
+      tax: 0,
       subtotal,
       total,
       paidAmount: paid,
@@ -1725,7 +1721,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setInvProcedure("");
     setInvAmount("");
     setInvDiscount("0");
-    setInvTax("18");
+    setInvTax("0");
     setInvPaid("0");
 
     showToast("Invoice saved successfully.", "success");
@@ -1928,8 +1924,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }
 
     const sub = invoiceItems.reduce((acc, item) => acc + item.amount, 0);
-    const taxValue = Math.round(sub * 0.18); // 18% tax
-    const tot = sub + taxValue;
+    const tot = sub;
 
     const newInvoice: InvoiceItem = {
       id: invoiceNum,
@@ -1939,7 +1934,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       treatment: appt.treatment,
       items: invoiceItems,
       discount: 0,
-      tax: 18,
+      tax: 0,
       subtotal: sub,
       total: tot,
       paidAmount: 0,
@@ -1993,7 +1988,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             discount: calculatedDiscountPct,
             discountType: payDiscountType,
             discountValue: payDiscountValue,
-            tax: payTaxPercent,
+            tax: 0,
             subtotal: calculatedSubtotal,
             total: finalInvoiceTotal,
             paidAmount: totalPaidAmount,
@@ -2026,7 +2021,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       discount: calculatedDiscountPct,
       discountType: payDiscountType,
       discountValue: payDiscountValue,
-      tax: payTaxPercent,
+      tax: 0,
       subtotal: calculatedSubtotal,
       total: finalInvoiceTotal,
       paidAmount: totalPaidAmount,
@@ -2069,8 +2064,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const calculateInvoiceTotal = () => {
     const sub = calculateInvoiceSubtotal();
     const discountAmt = calculateInvoiceDiscountAmount();
-    const taxAmt = Math.round((sub - discountAmt) * (payTaxPercent / 100));
-    return sub - discountAmt + taxAmt;
+    return sub - discountAmt;
   };
 
   // Quick register walk-in patient flow
@@ -2354,8 +2348,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       const treatmentCost = TREATMENT_PRICES[app.treatment] || 500;
       const invoiceItems = [{ description: `${app.treatment} Fee`, amount: treatmentCost }];
       const sub = treatmentCost;
-      const taxValue = Math.round(sub * 0.18);
-      const tot = sub + taxValue;
+      const tot = sub;
       
       const newInvoice: InvoiceItem = {
         id: invoiceNum,
@@ -2365,7 +2358,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         treatment: app.treatment,
         items: invoiceItems,
         discount: 0,
-        tax: 18,
+        tax: 0,
         subtotal: sub,
         total: tot,
         paidAmount: 0,
@@ -2392,7 +2385,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         setPayUpi(0);
         setPayCard(0);
         setPayDiscountPercent(inv.discount);
-        setPayTaxPercent(inv.tax);
+        setPayTaxPercent(0);
         setPayCustomItems([]);
       } else {
         // Create quick invoice if not already created
@@ -2400,8 +2393,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         const treatmentCost = TREATMENT_PRICES[app.treatment] || 500;
         const invoiceItems = [{ description: `${app.treatment} Fee`, amount: treatmentCost }];
         const sub = treatmentCost;
-        const taxValue = Math.round(sub * 0.18);
-        const tot = sub + taxValue;
+        const tot = sub;
         
         const newInvoice: InvoiceItem = {
           id: invoiceNum,
@@ -2411,7 +2403,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           treatment: app.treatment,
           items: invoiceItems,
           discount: 0,
-          tax: 18,
+          tax: 0,
           subtotal: sub,
           total: tot,
           paidAmount: 0,
@@ -2425,7 +2417,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         setPayUpi(0);
         setPayCard(0);
         setPayDiscountPercent(0);
-        setPayTaxPercent(18);
+        setPayTaxPercent(0);
         setPayCustomItems([]);
       }
     }
@@ -2733,9 +2725,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         treatment: "Consultation",
         items: [{ description: "Consultation Fee", amount: 500 }],
         discount: 0,
-        tax: 18,
+        tax: 0,
         subtotal: 500,
-        total: 590,
+        total: 500,
         paidAmount: 0,
         status: "Pending",
         paymentDate: "12 Aug 2026",
@@ -2747,7 +2739,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       setPayUpi(0);
       setPayCard(0);
       setPayDiscountPercent(0);
-      setPayTaxPercent(18);
+      setPayTaxPercent(0);
       setPayCustomItems([]);
       pushActivity("Billing", `Invoice ${invoiceNum} generated for ${pat.name}.`);
     };
@@ -5239,7 +5231,7 @@ Apex Clinic`;
                 {/* Billing invoice creation form */}
                 <form onSubmit={handleSaveInvoice} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
                   <span className="font-bold text-sm block border-b pb-2 mb-2">Create New Billing Invoice</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <div>
                       <Label>Procedure / Item</Label>
                       <select 
@@ -5266,10 +5258,6 @@ Apex Clinic`;
                     <div>
                       <Label>Discount (%)</Label>
                       <Input type="number" min="0" max="100" value={invDiscount} onChange={e => setInvDiscount(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label>Tax Rate (%)</Label>
-                      <Input type="number" min="0" max="100" value={invTax} onChange={e => setInvTax(e.target.value)} />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -6615,9 +6603,9 @@ Apex Clinic`;
                     treatment: tr.name,
                     items: [{ description: tr.name, amount: cost }],
                     discount: 0,
-                    tax: 18,
+                    tax: 0,
                     subtotal: cost,
-                    total: Math.round(cost * 1.18),
+                    total: cost,
                     paidAmount: paid,
                     status: remaining === 0 ? "Paid" : "Partially Paid",
                     paymentDate: "12 Aug 2026",
@@ -8843,10 +8831,6 @@ Apex Clinic`;
                     <span>Discount:</span>
                     <span>- ₹{calculateInvoiceDiscountAmount().toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-slate-650 dark:text-slate-400">
-                    <span>Tax ({payTaxPercent}%):</span>
-                    <span>+ ₹{Math.round((calculateInvoiceSubtotal() - calculateInvoiceDiscountAmount()) * (payTaxPercent / 100)).toLocaleString()}</span>
-                  </div>
                   <div className="flex justify-between text-sm font-black pt-1.5 border-t border-slate-200 dark:border-slate-800">
                     <span>Total:</span>
                     <span>₹{calculateInvoiceTotal().toLocaleString()}</span>
@@ -9008,23 +8992,6 @@ Apex Clinic`;
                       <span className="font-mono">- ₹{Math.round(lastGeneratedReceipt.subtotal * (lastGeneratedReceipt.discount / 100)).toLocaleString()}</span>
                     </div>
                   ) : null}
-
-                  {lastGeneratedReceipt.tax > 0 && (
-                    <div className="flex justify-between text-[11px] text-slate-505">
-                      <span>GST ({lastGeneratedReceipt.tax}%):</span>
-                      <span className="font-mono">
-                        + ₹{Math.round(
-                          (lastGeneratedReceipt.subtotal - 
-                           Math.round(
-                             lastGeneratedReceipt.discountType === "percentage" 
-                               ? (lastGeneratedReceipt.subtotal * ((lastGeneratedReceipt.discountValue || lastGeneratedReceipt.discount) / 100)) 
-                               : (lastGeneratedReceipt.discountValue || 0)
-                           )
-                          ) * (lastGeneratedReceipt.tax / 100)
-                        ).toLocaleString()}
-                      </span>
-                    </div>
-                  )}
 
                   <div className="flex justify-between text-xs font-black pt-1.5 border-t border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
                     <span>Grand Total:</span>
