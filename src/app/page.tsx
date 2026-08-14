@@ -6868,7 +6868,113 @@ Apex Clinic`;
       };
     };
 
+    // Helper calculation for Reports -> Treatments Analytics
+    const getTreatmentAnalyticsData = () => {
+      let totalTr = 42;
+      let activeTr = 12;
+      let completedTr = 30;
+      let totalRev = 285000;
+      let paidAmt = 240000;
+      let pendingAmt = 45000;
+
+      if (reportsFilter === "Today") {
+        totalTr = 5;
+        activeTr = 2;
+        completedTr = 3;
+        totalRev = 18500;
+        paidAmt = 15000;
+        pendingAmt = 3500;
+      } else if (reportsFilter === "Week") {
+        totalTr = 18;
+        activeTr = 5;
+        completedTr = 13;
+        totalRev = 95000;
+        paidAmt = 82000;
+        pendingAmt = 13000;
+      } else if (reportsFilter === "Month") {
+        totalTr = 42;
+        activeTr = 12;
+        completedTr = 30;
+        totalRev = 285000;
+        paidAmt = 240000;
+        pendingAmt = 45000;
+      } else if (reportsFilter === "Year" || reportsFilter === "Custom") {
+        totalTr = 184;
+        activeTr = 28;
+        completedTr = 156;
+        totalRev = 1240000;
+        paidAmt = 1120000;
+        pendingAmt = 120000;
+      }
+
+      const completionRate = totalTr > 0 ? ((completedTr / totalTr) * 100).toFixed(1) + "%" : "0%";
+      const avgRevPerTr = totalTr > 0 ? Math.round(totalRev / totalTr) : 0;
+
+      const monthlyPerformance = [
+        { month: "Jan", started: 14, completed: 10 },
+        { month: "Feb", started: 18, completed: 15 },
+        { month: "Mar", started: 22, completed: 19 },
+        { month: "Apr", started: 16, completed: 14 },
+        { month: "May", started: 19, completed: 16 },
+        { month: "Jun", started: 21, completed: 18 }
+      ];
+
+      const mostPerformed = [
+        { name: "Root Canal Therapy", count: 38, pct: 90 },
+        { name: "Scaling & Polishing", count: 32, pct: 75 },
+        { name: "Dental Implant", count: 24, pct: 58 },
+        { name: "Orthodontic Aligners", count: 18, pct: 42 },
+        { name: "Surgical Extraction", count: 14, pct: 32 }
+      ];
+
+      const revenueByTreatment = [
+        { name: "Dental Implant", rev: 360000, count: 24 },
+        { name: "Orthodontic Aligners", rev: 315000, count: 18 },
+        { name: "Root Canal Therapy", rev: 285000, count: 38 },
+        { name: "Scaling & Polishing", rev: 96000, count: 32 },
+        { name: "Surgical Extraction", rev: 70000, count: 14 }
+      ];
+
+      const completionMetrics = {
+        avgDuration: "3.5 Days (2 Visits)",
+        fastest: "Scaling & Polishing (1 Visit / Same Day)",
+        longest: "Orthodontic Aligners (6 Months)"
+      };
+
+      const doctorPerformance = [
+        { doctor: "Dr. Deepa Kodali", total: 48, active: 10, completed: 38, rev: 410000 },
+        { doctor: "Dr. Sharma", total: 36, active: 8, completed: 28, rev: 325000 },
+        { doctor: "Dr. Raghuram", total: 28, active: 6, completed: 22, rev: 245000 }
+      ];
+
+      const insights = {
+        mostPerformed: "Root Canal Therapy (38 procedures)",
+        highestRevenue: "Dental Implant (₹3,60,000)",
+        highestCompletionRate: "Scaling & Polishing (100% completion)",
+        avgDuration: "3.5 Days",
+        totalRevenue: `₹${totalRev.toLocaleString()}`
+      };
+
+      return {
+        totalTr,
+        activeTr,
+        completedTr,
+        completionRate,
+        totalRev,
+        avgRevPerTr,
+        paidAmt,
+        pendingAmt,
+        monthlyPerformance,
+        mostPerformed,
+        revenueByTreatment,
+        completionMetrics,
+        doctorPerformance,
+        insights
+      };
+    };
+
     const patientStats = getPatientAnalyticsData();
+    const trStats = getTreatmentAnalyticsData();
 
     return (
       <div className="space-y-6 animate-fadeIn">
@@ -7226,11 +7332,317 @@ Apex Clinic`;
           </div>
         )}
 
-        {/* SUB-TAB 3: TREATMENTS */}
+        {/* SUB-TAB 3: TREATMENTS (DEDICATED TREATMENT ANALYTICS DASHBOARD) */}
         {currentSubTab === "Treatments" && (
-          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4 text-xs font-semibold">
-            <span className="font-bold text-sm block">Treatments Analytics & Performance</span>
-            <p className="text-slate-500 font-medium">Detailed treatment procedures breakdown, completion rates, and specialty distribution.</p>
+          <div className="space-y-6 animate-fadeIn">
+            {/* 1. TIMEFRAME FILTER */}
+            <div className="flex items-center gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+              <TrendingUp className="h-4 w-4 text-blue-600 animate-pulse" />
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Timeframe:</span>
+              {(["Today", "Week", "Month", "Year", "Custom"] as const).map((tf) => {
+                const active = reportsFilter === tf;
+                return (
+                  <button
+                    key={tf}
+                    onClick={() => setReportsFilter(tf as any)}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                      active ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
+                    }`}
+                  >
+                    {tf}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 2. SUMMARY CARDS */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">TOTAL TREATMENTS</span>
+                <span className="text-2xl font-black text-slate-900 dark:text-white block">{trStats.totalTr}</span>
+                <span className="text-[11px] text-slate-400 font-medium block">All logged procedures</span>
+              </div>
+
+              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">ACTIVE TREATMENTS</span>
+                <span className="text-2xl font-black text-blue-600 dark:text-blue-400 block">{trStats.activeTr}</span>
+                <span className="text-[11px] text-slate-400 font-medium block">In progress</span>
+              </div>
+
+              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">COMPLETED TREATMENTS</span>
+                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 block">{trStats.completedTr}</span>
+                <span className="text-[11px] text-slate-400 font-medium block">Finished procedures</span>
+              </div>
+
+              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">COMPLETION RATE</span>
+                <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 block">{trStats.completionRate}</span>
+                <span className="text-[11px] text-slate-400 font-medium block">Completion ratio</span>
+              </div>
+            </div>
+
+            {/* 3. TREATMENT REVENUE */}
+            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-4">
+              <div>
+                <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                  Treatment Revenue Breakdown
+                </h2>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Financial collection metrics and average earnings per procedure.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-semibold">
+                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-blue-50/30 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">TOTAL TREATMENT REVENUE</span>
+                  <span className="text-lg font-bold text-blue-600 dark:text-blue-400 block">₹{trStats.totalRev.toLocaleString()}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Gross treatment value</span>
+                </div>
+
+                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">AVG REVENUE / TREATMENT</span>
+                  <span className="text-lg font-bold text-slate-900 dark:text-white block">₹{trStats.avgRevPerTr.toLocaleString()}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Average procedure fee</span>
+                </div>
+
+                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-emerald-50/30 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">PAID AMOUNT</span>
+                  <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400 block">₹{trStats.paidAmt.toLocaleString()}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Collected treatment payments</span>
+                </div>
+
+                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-amber-50/30 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">PENDING AMOUNT</span>
+                  <span className="text-lg font-bold text-amber-600 dark:text-amber-400 block">₹{trStats.pendingAmt.toLocaleString()}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Outstanding balances</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. TREATMENT PERFORMANCE */}
+            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+                <div>
+                  <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                    Treatment Performance
+                  </h2>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Monthly comparison between treatments started and completed.
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 text-[12px] font-medium shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-blue-600 inline-block" />
+                    <span className="text-slate-700 dark:text-slate-300">Started</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-emerald-500 inline-block" />
+                    <span className="text-slate-700 dark:text-slate-300">Completed</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <div className="h-56 w-full flex items-end justify-between gap-3 sm:gap-6 pt-8 px-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                  {trStats.monthlyPerformance.map((m, i) => {
+                    const maxVal = Math.max(...trStats.monthlyPerformance.map(b => Math.max(b.started, b.completed))) || 1;
+                    const startedPct = Math.round((m.started / maxVal) * 100);
+                    const completedPct = Math.round((m.completed / maxVal) * 100);
+
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                        <div className="absolute -top-12 z-20 hidden group-hover:flex flex-col items-center pointer-events-none transition-all duration-150">
+                          <div className="bg-slate-900 text-white text-[11px] py-1.5 px-3 rounded-lg shadow-lg font-medium whitespace-nowrap space-y-0.5">
+                            <span className="font-semibold block text-slate-300 border-b border-slate-800 pb-0.5 mb-0.5">{m.month} Procedures</span>
+                            <span className="text-blue-300 block">Started: {m.started}</span>
+                            <span className="text-emerald-300 block">Completed: {m.completed}</span>
+                          </div>
+                          <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
+                        </div>
+
+                        <div className="w-full flex items-end justify-center gap-1.5 h-full">
+                          <div style={{ height: `${Math.max(startedPct, 12)}%` }} className="w-1/2 max-w-[24px] sm:max-w-[28px] bg-blue-600 hover:bg-blue-500 rounded-t-md transition-all duration-300" />
+                          <div style={{ height: `${Math.max(completedPct, 12)}%` }} className="w-1/2 max-w-[24px] sm:max-w-[28px] bg-emerald-500 hover:bg-emerald-400 rounded-t-md transition-all duration-300" />
+                        </div>
+
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-2.5 text-center">
+                          {m.month}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* 5 & 6. MOST PERFORMED TREATMENTS & REVENUE BY TREATMENT */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* 5. MOST PERFORMED TREATMENTS */}
+              <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-4">
+                <div>
+                  <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                    Most Performed Treatments
+                  </h2>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Ranked by frequency of clinical records.
+                  </p>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  {trStats.mostPerformed.map((item, idx) => (
+                    <div key={idx} className="space-y-1 text-xs font-semibold">
+                      <div className="flex justify-between items-center text-slate-800 dark:text-slate-200">
+                        <span>{idx + 1}. {item.name}</span>
+                        <span className="font-mono text-slate-500">{item.count} records</span>
+                      </div>
+                      <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                        <div style={{ width: `${item.pct}%` }} className="bg-blue-600 h-full rounded-full transition-all duration-500" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 6. REVENUE BY TREATMENT */}
+              <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-4">
+                <div>
+                  <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                    Revenue by Treatment
+                  </h2>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Financial generation by procedure type.
+                  </p>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  {trStats.revenueByTreatment.map((item, idx) => {
+                    const maxRev = Math.max(...trStats.revenueByTreatment.map(r => r.rev));
+                    const pct = Math.round((item.rev / maxRev) * 100);
+                    return (
+                      <div key={idx} className="space-y-1 text-xs font-semibold">
+                        <div className="flex justify-between items-center text-slate-800 dark:text-slate-200">
+                          <span>{item.name}</span>
+                          <span className="font-mono text-blue-600 dark:text-blue-400">₹{item.rev.toLocaleString()}</span>
+                        </div>
+                        <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                          <div style={{ width: `${pct}%` }} className="bg-indigo-600 h-full rounded-full transition-all duration-500" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* 7. TREATMENT COMPLETION */}
+            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-4">
+              <div>
+                <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                  Treatment Completion
+                </h2>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Clinical turn-around times and duration metrics.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-semibold">
+                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">AVERAGE TREATMENT DURATION</span>
+                  <span className="text-base font-bold text-slate-900 dark:text-white block">{trStats.completionMetrics.avgDuration}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Mean turn-around time across procedures</span>
+                </div>
+
+                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-emerald-50/30 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">FASTEST COMPLETED TREATMENT</span>
+                  <span className="text-base font-bold text-emerald-600 dark:text-emerald-400 block">{trStats.completionMetrics.fastest}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Quickest clinical cycle</span>
+                </div>
+
+                <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-indigo-50/30 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">LONGEST COMPLETED TREATMENT</span>
+                  <span className="text-base font-bold text-indigo-600 dark:text-indigo-400 block">{trStats.completionMetrics.longest}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Multi-phase orthodontic plan</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 8. DOCTOR-WISE PERFORMANCE */}
+            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-4">
+              <div>
+                <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                  Doctor-wise Performance
+                </h2>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Procedure count, status breakdown, and revenue generated per doctor.
+                </p>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs font-semibold">
+                  <thead>
+                    <tr className="border-b text-[10px] text-slate-400 uppercase tracking-wider bg-slate-50/50 dark:bg-slate-900/40">
+                      <th className="py-2.5 px-3">Doctor</th>
+                      <th className="py-2.5 px-3">Total Treatments</th>
+                      <th className="py-2.5 px-3">Active</th>
+                      <th className="py-2.5 px-3">Completed</th>
+                      <th className="py-2.5 px-3 text-right">Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-700 dark:text-slate-300">
+                    {trStats.doctorPerformance.map((doc, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
+                        <td className="py-3 px-3 font-bold text-slate-900 dark:text-white">{doc.doctor}</td>
+                        <td className="py-3 px-3">{doc.total}</td>
+                        <td className="py-3 px-3 text-blue-600 dark:text-blue-400">{doc.active}</td>
+                        <td className="py-3 px-3 text-emerald-600 dark:text-emerald-400">{doc.completed}</td>
+                        <td className="py-3 px-3 text-right font-black text-slate-900 dark:text-white">₹{doc.rev.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* 9. TREATMENT INSIGHTS */}
+            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                <Activity className="h-4 w-4 text-blue-600" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Treatment Insights</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 text-xs font-semibold">
+                <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">MOST PERFORMED</span>
+                  <span className="text-sm font-bold text-blue-600 dark:text-blue-400 block truncate" title={trStats.insights.mostPerformed}>{trStats.insights.mostPerformed}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Highest procedure volume</span>
+                </div>
+
+                <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">HIGHEST REVENUE</span>
+                  <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 block truncate" title={trStats.insights.highestRevenue}>{trStats.insights.highestRevenue}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Top earning procedure</span>
+                </div>
+
+                <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">HIGHEST COMPLETION %</span>
+                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 block truncate" title={trStats.insights.highestCompletionRate}>{trStats.insights.highestCompletionRate}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Best completion ratio</span>
+                </div>
+
+                <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">AVG DURATION</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-white block">{trStats.insights.avgDuration}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Mean turn-around time</span>
+                </div>
+
+                <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">TOTAL REVENUE</span>
+                  <span className="text-sm font-bold text-blue-600 dark:text-blue-400 block">{trStats.insights.totalRevenue}</span>
+                  <span className="text-[11px] text-slate-500 font-normal">Cumulative treatment billing</span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
