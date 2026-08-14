@@ -6949,8 +6949,142 @@ Apex Clinic`;
       };
     };
 
+    // Helper calculation for Reports -> Appointments Analytics
+    const getAppointmentAnalyticsData = () => {
+      let totalAppts = 56;
+      let completedAppts = 38;
+      let upcomingAppts = 12;
+      let cancelledAppts = 4;
+      let noshowAppts = 2;
+
+      if (reportsFilter === "Today") {
+        totalAppts = 8;
+        completedAppts = 5;
+        upcomingAppts = 2;
+        cancelledAppts = 1;
+        noshowAppts = 0;
+      } else if (reportsFilter === "Week") {
+        totalAppts = 26;
+        completedAppts = 18;
+        upcomingAppts = 5;
+        cancelledAppts = 2;
+        noshowAppts = 1;
+      } else if (reportsFilter === "Month") {
+        totalAppts = 56;
+        completedAppts = 38;
+        upcomingAppts = 12;
+        cancelledAppts = 4;
+        noshowAppts = 2;
+      } else if (reportsFilter === "Year") {
+        totalAppts = 240;
+        completedAppts = 182;
+        upcomingAppts = 32;
+        cancelledAppts = 18;
+        noshowAppts = 8;
+      } else if (reportsFilter === "Custom") {
+        const startMs = new Date(customStartDate).getTime();
+        const endMs = new Date(customEndDate).getTime();
+        const days = Math.max(1, Math.round(Math.abs((endMs - startMs) / (1000 * 60 * 60 * 24))));
+
+        totalAppts = Math.max(3, Math.round(days * 2.5));
+        completedAppts = Math.max(1, Math.round(totalAppts * 0.65));
+        upcomingAppts = Math.max(1, Math.round(totalAppts * 0.20));
+        cancelledAppts = Math.max(0, Math.round(totalAppts * 0.10));
+        noshowAppts = Math.max(0, totalAppts - completedAppts - upcomingAppts - cancelledAppts);
+      }
+
+      const cancellationRate = totalAppts > 0 ? ((cancelledAppts / totalAppts) * 100).toFixed(1) + "%" : "0%";
+
+      // Appointment Performance over time
+      let performanceBars = [
+        { label: "Jan", scheduled: 38, completed: 28, cancelled: 4 },
+        { label: "Feb", scheduled: 44, completed: 32, cancelled: 5 },
+        { label: "Mar", scheduled: 52, completed: 40, cancelled: 6 },
+        { label: "Apr", scheduled: 41, completed: 30, cancelled: 3 },
+        { label: "May", scheduled: 46, completed: 35, cancelled: 4 },
+        { label: "Jun", scheduled: 50, completed: 38, cancelled: 4 }
+      ];
+
+      if (reportsFilter === "Today") {
+        performanceBars = [
+          { label: "09:00 AM", scheduled: 2, completed: 2, cancelled: 0 },
+          { label: "11:00 AM", scheduled: 3, completed: 2, cancelled: 1 },
+          { label: "02:00 PM", scheduled: 2, completed: 1, cancelled: 0 },
+          { label: "04:00 PM", scheduled: 2, completed: 0, cancelled: 0 },
+          { label: "06:00 PM", scheduled: 1, completed: 0, cancelled: 0 }
+        ];
+      } else if (reportsFilter === "Week") {
+        performanceBars = [
+          { label: "Mon", scheduled: 5, completed: 4, cancelled: 1 },
+          { label: "Tue", scheduled: 6, completed: 5, cancelled: 0 },
+          { label: "Wed", scheduled: 8, completed: 6, cancelled: 1 },
+          { label: "Thu", scheduled: 5, completed: 4, cancelled: 0 },
+          { label: "Fri", scheduled: 7, completed: 5, cancelled: 1 },
+          { label: "Sat", scheduled: 4, completed: 3, cancelled: 0 }
+        ];
+      } else if (reportsFilter === "Custom") {
+        performanceBars = [
+          { label: "P1", scheduled: Math.round(totalAppts * 0.2), completed: Math.round(completedAppts * 0.2), cancelled: 1 },
+          { label: "P2", scheduled: Math.round(totalAppts * 0.3), completed: Math.round(completedAppts * 0.3), cancelled: 1 },
+          { label: "P3", scheduled: Math.round(totalAppts * 0.3), completed: Math.round(completedAppts * 0.3), cancelled: 1 },
+          { label: "P4", scheduled: Math.round(totalAppts * 0.2), completed: Math.round(completedAppts * 0.2), cancelled: 0 }
+        ];
+      }
+
+      // Appointment Status Distribution
+      const statusDistribution = [
+        { name: "Completed", count: completedAppts, pct: Math.round((completedAppts / Math.max(1, totalAppts)) * 100), color: "bg-emerald-500", text: "text-emerald-600" },
+        { name: "Scheduled / Upcoming", count: upcomingAppts, pct: Math.round((upcomingAppts / Math.max(1, totalAppts)) * 100), color: "bg-blue-600", text: "text-blue-600" },
+        { name: "Cancelled", count: cancelledAppts, pct: Math.round((cancelledAppts / Math.max(1, totalAppts)) * 100), color: "bg-rose-500", text: "text-rose-600" },
+        { name: "No-show", count: noshowAppts, pct: Math.round((noshowAppts / Math.max(1, totalAppts)) * 100), color: "bg-amber-500", text: "text-amber-600" }
+      ];
+
+      // Schedule Utilization
+      const totalSlots = Math.round(totalAppts * 1.35);
+      const bookedSlots = totalAppts;
+      const availableSlots = totalSlots - bookedSlots;
+      const utilizationRate = totalSlots > 0 ? ((bookedSlots / totalSlots) * 100).toFixed(1) + "%" : "0%";
+
+      const scheduleUtilization = {
+        busiestDay: "Wednesday (8 Booked Slots)",
+        busiestSlot: "11:00 AM – 12:00 PM (100% Booked)",
+        totalSlots,
+        availableSlots,
+        utilizationRate
+      };
+
+      // Doctor Appointment Performance
+      const doctorPerformance = [
+        { doctor: "Dr. Deepa Kodali", total: Math.round(totalAppts * 0.45), completed: Math.round(completedAppts * 0.45), cancelled: 2, noshow: 1 },
+        { doctor: "Dr. Sharma", total: Math.round(totalAppts * 0.35), completed: Math.round(completedAppts * 0.35), cancelled: 1, noshow: 1 },
+        { doctor: "Dr. Raghuram", total: Math.round(totalAppts * 0.20), completed: Math.round(completedAppts * 0.20), cancelled: 1, noshow: 0 }
+      ];
+
+      // Appointments by Type
+      const appointmentsByType = [
+        { type: "Consultation", count: Math.round(totalAppts * 0.38), pct: 90 },
+        { type: "Treatment", count: Math.round(totalAppts * 0.32), pct: 75 },
+        { type: "Follow-up", count: Math.round(totalAppts * 0.18), pct: 45 },
+        { type: "Review", count: Math.round(totalAppts * 0.08), pct: 25 },
+        { type: "Emergency", count: Math.round(totalAppts * 0.04), pct: 12 }
+      ];
+
+      return {
+        totalAppts,
+        completedAppts,
+        upcomingAppts,
+        cancellationRate,
+        performanceBars,
+        statusDistribution,
+        scheduleUtilization,
+        doctorPerformance,
+        appointmentsByType
+      };
+    };
+
     const patientStats = getPatientAnalyticsData();
     const trStats = getTreatmentAnalyticsData();
+    const apptStats = getAppointmentAnalyticsData();
 
     return (
       <div className="space-y-6 animate-fadeIn">
@@ -7553,11 +7687,264 @@ Apex Clinic`;
           </div>
         )}
 
-        {/* SUB-TAB 4: APPOINTMENTS */}
+        {/* SUB-TAB 4: APPOINTMENTS (DEDICATED APPOINTMENT ANALYTICS DASHBOARD) */}
         {currentSubTab === "Appointments" && (
-          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4 text-xs font-semibold">
-            <span className="font-bold text-sm block">Appointments & Schedule Analytics</span>
-            <p className="text-slate-500 font-medium">Slot utilization logs, cancellation metrics, and practitioner scheduling stats.</p>
+          <div className="space-y-6 animate-fadeIn">
+            {/* 1. TIMEFRAME FILTER */}
+            <div className="flex items-center gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+              <TrendingUp className="h-4 w-4 text-blue-600 animate-pulse" />
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Timeframe:</span>
+              {(["Today", "Week", "Month", "Year"] as const).map((tf) => {
+                const active = reportsFilter === tf;
+                return (
+                  <button
+                    key={tf}
+                    onClick={() => {
+                      setReportsFilter(tf);
+                      setAppliedCustomLabel(null);
+                    }}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                      active ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
+                    }`}
+                  >
+                    {tf}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setCustomRangeModalOpen(true)}
+                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  reportsFilter === "Custom" ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
+                }`}
+              >
+                <Calendar className="h-3.5 w-3.5" />
+                {reportsFilter === "Custom" && appliedCustomLabel ? appliedCustomLabel : "Custom"}
+              </button>
+            </div>
+
+            {/* 2. SUMMARY CARDS */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">TOTAL APPOINTMENTS</span>
+                <span className="text-2xl font-black text-slate-900 dark:text-white block">{apptStats.totalAppts}</span>
+                <span className="text-[11px] text-slate-400 font-medium block">Total in selected period</span>
+              </div>
+
+              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">COMPLETED</span>
+                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 block">{apptStats.completedAppts}</span>
+                <span className="text-[11px] text-slate-400 font-medium block">Successfully completed</span>
+              </div>
+
+              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">UPCOMING</span>
+                <span className="text-2xl font-black text-blue-600 dark:text-blue-400 block">{apptStats.upcomingAppts}</span>
+                <span className="text-[11px] text-slate-400 font-medium block">Scheduled future bookings</span>
+              </div>
+
+              <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">CANCELLATION RATE</span>
+                <span className="text-2xl font-black text-rose-600 dark:text-rose-400 block">{apptStats.cancellationRate}</span>
+                <span className="text-[11px] text-slate-400 font-medium block">Cancelled ratio</span>
+              </div>
+            </div>
+
+            {/* 3. APPOINTMENT PERFORMANCE */}
+            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+                <div>
+                  <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                    Appointment Performance
+                  </h2>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Schedule volume tracking over time (Scheduled, Completed, Cancelled).
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 text-[12px] font-medium shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-blue-600 inline-block" />
+                    <span className="text-slate-700 dark:text-slate-300">Scheduled</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-emerald-500 inline-block" />
+                    <span className="text-slate-700 dark:text-slate-300">Completed</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-rose-500 inline-block" />
+                    <span className="text-slate-700 dark:text-slate-300">Cancelled</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <div className="h-56 w-full flex items-end justify-between gap-2 sm:gap-4 pt-8 px-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                  {apptStats.performanceBars.map((m, i) => {
+                    const maxVal = Math.max(...apptStats.performanceBars.map(b => Math.max(b.scheduled, b.completed, b.cancelled))) || 1;
+                    const schPct = Math.round((m.scheduled / maxVal) * 100);
+                    const compPct = Math.round((m.completed / maxVal) * 100);
+                    const cancPct = Math.round((m.cancelled / maxVal) * 100);
+
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                        <div className="absolute -top-14 z-20 hidden group-hover:flex flex-col items-center pointer-events-none transition-all duration-150">
+                          <div className="bg-slate-900 text-white text-[11px] py-1.5 px-3 rounded-lg shadow-lg font-medium whitespace-nowrap space-y-0.5">
+                            <span className="font-semibold block text-slate-300 border-b border-slate-800 pb-0.5 mb-0.5">{m.label}</span>
+                            <span className="text-blue-300 block">Scheduled: {m.scheduled}</span>
+                            <span className="text-emerald-300 block">Completed: {m.completed}</span>
+                            <span className="text-rose-300 block">Cancelled: {m.cancelled}</span>
+                          </div>
+                          <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
+                        </div>
+
+                        <div className="w-full flex items-end justify-center gap-1 h-full">
+                          <div style={{ height: `${Math.max(schPct, 12)}%` }} className="w-1/3 max-w-[20px] bg-blue-600 hover:bg-blue-500 rounded-t-md transition-all duration-300" />
+                          <div style={{ height: `${Math.max(compPct, 12)}%` }} className="w-1/3 max-w-[20px] bg-emerald-500 hover:bg-emerald-400 rounded-t-md transition-all duration-300" />
+                          <div style={{ height: `${Math.max(cancPct, 12)}%` }} className="w-1/3 max-w-[20px] bg-rose-500 hover:bg-rose-400 rounded-t-md transition-all duration-300" />
+                        </div>
+
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-2.5 text-center">
+                          {m.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* 4. APPOINTMENT STATUS & 5. SCHEDULE UTILIZATION */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* 4. APPOINTMENT STATUS */}
+              <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-4">
+                <div>
+                  <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                    Appointment Status
+                  </h2>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Distribution across appointment lifecycle states.
+                  </p>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  {apptStats.statusDistribution.map((st, idx) => (
+                    <div key={idx} className="space-y-1 text-xs font-semibold">
+                      <div className="flex justify-between items-center text-slate-800 dark:text-slate-200">
+                        <span>{st.name}</span>
+                        <span className={`font-mono ${st.text}`}>{st.count} ({st.pct}%)</span>
+                      </div>
+                      <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                        <div style={{ width: `${st.pct}%` }} className={`${st.color} h-full rounded-full transition-all duration-500`} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 5. SCHEDULE UTILIZATION */}
+              <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-4">
+                <div>
+                  <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                    Schedule Utilization
+                  </h2>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Peak demand days, time slots, and slot availability metrics.
+                  </p>
+                </div>
+
+                <div className="space-y-3 text-xs font-semibold">
+                  <div className="p-3 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-0.5">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">BUSIEST DAY</span>
+                    <span className="text-sm font-bold text-slate-900 dark:text-white block">{apptStats.scheduleUtilization.busiestDay}</span>
+                  </div>
+
+                  <div className="p-3 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 space-y-0.5">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block">BUSIEST TIME SLOT</span>
+                    <span className="text-sm font-bold text-blue-600 dark:text-blue-400 block">{apptStats.scheduleUtilization.busiestSlot}</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-center pt-1">
+                    <div className="p-2.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
+                      <span className="text-[9px] text-slate-400 uppercase block">TOTAL SLOTS</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">{apptStats.scheduleUtilization.totalSlots}</span>
+                    </div>
+                    <div className="p-2.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
+                      <span className="text-[9px] text-slate-400 uppercase block">AVAILABLE</span>
+                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{apptStats.scheduleUtilization.availableSlots}</span>
+                    </div>
+                    <div className="p-2.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
+                      <span className="text-[9px] text-slate-400 uppercase block">UTILIZATION</span>
+                      <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{apptStats.scheduleUtilization.utilizationRate}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 6. DOCTOR APPOINTMENT PERFORMANCE & 7. APPOINTMENTS BY TYPE */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* 6. DOCTOR APPOINTMENT PERFORMANCE */}
+              <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-4">
+                <div>
+                  <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                    Doctor Appointment Performance
+                  </h2>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Appointment lifecycle breakdown per doctor.
+                  </p>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs font-semibold">
+                    <thead>
+                      <tr className="border-b text-[10px] text-slate-400 uppercase tracking-wider bg-slate-50/50 dark:bg-slate-900/40">
+                        <th className="py-2.5 px-2">Doctor</th>
+                        <th className="py-2.5 px-2">Total</th>
+                        <th className="py-2.5 px-2">Completed</th>
+                        <th className="py-2.5 px-2">Cancelled</th>
+                        <th className="py-2.5 px-2">No-show</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-700 dark:text-slate-300">
+                      {apptStats.doctorPerformance.map((doc, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
+                          <td className="py-3 px-2 font-bold text-slate-900 dark:text-white">{doc.doctor}</td>
+                          <td className="py-3 px-2">{doc.total}</td>
+                          <td className="py-3 px-2 text-emerald-600 dark:text-emerald-400">{doc.completed}</td>
+                          <td className="py-3 px-2 text-rose-600 dark:text-rose-400">{doc.cancelled}</td>
+                          <td className="py-3 px-2 text-amber-600 dark:text-amber-400">{doc.noshow}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* 7. APPOINTMENTS BY TYPE */}
+              <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-4">
+                <div>
+                  <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                    Appointments by Type
+                  </h2>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Distribution by consultation, treatment, or follow-up category.
+                  </p>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  {apptStats.appointmentsByType.map((item, idx) => (
+                    <div key={idx} className="space-y-1 text-xs font-semibold">
+                      <div className="flex justify-between items-center text-slate-800 dark:text-slate-200">
+                        <span>{item.type}</span>
+                        <span className="font-mono text-blue-600 dark:text-blue-400">{item.count} appointments</span>
+                      </div>
+                      <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                        <div style={{ width: `${item.pct}%` }} className="bg-blue-600 h-full rounded-full transition-all duration-500" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
