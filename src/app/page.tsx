@@ -77,6 +77,7 @@ interface FileAttachment {
 
 interface Patient {
   id: string;
+  uuid?: string;
   name: string;
   phone: string;
   age: number;
@@ -126,6 +127,7 @@ interface Appointment {
 
 interface InvoiceItem {
   id: string;
+  uuid?: string;
   patientId: string;
   patientName: string;
   doctor: string;
@@ -402,35 +404,255 @@ const parseClinicalNote = (noteStr: string) => {
   };
 };
 
+const DEFAULT_MOCK_PATIENTS = [
+  { id: "DS-1001", name: "Aarav Mehta", phone: "+91 98112 09230", age: 28, gender: "Male", address: "MG Road, Bengaluru", visit: "12 Aug 2026", medicalNotes: "Penicillin Allergy", balance: "₹0", status: "Active", dentalChart: { 16: "Root Canal Completed", 30: "Missing" }, prescriptions: ["Amoxicillin 500mg - 3x daily"], files: [{ name: "panorex_xray_mehta.png", size: "4.2 MB", type: "image/png" }], notes: ["Patient experiences cold sensitivity in lower left molar."] },
+  { id: "DS-1002", name: "Priya Patel", phone: "+91 99104 22091", age: 34, gender: "Female", address: "Indiranagar, Bengaluru", visit: "10 Aug 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
+  { id: "DS-1003", name: "Kabir Singh", phone: "+91 98765 43210", age: 45, gender: "Male", address: "Koramangala, Bengaluru", visit: "08 Aug 2026", medicalNotes: "Latex Allergy, Hypertension", balance: "₹0", status: "Active", dentalChart: { 12: "Decayed" }, prescriptions: ["Paracetamol 650mg - as needed"], files: [], notes: ["Hypertension controlled under clinical prescription."] },
+  { id: "DS-1004", name: "Ananya Rao", phone: "+91 95400 12044", age: 19, gender: "Female", address: "Whitefield, Bengaluru", visit: "05 Aug 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
+  { id: "DS-1005", name: "Rohan Kumar", phone: "+91 98100 44028", age: 31, gender: "Male", address: "HSR Layout, Bengaluru", visit: "12 Aug 2026", medicalNotes: "Sulfa Drugs Allergy", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
+  { id: "DS-1006", name: "Sneha Reddy", phone: "+91 95408 81229", age: 27, gender: "Female", address: "Jayanagar, Bengaluru", visit: "03 Aug 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
+  { id: "DS-1007", name: "Rahul Verma", phone: "+91 98110 22912", age: 40, gender: "Male", address: "Malleshwaram, Bengaluru", visit: "28 Jul 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
+  { id: "DS-1008", name: "Kavya Sharma", phone: "+91 99100 55109", age: 22, gender: "Female", address: "Hebbal, Bengaluru", visit: "25 Jul 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
+  { id: "DS-1009", name: "Arjun Nair", phone: "+91 98760 12345", age: 36, gender: "Male", address: "Bannerghatta, Bengaluru", visit: "20 Jul 2026", medicalNotes: "Aspirin Sensitivity", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
+  { id: "DS-1010", name: "Neha Joshi", phone: "+91 95400 98765", age: 29, gender: "Female", address: "Sadashivanagar, Bengaluru", visit: "15 Jul 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
+  { id: "DS-1011", name: "Vikram Malhotra", phone: "+91 98112 34567", age: 50, gender: "Male", address: "Ulsoor, Bengaluru", visit: "10 Jul 2026", medicalNotes: "Diabetes type 2", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
+  { id: "DS-1012", name: "Meera Nair", phone: "+91 99104 56789", age: 33, gender: "Female", address: "Cox Town, Bengaluru", visit: "05 Jul 2026", medicalNotes: "None", balance: "₹500", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
+  { id: "DS-1013", name: "Siddharth Roy", phone: "+91 98765 89012", age: 42, gender: "Male", address: "Frazer Town, Bengaluru", visit: "01 Jul 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
+  { id: "DS-1014", name: "Aditi Rao", phone: "+91 95400 34567", age: 25, gender: "Female", address: "Kalyan Nagar, Bengaluru", visit: "25 Jun 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
+  { id: "DS-1015", name: "Rajesh Khanna", phone: "+91 98100 90123", age: 60, gender: "Male", address: "Richmond Town, Bengaluru", visit: "15 Jun 2026", medicalNotes: "Penicillin Allergy", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] }
+];
+
 export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initialTab?: string } = {}) {
   const router = useRouter();
   const [loadingSession, setLoadingSession] = useState(true);
+  const [clinicId, setClinicId] = useState<string | null>(null);
   const supabase = createClient();
 
+  const seedMockPatients = async (userClinicId: string) => {
+    const insertRows = DEFAULT_MOCK_PATIENTS.map(p => ({
+      patient_id: p.id,
+      clinic_id: userClinicId,
+      name: p.name,
+      phone: p.phone,
+      age: p.age,
+      gender: p.gender,
+      address: p.address,
+      visit: p.visit,
+      medical_notes: p.medicalNotes,
+      balance: p.balance,
+      status: p.status,
+      dental_chart: p.dentalChart,
+      prescriptions: p.prescriptions,
+      files: p.files,
+      notes: p.notes
+    }));
+
+    const { error } = await supabase
+      .from("patients")
+      .insert(insertRows);
+
+    if (error) {
+      console.error("Failed to seed mock patients in database:", error.message, error.code);
+    }
+  };
+
+  const fetchClinicData = async (userClinicId: string) => {
+    // 1. Fetch patients
+    const { data: dbPatients, error: patErr } = await supabase
+      .from("patients")
+      .select("*")
+      .eq("clinic_id", userClinicId)
+      .order("created_at", { ascending: false });
+
+    if (patErr) {
+      console.error("Failed to load patients from database:", patErr.message, patErr.code);
+      showToast("Error loading patients from database.", "error");
+      return;
+    }
+
+    if (dbPatients) {
+      if (dbPatients.length === 0) {
+        await seedMockPatients(userClinicId);
+        // Re-fetch data statefully after insert completion
+        return fetchClinicData(userClinicId);
+      }
+
+      const mappedPatients: Patient[] = dbPatients.map(p => ({
+        id: p.patient_id,
+        uuid: p.id,
+        name: p.name,
+        phone: p.phone,
+        age: p.age || 0,
+        gender: (p.gender === "Male" || p.gender === "Female") ? p.gender : "Male",
+        address: p.address || "",
+        visit: p.visit || "",
+        medicalNotes: p.medical_notes || "None",
+        balance: p.balance || "₹0",
+        status: (p.status === "Active" || p.status === "Inactive") ? p.status : "Active",
+        dentalChart: p.dental_chart || {},
+        prescriptions: p.prescriptions || [],
+        files: Array.isArray(p.files) ? p.files : [],
+        notes: p.notes || [],
+        email: p.email || undefined,
+        bloodGroup: p.blood_group || undefined,
+        patientType: p.patient_type || undefined
+      }));
+      setPatients(mappedPatients);
+    }
+
+    // 2. Fetch billing / invoices
+    const { data: dbBilling, error: billErr } = await supabase
+      .from("billing")
+      .select("*")
+      .eq("clinic_id", userClinicId)
+      .order("created_at", { ascending: false });
+
+    if (billErr) {
+      showToast("Error loading invoices from database.", "error");
+    } else if (dbBilling) {
+      const mappedInvoices: InvoiceItem[] = dbBilling.map(b => ({
+        id: b.invoice_id,
+        uuid: b.id,
+        patientId: dbPatients?.find(p => p.id === b.patient_id)?.patient_id || "",
+        patientName: b.patient_name,
+        doctor: b.doctor || "",
+        treatment: b.treatment || "",
+        items: Array.isArray(b.items) ? b.items : [],
+        discount: Number(b.discount) || 0,
+        discountType: b.discount_type || undefined,
+        discountValue: Number(b.discount_value) || undefined,
+        tax: Number(b.tax) || 0,
+        subtotal: Number(b.subtotal) || 0,
+        total: Number(b.total) || 0,
+        paidAmount: Number(b.paid_amount) || 0,
+        status: b.status || "Pending",
+        paymentDate: b.payment_date || "",
+        paymentLogs: Array.isArray(b.payment_logs) ? b.payment_logs : []
+      }));
+      setInvoices(mappedInvoices);
+    }
+  };
+
+  const insertBillingRecord = async (newInvoice: InvoiceItem) => {
+    let dbPatientUuid = patients.find(p => p.id === newInvoice.patientId)?.uuid || null;
+
+    if (!dbPatientUuid) {
+      const { data: dbPat } = await supabase
+        .from("patients")
+        .select("id")
+        .eq("patient_id", newInvoice.patientId)
+        .maybeSingle();
+      if (dbPat) {
+        dbPatientUuid = dbPat.id;
+      }
+    }
+
+    const { data: insertedBill, error } = await supabase
+      .from("billing")
+      .insert({
+        invoice_id: newInvoice.id,
+        clinic_id: clinicId,
+        patient_id: dbPatientUuid,
+        patient_name: newInvoice.patientName,
+        doctor: newInvoice.doctor,
+        treatment: newInvoice.treatment,
+        items: newInvoice.items,
+        discount: newInvoice.discount,
+        discount_type: newInvoice.discountType || null,
+        discount_value: newInvoice.discountValue || 0,
+        tax: newInvoice.tax,
+        subtotal: newInvoice.subtotal,
+        total: newInvoice.total,
+        paid_amount: newInvoice.paidAmount,
+        status: newInvoice.status,
+        payment_date: newInvoice.paymentDate || null,
+        payment_logs: newInvoice.paymentLogs
+      })
+      .select()
+      .single();
+
+    if (error || !insertedBill) {
+      showToast("Failed to save invoice to billing database.", "error");
+    } else {
+      setInvoices(prev => prev.map(inv => inv.id === newInvoice.id ? { ...inv, uuid: insertedBill.id } : inv));
+    }
+  };
+
   useEffect(() => {
+    const handleSessionSuccess = async (session: any) => {
+      let { data: profile, error: profileErr } = await supabase
+        .from("profiles")
+        .select("clinic_id")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      if (profileErr) {
+        showToast("Error retrieving user profile.", "error");
+        setLoadingSession(false);
+        return;
+      }
+
+      let userClinicId = profile?.clinic_id;
+
+      if (!profile) {
+        const { data: clinic, error: clinicErr } = await supabase
+          .from("clinics")
+          .insert({ name: "Heal OS Practice" })
+          .select()
+          .single();
+
+        if (clinicErr || !clinic) {
+          showToast("Error provisioning clinic workspace.", "error");
+          setLoadingSession(false);
+          return;
+        }
+
+        userClinicId = clinic.id;
+
+        const { error: insertProfileErr } = await supabase
+          .from("profiles")
+          .insert({
+            id: session.user.id,
+            clinic_id: userClinicId,
+            role: "admin",
+            full_name: session.user.email?.split("@")[0] || "User"
+          });
+
+        if (insertProfileErr) {
+          showToast("Error provisioning user profile.", "error");
+          setLoadingSession(false);
+          return;
+        }
+      }
+
+      setClinicId(userClinicId);
+      await fetchClinicData(userClinicId);
+      setLoadingSession(false);
+    };
+
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push("/login");
       } else {
-        setLoadingSession(false);
+        await handleSessionSuccess(session);
       }
     };
 
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!session) {
         router.push("/login");
       } else {
-        setLoadingSession(false);
+        await handleSessionSuccess(session);
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [router, supabase.auth]);
+  }, [router, supabase]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -1075,23 +1297,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
   // --- MOCK DATABASE DATABASE STATES ---
 
-  const [patients, setPatients] = useState<Patient[]>([
-    { id: "DS-1001", name: "Aarav Mehta", phone: "+91 98112 09230", age: 28, gender: "Male", address: "MG Road, Bengaluru", visit: "12 Aug 2026", medicalNotes: "Penicillin Allergy", balance: "₹0", status: "Active", dentalChart: { 16: "Root Canal Completed", 30: "Missing" }, prescriptions: ["Amoxicillin 500mg - 3x daily"], files: [{ name: "panorex_xray_mehta.png", size: "4.2 MB", type: "image/png" }], notes: ["Patient experiences cold sensitivity in lower left molar."] },
-    { id: "DS-1002", name: "Priya Patel", phone: "+91 99104 22091", age: 34, gender: "Female", address: "Indiranagar, Bengaluru", visit: "10 Aug 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
-    { id: "DS-1003", name: "Kabir Singh", phone: "+91 98765 43210", age: 45, gender: "Male", address: "Koramangala, Bengaluru", visit: "08 Aug 2026", medicalNotes: "Latex Allergy, Hypertension", balance: "₹0", status: "Active", dentalChart: { 12: "Decayed" }, prescriptions: ["Paracetamol 650mg - as needed"], files: [], notes: ["Hypertension controlled under clinical prescription."] },
-    { id: "DS-1004", name: "Ananya Rao", phone: "+91 95400 12044", age: 19, gender: "Female", address: "Whitefield, Bengaluru", visit: "05 Aug 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
-    { id: "DS-1005", name: "Rohan Kumar", phone: "+91 98100 44028", age: 31, gender: "Male", address: "HSR Layout, Bengaluru", visit: "12 Aug 2026", medicalNotes: "Sulfa Drugs Allergy", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
-    { id: "DS-1006", name: "Sneha Reddy", phone: "+91 95408 81229", age: 27, gender: "Female", address: "Jayanagar, Bengaluru", visit: "03 Aug 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
-    { id: "DS-1007", name: "Rahul Verma", phone: "+91 98110 22912", age: 40, gender: "Male", address: "Malleshwaram, Bengaluru", visit: "28 Jul 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
-    { id: "DS-1008", name: "Kavya Sharma", phone: "+91 99100 55109", age: 22, gender: "Female", address: "Hebbal, Bengaluru", visit: "25 Jul 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
-    { id: "DS-1009", name: "Arjun Nair", phone: "+91 98760 12345", age: 36, gender: "Male", address: "Bannerghatta, Bengaluru", visit: "20 Jul 2026", medicalNotes: "Aspirin Sensitivity", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
-    { id: "DS-1010", name: "Neha Joshi", phone: "+91 95400 98765", age: 29, gender: "Female", address: "Sadashivanagar, Bengaluru", visit: "15 Jul 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
-    { id: "DS-1011", name: "Vikram Malhotra", phone: "+91 98112 34567", age: 50, gender: "Male", address: "Ulsoor, Bengaluru", visit: "10 Jul 2026", medicalNotes: "Diabetes type 2", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
-    { id: "DS-1012", name: "Meera Nair", phone: "+91 99104 56789", age: 33, gender: "Female", address: "Cox Town, Bengaluru", visit: "05 Jul 2026", medicalNotes: "None", balance: "₹500", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
-    { id: "DS-1013", name: "Siddharth Roy", phone: "+91 98765 89012", age: 42, gender: "Male", address: "Frazer Town, Bengaluru", visit: "01 Jul 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
-    { id: "DS-1014", name: "Aditi Rao", phone: "+91 95400 34567", age: 25, gender: "Female", address: "Kalyan Nagar, Bengaluru", visit: "25 Jun 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
-    { id: "DS-1015", name: "Rajesh Khanna", phone: "+91 98100 90123", age: 60, gender: "Male", address: "Richmond Town, Bengaluru", visit: "15 Jun 2026", medicalNotes: "Penicillin Allergy", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] }
-  ]);
+  const [patients, setPatients] = useState<Patient[]>([]);
 
   const [appointments, setAppointments] = useState<Appointment[]>([
     { id: "appt-1", patientId: "DS-1001", patientName: "Aarav Mehta", doctor: "Dr. Deepa Kodali", treatment: "Root Canal", time: "09:00 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Lower left molar treatment.", avatarColor: "bg-blue-100 text-blue-600" },
@@ -1303,7 +1509,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }
   };
 
-  const handleSavePatientProfile = (e: React.FormEvent) => {
+  const handleSavePatientProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editFirstName.trim() || !editMobile.trim()) {
       showToast("First name and mobile number are required.", "error");
@@ -1317,6 +1523,29 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       editMedicalConditions ? `Conditions: ${editMedicalConditions}` : "",
       editCurrentMedications ? `Meds: ${editCurrentMedications}` : ""
     ].filter(Boolean).join(" | ") || "None";
+
+    const parsedNotes = editNotes ? editNotes.split("\n").filter(Boolean) : [];
+
+    const { error } = await supabase
+      .from("patients")
+      .update({
+        name: fullName,
+        phone: editMobile.trim(),
+        age: editAge,
+        gender: editGender,
+        address: fullAddress,
+        medical_notes: mergedMedicalNotes,
+        email: editEmail.trim() || null,
+        blood_group: editBloodGroup.trim() || null,
+        notes: parsedNotes
+      })
+      .eq("patient_id", selectedPatientId);
+
+    if (error) {
+      console.error("Patient profile update failed:", error.message, error.code);
+      showToast("Failed to update patient profile in database.", "error");
+      return;
+    }
 
     setPatients(prev => prev.map(p => {
       if (p.id === selectedPatientId) {
@@ -1346,7 +1575,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           visit: editLastVisit || p.visit,
           preferredDentist: editPreferredDentist,
           medicalNotes: mergedMedicalNotes,
-          notes: editNotes ? editNotes.split("\n").filter(Boolean) : p.notes
+          notes: parsedNotes
         };
       }
       return p;
@@ -1373,7 +1602,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }
   };
 
-  const handleSaveToothTreatment = (e: React.FormEvent) => {
+  const handleSaveToothTreatment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chartTreatmentName.trim()) {
       showToast("Treatment name is required.", "error");
@@ -1386,6 +1615,21 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     const toothObj = ALL_TEETH.find(t => t.index === chartSelectedTooth);
     const toothDisplay = toothObj ? `#${toothObj.fdi}` : `#${chartSelectedTooth}`;
+
+    const updatedChart = {
+      ...(patientItem.dentalChart || {}),
+      [chartSelectedTooth]: `${chartTreatmentName.trim()} (${chartStatus})`
+    };
+
+    const { error: patChartErr } = await supabase
+      .from("patients")
+      .update({ dental_chart: updatedChart })
+      .eq("patient_id", selectedPatientId);
+
+    if (patChartErr) {
+      showToast("Failed to save tooth treatment to database.", "error");
+      return;
+    }
 
     const newTreatmentId = `tr-${Date.now()}`;
     const newTreatment: TreatmentItem = {
@@ -1409,10 +1653,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       if (p.id === selectedPatientId) {
         return {
           ...p,
-          dentalChart: {
-            ...p.dentalChart,
-            [chartSelectedTooth]: `${chartTreatmentName.trim()} (${chartStatus})`
-          }
+          dentalChart: updatedChart
         };
       }
       return p;
@@ -1450,6 +1691,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         paymentLogs: []
       };
       setInvoices(prev => [...prev, newInvoice]);
+      await insertBillingRecord(newInvoice);
     }
 
     setChartSelectedTooth(null);
@@ -1462,7 +1704,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     showToast("Tooth treatment override saved.", "success");
   };
 
-  const handleSaveCustomTreatment = (e: React.FormEvent) => {
+  const handleSaveCustomTreatment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTrName.trim()) {
       showToast("Treatment name is required.", "error");
@@ -1474,6 +1716,33 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const newTrId = `tr-${Date.now()}`;
     const toothNum = Number(newTrTooth) || undefined;
     const costAmt = Number(newTrCost) || 0;
+
+    if (toothNum) {
+      const updatedChart = {
+        ...(patientItem.dentalChart || {}),
+        [toothNum]: `${newTrName.trim()} (${newTrStatus})`
+      };
+
+      const { error: patChartErr } = await supabase
+        .from("patients")
+        .update({ dental_chart: updatedChart })
+        .eq("patient_id", selectedPatientId);
+
+      if (patChartErr) {
+        showToast("Failed to save custom treatment to database.", "error");
+        return;
+      }
+
+      setPatients(prev => prev.map(p => {
+        if (p.id === selectedPatientId) {
+          return {
+            ...p,
+            dentalChart: updatedChart
+          };
+        }
+        return p;
+      }));
+    }
 
     const newTreatment: TreatmentItem = {
       id: newTrId,
@@ -1491,21 +1760,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     };
 
     setTreatments(prev => [...prev, newTreatment]);
-
-    if (toothNum) {
-      setPatients(prev => prev.map(p => {
-        if (p.id === selectedPatientId) {
-          return {
-            ...p,
-            dentalChart: {
-              ...p.dentalChart,
-              [toothNum]: `${newTrName.trim()} (${newTrStatus})`
-            }
-          };
-        }
-        return p;
-      }));
-    }
 
     if (newTrStatus === "Completed") {
       const newInvId = `INV-${Date.now().toString().slice(-4)}`;
@@ -1529,6 +1783,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         paymentLogs: []
       };
       setInvoices(prev => [...prev, newInvoice]);
+      await insertBillingRecord(newInvoice);
     }
 
     setActivities(prev => [{
@@ -1591,7 +1846,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     showToast("Appointment scheduled successfully.", "success");
   };
 
-  const handleSavePrescription = (e: React.FormEvent) => {
+  const handleSavePrescription = async (e: React.FormEvent) => {
     e.preventDefault();
     if (prescMeds.some(m => !m.name.trim())) {
       showToast("All medicines must have a name.", "error");
@@ -1611,17 +1866,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       updatedNotes = [...updatedNotes, formattedNote];
     }
 
-    setPatients(prev => prev.map(p => {
-      if (p.id === selectedPatientId) {
-        return {
-          ...p,
-          prescriptions: [...(p.prescriptions || []), ...formattedList],
-          notes: updatedNotes
-        };
-      }
-      return p;
-    }));
-
     const docName = prescDoctor || (doctors[0]?.name || "");
     
     const newFile = {
@@ -1630,11 +1874,30 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       type: "application/pdf"
     };
 
+    const updatedPrescriptions = [...(patientItem.prescriptions || []), ...formattedList];
+    const updatedFiles = [...(patientItem.files || []), newFile];
+
+    const { error: prescErr } = await supabase
+      .from("patients")
+      .update({
+        prescriptions: updatedPrescriptions,
+        notes: updatedNotes,
+        files: updatedFiles
+      })
+      .eq("patient_id", selectedPatientId);
+
+    if (prescErr) {
+      showToast("Failed to save prescription to database.", "error");
+      return;
+    }
+
     setPatients(prev => prev.map(p => {
       if (p.id === selectedPatientId) {
         return {
           ...p,
-          files: [...(p.files || []), newFile]
+          prescriptions: updatedPrescriptions,
+          notes: updatedNotes,
+          files: updatedFiles
         };
       }
       return p;
@@ -1651,7 +1914,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     showToast("Prescription generated and saved.", "success");
   };
 
-  const handleSaveClinicalNote = (e: React.FormEvent) => {
+  const handleSaveClinicalNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!noteTitle.trim() || !noteContent.trim()) {
       showToast("Note title and content are required.", "error");
@@ -1663,11 +1926,23 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const dateStr = prescDate ? new Date(prescDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
     const formattedNote = `Title: ${noteTitle.trim()} | Category: ${noteCategory} | Author: ${noteAuthor} | Content: ${noteContent.trim()} | Date: ${dateStr}`;
 
+    const updatedNotes = [...(patientItem.notes || []), formattedNote];
+
+    const { error: noteErr } = await supabase
+      .from("patients")
+      .update({ notes: updatedNotes })
+      .eq("patient_id", selectedPatientId);
+
+    if (noteErr) {
+      showToast("Failed to save clinical note to database.", "error");
+      return;
+    }
+
     setPatients(prev => prev.map(p => {
       if (p.id === selectedPatientId) {
         return {
           ...p,
-          notes: [...(p.notes || []), formattedNote]
+          notes: updatedNotes
         };
       }
       return p;
@@ -1679,7 +1954,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     showToast("Clinical note saved successfully.", "success");
   };
 
-  const handleSaveInvoice = (e: React.FormEvent) => {
+  const handleSaveInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!invProcedure.trim() || !invAmount) {
       showToast("Procedure and Amount are required.", "error");
@@ -1716,6 +1991,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     };
 
     setInvoices(prev => [...prev, newInvoice]);
+    await insertBillingRecord(newInvoice);
 
     setActivities(prev => [{
       id: `act-${Date.now()}`,
@@ -1733,7 +2009,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     showToast("Invoice saved successfully.", "success");
   };
 
-  const handleUploadFile = (e: React.FormEvent) => {
+  const handleUploadFile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFileName.trim()) {
       showToast("File name is required.", "error");
@@ -1748,11 +2024,23 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       type: newFileType
     };
 
+    const updatedFiles = [...(patientItem.files || []), newFile];
+
+    const { error: fileErr } = await supabase
+      .from("patients")
+      .update({ files: updatedFiles })
+      .eq("patient_id", selectedPatientId);
+
+    if (fileErr) {
+      showToast("Failed to save file attachment to database.", "error");
+      return;
+    }
+
     setPatients(prev => prev.map(p => {
       if (p.id === selectedPatientId) {
         return {
           ...p,
-          files: [...(p.files || []), newFile]
+          files: updatedFiles
         };
       }
       return p;
@@ -1874,12 +2162,36 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   };
 
   // 3. Complete Consultation and Auto-Generate Invoice
-  const handleCompleteConsultation = (e: React.FormEvent) => {
+  const handleCompleteConsultation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeConsultationApptId) return;
 
     const appt = appointments.find(a => a.id === activeConsultationApptId);
     if (!appt) return;
+
+    const patientItem = patients.find(p => p.id === appt.patientId);
+    if (!patientItem) return;
+
+    const updatedChart = { ...patientItem.dentalChart, ...consultChart };
+    const updatedPrescriptions = consultPrescription ? [...patientItem.prescriptions, consultPrescription] : patientItem.prescriptions;
+    const updatedFiles = [...patientItem.files, ...consultUploadedXrays];
+    const updatedNotes = consultNotes ? [...patientItem.notes, consultNotes] : patientItem.notes;
+
+    const { error: completeErr } = await supabase
+      .from("patients")
+      .update({
+        dental_chart: updatedChart,
+        prescriptions: updatedPrescriptions,
+        files: updatedFiles,
+        notes: updatedNotes,
+        visit: "12 Aug 2026"
+      })
+      .eq("patient_id", appt.patientId);
+
+    if (completeErr) {
+      showToast("Failed to save consultation details to database.", "error");
+      return;
+    }
 
     // Change status in appointment table
     setAppointments(prev =>
@@ -1912,10 +2224,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setPatients(prev =>
       prev.map(p => {
         if (p.id === appt.patientId) {
-          const updatedChart = { ...p.dentalChart, ...consultChart };
-          const updatedPrescriptions = consultPrescription ? [...p.prescriptions, consultPrescription] : p.prescriptions;
-          const updatedFiles = [...p.files, ...consultUploadedXrays];
-          const updatedNotes = consultNotes ? [...p.notes, consultNotes] : p.notes;
           return {
             ...p,
             dentalChart: updatedChart,
@@ -1957,6 +2265,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     };
 
     setInvoices(prev => [newInvoice, ...prev]);
+    await insertBillingRecord(newInvoice);
     pushActivity("Treatment", `Consultation completed for ${appt.patientName}. Invoice ${invoiceNum} generated.`);
 
     // Reset workspace and redirect receptionist to Billing module
@@ -1966,7 +2275,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   };
 
   // 4. Collect SPLIT/FULL Payment
-  const handleCollectPayment = (e: React.FormEvent) => {
+  const handleCollectPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedInvoiceForPayment) return;
 
@@ -1991,6 +2300,35 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const calculatedSubtotal = calculateInvoiceSubtotal();
     const calculatedDiscountPct = calculatedSubtotal > 0 ? Math.round((calculatedDiscountAmt / calculatedSubtotal) * 100) : 0;
 
+    // Write update to Supabase
+    const { error: billErr } = await supabase
+      .from("billing")
+      .update({
+        items: [...selectedInvoiceForPayment.items, ...payCustomItems],
+        discount: calculatedDiscountPct,
+        discount_type: payDiscountType || null,
+        discount_value: payDiscountValue || 0,
+        subtotal: calculatedSubtotal,
+        total: finalInvoiceTotal,
+        paid_amount: totalPaidAmount,
+        status: finalStatus,
+        payment_logs: paymentLogs,
+        payment_date: logDate
+      })
+      .eq("invoice_id", selectedInvoiceForPayment.id);
+
+    if (billErr) {
+      showToast("Failed to update billing details in database.", "error");
+      return;
+    }
+
+    // Apply balance update to patient directory record
+    const remainingBalance = Math.max(0, finalInvoiceTotal - totalPaidAmount);
+    const { error: patErr } = await supabase
+      .from("patients")
+      .update({ balance: remainingBalance > 0 ? `₹${remainingBalance.toLocaleString()}` : "₹0" })
+      .eq("patient_id", selectedInvoiceForPayment.patientId);
+
     // Update in invoices state
     setInvoices(prev =>
       prev.map(inv => {
@@ -2014,8 +2352,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       })
     );
 
-    // Apply balance update to patient directory record
-    const remainingBalance = Math.max(0, finalInvoiceTotal - totalPaidAmount);
     setPatients(prev =>
       prev.map(p => {
         if (p.id === selectedInvoiceForPayment.patientId) {
@@ -2081,22 +2417,107 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   };
 
   // Quick register walk-in patient flow
-  const handleRegisterWalkIn = (e: React.FormEvent) => {
+  const handleRegisterWalkIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPatName) return;
 
-    const patientId = `DS-${1000 + patients.length + 1}`;
+    // Retrieve currently authenticated Supabase user
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !user) {
+      console.error("Walk-in registration failed: user not authenticated", userErr?.message, userErr?.code);
+      showToast("You must be logged in to register a walk-in patient.", "error");
+      return;
+    }
+
+    // Get that user's clinic_id from the profiles table
+    const { data: profile, error: profileErr } = await supabase
+      .from("profiles")
+      .select("clinic_id")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileErr) {
+      console.error("Walk-in registration failed: profile query error", profileErr.message, profileErr.code);
+      showToast("Failed to retrieve user profile.", "error");
+      return;
+    }
+
+    const activeClinicId = profile?.clinic_id;
+    if (!activeClinicId) {
+      console.error("Walk-in registration failed: user profile has no associated clinic_id");
+      showToast("No clinic workspace associated with your account.", "error");
+      return;
+    }
+
+    // Check for duplicate mobile number in database
+    const trimmedPhone = (newPatPhone || "").trim();
+    if (trimmedPhone) {
+      const { data: duplicatePat, error: checkErr } = await supabase
+        .from("patients")
+        .select("id")
+        .eq("clinic_id", activeClinicId)
+        .eq("phone", trimmedPhone)
+        .maybeSingle();
+
+      if (checkErr) {
+        console.error("Walk-in registration failed: duplicate phone check error", checkErr.message, checkErr.code);
+      } else if (duplicatePat) {
+        showToast(`A patient with mobile number ${trimmedPhone} is already registered.`, "error");
+        return;
+      }
+    }
+
+    // Generate unique Patient ID by counting rows in the database
+    const { count, error: countErr } = await supabase
+      .from("patients")
+      .select("*", { count: "exact", head: true })
+      .eq("clinic_id", activeClinicId);
+
+    if (countErr) {
+      console.error("Walk-in ID generation failed: count query error", countErr.message, countErr.code);
+      showToast("Failed to generate patient ID.", "error");
+      return;
+    }
+
+    const patientId = `DS-${1000 + (count || 0) + 1}`;
+
+    const { data: insertedPat, error } = await supabase
+      .from("patients")
+      .insert({
+        patient_id: patientId,
+        clinic_id: activeClinicId,
+        name: newPatName,
+        phone: newPatPhone || "+91 99000 11000",
+        age: newPatAge,
+        gender: newPatGender,
+        address: newPatAddress || "Bengaluru",
+        visit: "12 Aug 2026",
+        medical_notes: newPatAllergies || "None",
+        balance: "₹0",
+        status: "Active",
+        notes: []
+      })
+      .select()
+      .single();
+
+    if (error || !insertedPat) {
+      console.error("Walk-in patient insert failed:", error?.message, error?.code);
+      showToast("Failed to register walk-in patient in database.", "error");
+      return;
+    }
+
     const newPatientRecord: Patient = {
-      id: patientId,
-      name: newPatName,
-      phone: newPatPhone || "+91 99000 11000",
-      age: newPatAge,
-      gender: newPatGender,
-      address: newPatAddress || "Bengaluru",
-      visit: "12 Aug 2026",
-      medicalNotes: newPatAllergies,
-      balance: "₹0",
-      status: "Active",
+      id: insertedPat.patient_id,
+      uuid: insertedPat.id,
+      name: insertedPat.name,
+      phone: insertedPat.phone,
+      age: insertedPat.age,
+      gender: insertedPat.gender,
+      address: insertedPat.address || "Bengaluru",
+      visit: insertedPat.visit || "12 Aug 2026",
+      medicalNotes: insertedPat.medical_notes || "None",
+      balance: insertedPat.balance || "₹0",
+      status: insertedPat.status || "Active",
       dentalChart: {},
       prescriptions: [],
       files: [],
@@ -2174,7 +2595,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setQuickNotes("");
   };
 
-  const registerPatient = (patientData: {
+  const registerPatient = async (patientData: {
     name: string;
     phone: string;
     age: number;
@@ -2199,43 +2620,114 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       return false;
     }
 
-    // Generate unique Patient ID automatically
-    const patientId = `DS-${1000 + patients.length + 1}`;
+    // Retrieve currently authenticated Supabase user
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !user) {
+      console.error("Patient insert failed: user not authenticated", userErr?.message, userErr?.code);
+      showToast("You must be logged in to register a patient.", "error");
+      return false;
+    }
 
-    // 2. Check for duplicate mobile number
-    const duplicatePhone = patients.some(p => p.phone.trim() === trimmedPhone);
-    if (duplicatePhone) {
+    // Get that user's clinic_id from the profiles table
+    const { data: profile, error: profileErr } = await supabase
+      .from("profiles")
+      .select("clinic_id")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileErr) {
+      console.error("Patient insert failed: profile query error", profileErr.message, profileErr.code);
+      showToast("Failed to retrieve user profile.", "error");
+      return false;
+    }
+
+    const activeClinicId = profile?.clinic_id;
+    if (!activeClinicId) {
+      console.error("Patient insert failed: user profile has no associated clinic_id");
+      showToast("No clinic workspace associated with your account.", "error");
+      return false;
+    }
+
+    // Check for duplicate mobile number in database
+    const { data: duplicatePat, error: checkErr } = await supabase
+      .from("patients")
+      .select("id")
+      .eq("clinic_id", activeClinicId)
+      .eq("phone", trimmedPhone)
+      .maybeSingle();
+
+    if (checkErr) {
+      console.error("Patient insert failed: duplicate phone check error", checkErr.message, checkErr.code);
+    } else if (duplicatePat) {
       showToast(`A patient with mobile number ${trimmedPhone} is already registered.`, "error");
       return false;
     }
 
-    // 3. Check for duplicate Patient ID
-    const duplicateId = patients.some(p => p.id === patientId);
-    if (duplicateId) {
-      showToast(`Patient ID ${patientId} already exists.`, "error");
+    // Generate unique Patient ID by counting rows in the database
+    const { count, error: countErr } = await supabase
+      .from("patients")
+      .select("*", { count: "exact", head: true })
+      .eq("clinic_id", activeClinicId);
+
+    if (countErr) {
+      console.error("Patient ID generation failed: count query error", countErr.message, countErr.code);
+      showToast("Failed to generate patient ID.", "error");
+      return false;
+    }
+
+    const patientId = `DS-${1000 + (count || 0) + 1}`;
+
+    // Perform database insertion
+    const { data: insertedPat, error } = await supabase
+      .from("patients")
+      .insert({
+        patient_id: patientId,
+        clinic_id: activeClinicId,
+        name: trimmedName,
+        phone: trimmedPhone,
+        age: patientData.age,
+        gender: patientData.gender,
+        address: patientData.address || "Bengaluru",
+        visit: "12 Aug 2026",
+        medical_notes: patientData.medicalNotes || "None",
+        balance: "₹0",
+        status: "Active",
+        notes: patientData.notes || [],
+        email: patientData.email || null,
+        blood_group: patientData.bloodGroup || null,
+        patient_type: patientData.patientType || null
+      })
+      .select()
+      .single();
+
+    if (error || !insertedPat) {
+      console.error("Patient insert failed:", error?.message, error?.code);
+      showToast("Failed to register patient in database.", "error");
       return false;
     }
 
     const newPat: Patient = {
-      id: patientId,
-      name: trimmedName,
-      phone: trimmedPhone,
-      age: patientData.age,
-      gender: patientData.gender,
-      address: patientData.address || "Bengaluru",
-      visit: "12 Aug 2026",
-      medicalNotes: patientData.medicalNotes || "None",
-      balance: "₹0",
-      status: "Active",
+      id: insertedPat.patient_id,
+      uuid: insertedPat.id,
+      name: insertedPat.name,
+      phone: insertedPat.phone,
+      age: insertedPat.age,
+      gender: insertedPat.gender,
+      address: insertedPat.address || "Bengaluru",
+      visit: insertedPat.visit || "12 Aug 2026",
+      medicalNotes: insertedPat.medical_notes || "None",
+      balance: insertedPat.balance || "₹0",
+      status: insertedPat.status || "Active",
       dentalChart: {},
       prescriptions: [],
       files: [],
-      notes: patientData.notes || [],
-      email: patientData.email,
-      bloodGroup: patientData.bloodGroup,
-      patientType: patientData.patientType
+      notes: insertedPat.notes || [],
+      email: insertedPat.email || undefined,
+      bloodGroup: insertedPat.blood_group || undefined,
+      patientType: insertedPat.patient_type || undefined
     };
 
+    // Update state only after successful insert
     setPatients(prev => [newPat, ...prev]);
     pushActivity("Register", `Registered patient ${trimmedName} (${patientId}).`);
 
@@ -2253,10 +2745,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     return true;
   };
 
-  const handleSavePatientQuick = (e: React.FormEvent) => {
+  const handleSavePatientQuick = async (e: React.FormEvent) => {
     e.preventDefault();
     const fullName = `${quickFirstName.trim()} ${quickLastName.trim()}`;
-    const saved = registerPatient({
+    const saved = await registerPatient({
       name: fullName,
       phone: quickMobile,
       age: quickAge,
@@ -2349,7 +2841,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }
   };
 
-  const handleApptCompleteProcedure = (apptId: string) => {
+  const handleApptCompleteProcedure = async (apptId: string) => {
     setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: "Completed" } : a));
     const app = appointments.find(a => a.id === apptId);
     if (app) {
@@ -2381,6 +2873,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       };
 
       setInvoices(prev => [newInvoice, ...prev]);
+      await insertBillingRecord(newInvoice);
       pushActivity("Billing", `Invoice ${invoiceNum} generated for ${app.patientName}.`);
     }
     if (selectedSlotData && selectedSlotData.appointment?.id === apptId) {
@@ -2388,7 +2881,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }
   };
 
-  const handleApptGenerateBill = (apptId: string) => {
+  const handleApptGenerateBill = async (apptId: string) => {
     const app = appointments.find(a => a.id === apptId);
     if (app) {
       const inv = invoices.find(i => i.patientId === app.patientId && i.status === "Pending");
@@ -2425,6 +2918,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           paymentLogs: []
         };
         setInvoices(prev => [newInvoice, ...prev]);
+        await insertBillingRecord(newInvoice);
         setSelectedInvoiceForPayment(newInvoice);
         setPayCash(0);
         setPayUpi(0);
@@ -2720,15 +3214,26 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const upiTotal = collectionsToday.filter(l => l.method.includes("UPI") || l.method.includes("GPay")).reduce((s, l) => s + l.amount, 0);
     const cardTotal = collectionsToday.filter(l => l.method === "Card").reduce((s, l) => s + l.amount, 0);
 
-    const handleQuickEditPatient = (pat: Patient) => {
+    const handleQuickEditPatient = async (pat: Patient) => {
       const newPhone = prompt(`Edit Mobile Number for ${pat.name}:`, pat.phone);
       if (newPhone !== null) {
+        const { error } = await supabase
+          .from("patients")
+          .update({ phone: newPhone })
+          .eq("patient_id", pat.id);
+
+        if (error) {
+          console.error("Patient quick edit phone failed:", error.message, error.code);
+          showToast("Failed to update patient phone in database.", "error");
+          return;
+        }
+
         setPatients(prev => prev.map(p => p.id === pat.id ? { ...p, phone: newPhone } : p));
         pushActivity("Register", `Updated phone number for ${pat.name} to ${newPhone}.`);
       }
     };
 
-    const handleQuickGenerateBill = (pat: Patient) => {
+    const handleQuickGenerateBill = async (pat: Patient) => {
       const invoiceNum = `INV-${1000 + invoices.length + 1}`;
       const newInvoice: InvoiceItem = {
         id: invoiceNum,
@@ -2747,6 +3252,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         paymentLogs: []
       };
       setInvoices(prev => [newInvoice, ...prev]);
+      await insertBillingRecord(newInvoice);
       setSelectedInvoiceForPayment(newInvoice);
       setPayCash(0);
       setPayUpi(0);
@@ -5331,8 +5837,24 @@ Apex Clinic`;
                             <td className="py-2.5 text-right space-x-2">
                               {inv.status !== "Paid" && (
                                 <button 
-                                  onClick={() => {
+                                  onClick={async () => {
+                                    const { error } = await supabase
+                                      .from("billing")
+                                      .update({ status: "Paid", paid_amount: inv.total, payment_date: new Date().toISOString().split("T")[0] })
+                                      .eq("invoice_id", inv.id);
+
+                                    if (error) {
+                                      showToast("Failed to update payment status in database.", "error");
+                                      return;
+                                    }
+
+                                    await supabase
+                                      .from("patients")
+                                      .update({ balance: "₹0" })
+                                      .eq("patient_id", inv.patientId);
+
                                     setInvoices(prev => prev.map(i => i.id === inv.id ? { ...i, status: "Paid", paidAmount: i.total } : i));
+                                    setPatients(prev => prev.map(p => p.id === inv.patientId ? { ...p, balance: "₹0" } : p));
                                     showToast("Invoice marked as Paid.", "success");
                                   }} 
                                   className="text-emerald-600 hover:underline font-bold"
@@ -6298,9 +6820,9 @@ Apex Clinic`;
               </button>
               <span className="font-bold text-sm">Patient Intake File Registration</span>
             </div>
-            <form onSubmit={(e) => {
+            <form onSubmit={async (e) => {
               e.preventDefault();
-              const saved = registerPatient({
+              const saved = await registerPatient({
                 name: newPatName,
                 phone: newPatPhone,
                 age: newPatAge,
@@ -9273,9 +9795,9 @@ Apex Clinic`;
             <div className="p-5">
               {/* Register Patient Modal */}
               {activeModal === "addPatient" && (
-                <form onSubmit={(e) => {
+                <form onSubmit={async (e) => {
                   e.preventDefault();
-                  const saved = registerPatient({
+                  const saved = await registerPatient({
                     name: newPatName,
                     phone: newPatPhone,
                     age: newPatAge,
