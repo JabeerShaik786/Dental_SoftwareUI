@@ -25,6 +25,7 @@ import {
   Check,
   UserPlus,
   FileText,
+  CreditCard,
   Image as ImageIcon,
   X,
   Clock,
@@ -6729,26 +6730,32 @@ Apex Clinic`;
                     }`}>{inv.status}</span>
                   </td>
                   <td className="py-3 text-center">
-                    <div className="flex items-center justify-center gap-1.5">
+                    <div className="flex items-center justify-center gap-2">
                       <button
+                        type="button"
+                        title="Generate Invoice"
                         onClick={() => setLastGeneratedReceipt(inv)}
-                        className="h-7 px-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-955/40 dark:text-blue-400 font-bold text-[10px] cursor-pointer"
+                        className="h-9 w-9 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-955/40 dark:text-blue-400 dark:hover:bg-blue-900/60 flex items-center justify-center transition-colors cursor-pointer"
                       >
-                        Generate Invoice
+                        <FileText className="h-4 w-4" />
                       </button>
                       <button
+                        type="button"
+                        title="Print"
                         onClick={() => {
                           setLastGeneratedReceipt(inv);
                           setTimeout(() => {
                             window.print();
                           }, 150);
                         }}
-                        className="h-7 px-2.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 font-bold text-[10px] flex items-center gap-1 cursor-pointer"
+                        className="h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
                       >
-                        <Printer className="h-3 w-3" /> Print
+                        <Printer className="h-4 w-4" />
                       </button>
                       {inv.status !== "Paid" && (
                         <button
+                          type="button"
+                          title="Collect Payment"
                           onClick={() => {
                             setSelectedInvoiceForPayment(inv);
                             setPaymentCollectAmt(inv.total - inv.paidAmount);
@@ -6759,9 +6766,9 @@ Apex Clinic`;
                             setPayTaxPercent(inv.tax);
                             setPayCustomItems([]);
                           }}
-                          className="h-7 px-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] cursor-pointer"
+                          className="h-9 w-9 rounded-xl bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-xs transition-colors cursor-pointer"
                         >
-                          Collect Payment
+                          <CreditCard className="h-4 w-4" />
                         </button>
                       )}
                     </div>
