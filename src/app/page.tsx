@@ -1775,6 +1775,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     if (reportsFilter === "Week") { revMultiplier = 5.2; patientOffset = 18; }
     else if (reportsFilter === "Month") { revMultiplier = 22; patientOffset = 76; }
     else if (reportsFilter === "Year") { revMultiplier = 240; patientOffset = 880; }
+    else if (reportsFilter === "Custom") {
+      const startMs = customStartDate ? new Date(customStartDate).getTime() : Date.now();
+      const endMs = customEndDate ? new Date(customEndDate).getTime() : Date.now();
+      const days = Math.max(1, Math.round(Math.abs((endMs - startMs) / (1000 * 60 * 60 * 24))));
+      revMultiplier = Math.max(0.5, days * 0.75);
+      patientOffset = Math.round(days * 2.8);
+    }
 
     const calculatedRevenue = Math.round(totalRevenue * revMultiplier);
     const calculatedPatients = patients.length + patientOffset;
@@ -7107,7 +7114,10 @@ Apex Clinic`;
                 return (
                   <button
                     key={tf}
-                    onClick={() => setReportsFilter(tf)}
+                    onClick={() => {
+                      setReportsFilter(tf);
+                      setAppliedCustomLabel(null);
+                    }}
                     className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
                       active ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
                     }`}
@@ -7116,12 +7126,21 @@ Apex Clinic`;
                   </button>
                 );
               })}
+              <button
+                onClick={() => setCustomRangeModalOpen(true)}
+                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  reportsFilter === "Custom" ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
+                }`}
+              >
+                <Calendar className="h-3.5 w-3.5" />
+                {reportsFilter === "Custom" && appliedCustomLabel ? appliedCustomLabel : "Custom"}
+              </button>
             </div>
 
             {/* Analytics KPI reporting grid */}
             <section className="grid gap-4 grid-cols-2 md:grid-cols-4">
               {[
-                { title: "Total Revenue", count: `₹${reportStats.revenue.toLocaleString()}`, desc: "Collected earnings", icon: <DollarSign className="h-4 w-4 text-blue-500" /> },
+                { title: "Total Revenue", count: `₹${reportStats.revenue.toLocaleString()}`, desc: "Collected earnings", icon: <span className="font-extrabold text-blue-500 text-sm">₹</span> },
                 { title: "Patient Directory", count: reportStats.patients, desc: "Active clinical files", icon: <Users className="h-4 w-4 text-cyan-500" /> },
                 { title: "Treatments Completed", count: reportStats.treatments, desc: "Finished checkouts", icon: <Stethoscope className="h-4 w-4 text-purple-500" /> },
                 { title: "Appointments logged", count: reportStats.appointments, desc: "Total scheduled units", icon: <Calendar className="h-4 w-4 text-amber-500" /> }
