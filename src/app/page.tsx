@@ -7102,6 +7102,79 @@ Apex Clinic`;
 
     return (
       <div className="space-y-6 animate-fadeIn">
+        {/* CUSTOM DATE RANGE MODAL FOR ALL REPORTS SUB-TABS */}
+        {customRangeModalOpen && (
+          <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl max-w-md w-full space-y-5 animate-fadeIn">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Select Custom Date Range</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCustomRangeModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1 rounded-lg"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-xs font-semibold">
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 dark:text-slate-400 block">Start Date</label>
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-blue-600"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 dark:text-slate-400 block">End Date</label>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-blue-600"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCustomRangeModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (customStartDate && customEndDate) {
+                      if (new Date(customEndDate) < new Date(customStartDate)) {
+                        showToast("End Date cannot be earlier than Start Date.", "error");
+                        return;
+                      }
+                      const startFmt = new Date(customStartDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                      const endFmt = new Date(customEndDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                      setAppliedCustomLabel(`${startFmt} – ${endFmt}`);
+                      setReportsFilter("Custom");
+                      setCustomRangeModalOpen(false);
+                    } else {
+                      showToast("Please select both Start Date and End Date.", "error");
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-xs cursor-pointer transition-colors"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* SUB-TAB 1: REVENUE */}
         {currentSubTab === "Revenue" && (
           <div className="space-y-6 animate-fadeIn">
@@ -7555,71 +7628,6 @@ Apex Clinic`;
               </div>
             </div>
 
-            {/* CUSTOM DATE RANGE MODAL */}
-            {customRangeModalOpen && (
-              <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-                <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl max-w-md w-full space-y-5 animate-fadeIn">
-                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5 text-blue-600" />
-                      <h3 className="text-base font-bold text-slate-900 dark:text-white">Select Custom Date Range</h3>
-                    </div>
-                    <button
-                      onClick={() => setCustomRangeModalOpen(false)}
-                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1 rounded-lg"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 text-xs font-semibold">
-                    <div className="space-y-1.5">
-                      <label className="text-slate-500 dark:text-slate-400 block">Start Date</label>
-                      <input
-                        type="date"
-                        value={customStartDate}
-                        onChange={(e) => setCustomStartDate(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-blue-600"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-slate-500 dark:text-slate-400 block">End Date</label>
-                      <input
-                        type="date"
-                        value={customEndDate}
-                        onChange={(e) => setCustomEndDate(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-blue-600"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setCustomRangeModalOpen(false)}
-                      className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (customStartDate && customEndDate) {
-                          const startFmt = new Date(customStartDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                          const endFmt = new Date(customEndDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                          setAppliedCustomLabel(`${startFmt} – ${endFmt}`);
-                          setReportsFilter("Custom");
-                          setCustomRangeModalOpen(false);
-                        }
-                      }}
-                      className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-xs cursor-pointer transition-colors"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
