@@ -146,6 +146,7 @@ interface InvoiceItem {
 }
 
 interface Doctor {
+  id?: string;
   name: string;
   speciality: string;
   status: "Available" | "In Consultation" | "On Break" | "Finished Today";
@@ -422,6 +423,52 @@ const DEFAULT_MOCK_PATIENTS = [
   { id: "DS-1015", name: "Rajesh Khanna", phone: "+91 98100 90123", age: 60, gender: "Male", address: "Richmond Town, Bengaluru", visit: "15 Jun 2026", medicalNotes: "Penicillin Allergy", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] }
 ];
 
+const convertToDbDate = (uiDate: string): string => {
+  if (!uiDate) return new Date().toISOString().split("T")[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(uiDate)) return uiDate;
+  
+  const parts = uiDate.split(" ");
+  if (parts.length === 3) {
+    const day = parts[0].padStart(2, "0");
+    const monthStr = parts[1].substring(0, 3);
+    const year = parts[2];
+    
+    const months: Record<string, string> = {
+      Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06",
+      Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12"
+    };
+    
+    const month = months[monthStr] || "01";
+    return `${year}-${month}-${day}`;
+  }
+  
+  try {
+    const d = new Date(uiDate);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().split("T")[0];
+    }
+  } catch (e) {}
+  
+  return uiDate;
+};
+
+const convertToUiDate = (dbDate: string): string => {
+  if (!dbDate) return "12 Aug 2026";
+  const parts = dbDate.split("-");
+  if (parts.length === 3) {
+    const year = parts[0];
+    const monthNum = parts[1];
+    const day = parseInt(parts[2], 10).toString();
+    
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthIndex = parseInt(monthNum, 10) - 1;
+    const month = months[monthIndex] || "Jan";
+    
+    return `${day} ${month} ${year}`;
+  }
+  return dbDate;
+};
+
 export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initialTab?: string } = {}) {
   const router = useRouter();
   const [loadingSession, setLoadingSession] = useState(true);
@@ -530,6 +577,61 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         paymentLogs: Array.isArray(b.payment_logs) ? b.payment_logs : []
       }));
       setInvoices(mappedInvoices);
+    }
+
+    // 3. Fetch doctors
+    const { data: dbDoctors } = await supabase
+      .from("doctors")
+      .select("*")
+      .eq("clinic_id", userClinicId);
+
+    if (dbDoctors && dbDoctors.length > 0) {
+      const mappedDoctors: Doctor[] = dbDoctors.map(d => ({
+        id: d.id,
+        name: d.name,
+        speciality: d.specialty || "",
+        status: (d.status === "Available" || d.status === "In Consultation" || d.status === "On Break" || d.status === "Finished Today") ? d.status : "Available",
+        phone: d.phone || ""
+      }));
+      setDoctors(mappedDoctors);
+    }
+
+    // 4. Fetch appointments
+    const { data: dbAppointments, error: apptErr } = await supabase
+      .from("appointments")
+      .select("*")
+      .eq("clinic_id", userClinicId)
+      .order("created_at", { ascending: true });
+
+    if (apptErr) {
+      console.error("Failed to load appointments from database:", apptErr.message, apptErr.code);
+      showToast("Error loading appointments from database.", "error");
+    } else if (dbAppointments) {
+      const mappedAppointments: Appointment[] = dbAppointments.map(a => {
+        // Resolve patient details
+        const patRecord = dbPatients?.find(p => p.id === a.patient_id);
+        const localPatientId = patRecord ? patRecord.patient_id : "Unknown ID";
+        const localPatientName = patRecord ? patRecord.name : "Unknown Name";
+
+        // Resolve doctor name
+        const docRecord = dbDoctors?.find(d => d.id === a.doctor_id);
+        const localDoctorName = docRecord ? docRecord.name : (a.doctor_id ? "Unknown Doctor" : "Unassigned");
+
+        return {
+          id: a.id,
+          patientId: localPatientId,
+          patientName: localPatientName,
+          doctor: localDoctorName,
+          treatment: a.procedure_name || "Consultation",
+          time: a.time_slot || "09:00 AM",
+          date: convertToUiDate(a.appointment_date || ""),
+          status: a.status as any || "Scheduled",
+          notes: a.notes || "",
+          token: a.queue_token || undefined,
+          avatarColor: a.status === "Waiting" ? "bg-amber-100 text-amber-600" : "bg-blue-100 text-blue-600"
+        };
+      });
+      setAppointments(mappedAppointments);
     }
   };
 
@@ -1299,13 +1401,15 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
   const [patients, setPatients] = useState<Patient[]>([]);
 
-  const [appointments, setAppointments] = useState<Appointment[]>([
+  const MOCK_APPOINTMENTS: Appointment[] = [
     { id: "appt-1", patientId: "DS-1001", patientName: "Aarav Mehta", doctor: "Dr. Deepa Kodali", treatment: "Root Canal", time: "09:00 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Lower left molar treatment.", avatarColor: "bg-blue-100 text-blue-600" },
     { id: "appt-2", patientId: "DS-1002", patientName: "Priya Patel", doctor: "Dr. Raghuram", treatment: "Scaling", time: "09:30 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Routine scale and polish.", avatarColor: "bg-cyan-100 text-cyan-600" },
     { id: "appt-3", patientId: "DS-1003", patientName: "Kabir Singh", doctor: "Dr. Deepa Kodali", treatment: "Root Canal", time: "10:00 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Penicillin allergy precaution.", avatarColor: "bg-purple-100 text-purple-600" },
     { id: "appt-4", patientId: "DS-1004", patientName: "Ananya Rao", doctor: "Dr. Srinivasa", treatment: "Implant", time: "10:30 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Surgical post review.", avatarColor: "bg-emerald-100 text-emerald-600" },
     { id: "appt-5", patientId: "DS-1005", patientName: "Rohan Kumar", doctor: "Dr. Priyanka Mane Pado", treatment: "Crown", time: "11:00 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Crown margins assessment.", avatarColor: "bg-indigo-100 text-indigo-600" }
-  ]);
+  ];
+
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   const [invoices, setInvoices] = useState<InvoiceItem[]>([
     { id: "INV-1001", patientId: "DS-1011", patientName: "Vikram Malhotra", doctor: "Dr. Deepa Kodali", treatment: "Consultation", items: [{ description: "Consultation Fee", amount: 500 }, { description: "Pain Reliever pills", amount: 300 }], discount: 10, tax: 0, subtotal: 800, total: 720, paidAmount: 720, status: "Paid", paymentDate: "10 Aug 2026", paymentLogs: [{ method: "UPI GPay", amount: 720, date: "10 Aug 2026" }] },
@@ -1805,26 +1909,58 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     showToast("Treatment added successfully.", "success");
   };
 
-  const handleSavePatientAppt = (e: React.FormEvent) => {
+  const handleSavePatientAppt = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!patApptTreatment.trim() || !patApptDate || !patApptTime) {
       showToast("Treatment, date, and time are required.", "error");
       return;
     }
     const patientItem = patients.find(p => p.id === selectedPatientId);
-    if (!patientItem) return;
+    if (!patientItem || !patientItem.uuid) {
+      showToast("Selected patient record has no database UUID associated.", "error");
+      return;
+    }
+    const userClinicId = clinicId;
+    if (!userClinicId) {
+      showToast("Clinic ID is not available. Please re-authenticate.", "error");
+      return;
+    }
 
-    const newApptId = `appt-${Date.now()}`;
+    const selectedDoctorName = patApptDoctor || (doctors[0]?.name || "");
+    const doctorRecord = doctors.find(d => d.name === selectedDoctorName);
+    const doctorId = doctorRecord?.id || null;
+
+    const { data: dbAppt, error: apptErr } = await supabase
+      .from("appointments")
+      .insert({
+        clinic_id: userClinicId,
+        patient_id: patientItem.uuid,
+        doctor_id: doctorId,
+        appointment_date: convertToDbDate(patApptDate),
+        time_slot: patApptTime,
+        procedure_name: patApptTreatment,
+        status: "Scheduled",
+        notes: patApptNotes.trim()
+      })
+      .select()
+      .single();
+
+    if (apptErr || !dbAppt) {
+      console.error("Appointment operation failed:", apptErr?.message, apptErr?.code);
+      showToast("Failed to book appointment in database.", "error");
+      return;
+    }
+
     const newAppt: Appointment = {
-      id: newApptId,
+      id: dbAppt.id,
       patientId: patientItem.id,
       patientName: patientItem.name,
-      doctor: patApptDoctor || (doctors[0]?.name || ""),
-      treatment: patApptTreatment,
-      time: patApptTime,
-      date: patApptDate,
-      status: "Scheduled",
-      notes: patApptNotes.trim(),
+      doctor: selectedDoctorName,
+      treatment: dbAppt.procedure_name || "Consultation",
+      time: dbAppt.time_slot || "09:00 AM",
+      date: convertToUiDate(dbAppt.appointment_date || ""),
+      status: dbAppt.status as any || "Scheduled",
+      notes: dbAppt.notes || "",
       avatarColor: "bg-blue-100 text-blue-600"
     };
 
@@ -2109,10 +2245,24 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   // --- WORKFLOW EVENT HANDLERS ---
 
   // 1. Patient Check-In
-  const handleCheckIn = (apptId: string) => {
-    const activeApptsCount = appointments.filter(a => a.status === "Waiting" || a.status === "In Consultation" || a.status === "Completed").length;
+  const handleCheckIn = async (apptId: string) => {
+    const activeApptsCount = appointments.filter(a => a.status === "Waiting" || a.status === "Checked In" || a.status === "In Procedure" || a.status === "Completed").length;
     const tokenStr = `T-0${activeApptsCount + 1}`;
     
+    const { error } = await supabase
+      .from("appointments")
+      .update({
+        status: "Waiting",
+        queue_token: tokenStr
+      })
+      .eq("id", apptId);
+
+    if (error) {
+      console.error("Appointment operation failed:", error.message, error.code);
+      showToast("Failed to update appointment check-in in database.", "error");
+      return;
+    }
+
     setAppointments(prev =>
       prev.map(app => (app.id === apptId ? { ...app, status: "Waiting", token: tokenStr } : app))
     );
@@ -2131,7 +2281,20 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   };
 
   // 2. Start Consultation
-  const handleStartConsultation = (apptId: string) => {
+  const handleStartConsultation = async (apptId: string) => {
+    const { error } = await supabase
+      .from("appointments")
+      .update({
+        status: "In Consultation"
+      })
+      .eq("id", apptId);
+
+    if (error) {
+      console.error("Appointment operation failed:", error.message, error.code);
+      showToast("Failed to start consultation in database.", "error");
+      return;
+    }
+
     setAppointments(prev =>
       prev.map(app => (app.id === apptId ? { ...app, status: "In Consultation" } : app))
     );
@@ -2194,6 +2357,17 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }
 
     // Change status in appointment table
+    const { error: apptStatusErr } = await supabase
+      .from("appointments")
+      .update({ status: "Completed" })
+      .eq("id", activeConsultationApptId);
+
+    if (apptStatusErr) {
+      console.error("Appointment operation failed:", apptStatusErr.message, apptStatusErr.code);
+      showToast("Failed to update appointment status in database.", "error");
+      return;
+    }
+
     setAppointments(prev =>
       prev.map(app => (app.id === activeConsultationApptId ? { ...app, status: "Completed" } : app))
     );
@@ -2525,20 +2699,45 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     };
 
     // Book and check in instantly
-    const apptId = `appt-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    const tokenStr = `T-0${appointments.filter(a => a.status === "Waiting" || a.status === "In Consultation" || a.status === "Completed").length + 1}`;
+    const tokenStr = `T-0${appointments.filter(a => a.status === "Waiting" || a.status === "Checked In" || a.status === "In Procedure" || a.status === "Completed").length + 1}`;
     
+    const docRecord = doctors.find(d => d.name.toLowerCase().includes("sharma"));
+    const doctorId = docRecord?.id || null;
+
+    const { data: dbAppt, error: apptErr } = await supabase
+      .from("appointments")
+      .insert({
+        clinic_id: activeClinicId,
+        patient_id: insertedPat.id,
+        doctor_id: doctorId,
+        appointment_date: new Date().toISOString().split("T")[0],
+        time_slot: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+        procedure_name: "Consultation",
+        status: "Waiting",
+        queue_token: tokenStr,
+        notes: "Walk-in patient check-in."
+      })
+      .select()
+      .single();
+
+    if (apptErr || !dbAppt) {
+      console.error("Walk-in appointment insert failed:", apptErr?.message, apptErr?.code);
+      showToast("Walk-in registration succeeded, but failed to create queue appointment.", "error");
+      setPatients(prev => [newPatientRecord, ...prev]);
+      return;
+    }
+
     const walkinAppt: Appointment = {
-      id: apptId,
-      patientId: patientId,
-      patientName: newPatName,
-      doctor: "Dr. Sharma",
-      treatment: "Consultation",
-      time: "12:00 PM",
-      date: "12 Aug 2026",
-      status: "Waiting", // Instantly checked in waiting queue
-      notes: "Walk-in patient check-in.",
-      token: tokenStr,
+      id: dbAppt.id,
+      patientId: insertedPat.patient_id,
+      patientName: insertedPat.name,
+      doctor: docRecord ? docRecord.name : "Dr. Sharma",
+      treatment: dbAppt.procedure_name || "Consultation",
+      time: dbAppt.time_slot || "12:00 PM",
+      date: convertToUiDate(dbAppt.appointment_date || ""),
+      status: "Waiting",
+      notes: dbAppt.notes || "Walk-in patient check-in.",
+      token: dbAppt.queue_token || undefined,
       avatarColor: "bg-amber-100 text-amber-600"
     };
 
@@ -2555,21 +2754,53 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setActiveModal(null);
   };
 
-  const handleGlobalBookAppointment = (e: React.FormEvent) => {
+  const handleGlobalBookAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
     const pat = patients.find(p => p.id === apptPatientId);
-    if (!pat) return;
+    if (!pat || !pat.uuid) {
+      showToast("Selected patient has no database UUID associated.", "error");
+      return;
+    }
+    const userClinicId = clinicId;
+    if (!userClinicId) {
+      showToast("Clinic ID is not available. Please re-authenticate.", "error");
+      return;
+    }
+
+    const doctorRecord = doctors.find(d => d.name === apptDoctor);
+    const doctorId = doctorRecord?.id || null;
+
+    const { data: dbAppt, error: apptErr } = await supabase
+      .from("appointments")
+      .insert({
+        clinic_id: userClinicId,
+        patient_id: pat.uuid,
+        doctor_id: doctorId,
+        appointment_date: convertToDbDate(apptDate),
+        time_slot: apptTime,
+        procedure_name: apptTreatment,
+        status: "Scheduled",
+        notes: apptNotes
+      })
+      .select()
+      .single();
+
+    if (apptErr || !dbAppt) {
+      console.error("Appointment operation failed:", apptErr?.message, apptErr?.code);
+      showToast("Failed to book appointment in database.", "error");
+      return;
+    }
 
     const newAppt: Appointment = {
-      id: `appt-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      id: dbAppt.id,
       patientId: pat.id,
       patientName: pat.name,
       doctor: apptDoctor,
-      treatment: apptTreatment,
-      time: apptTime,
-      date: apptDate,
-      status: "Scheduled",
-      notes: apptNotes,
+      treatment: dbAppt.procedure_name || "Consultation",
+      time: dbAppt.time_slot || "09:00 AM",
+      date: convertToUiDate(dbAppt.appointment_date || ""),
+      status: dbAppt.status as any || "Scheduled",
+      notes: dbAppt.notes || "",
       avatarColor: "bg-indigo-100 text-indigo-600"
     };
 
@@ -2770,22 +3001,53 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }
   };
 
-  const handleSlotBookingSubmit = (e: React.FormEvent) => {
+  const handleSlotBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSlotData || !slotPatientId) return;
 
     const pat = patients.find(p => p.id === slotPatientId);
-    if (!pat) return;
+    if (!pat || !pat.uuid) {
+      showToast("Selected patient record has no database UUID associated.", "error");
+      return;
+    }
+    const userClinicId = clinicId;
+    if (!userClinicId) {
+      showToast("Clinic ID is not available. Please re-authenticate.", "error");
+      return;
+    }
+
+    const doctorRecord = doctors.find(d => d.name === slotDoctor);
+    const doctorId = doctorRecord?.id || null;
+
+    const { data: dbAppt, error: apptErr } = await supabase
+      .from("appointments")
+      .insert({
+        clinic_id: userClinicId,
+        patient_id: pat.uuid,
+        doctor_id: doctorId,
+        appointment_date: convertToDbDate(selectedSlotData.date),
+        time_slot: selectedSlotData.time,
+        procedure_name: slotTreatment,
+        status: "Scheduled"
+      })
+      .select()
+      .single();
+
+    if (apptErr || !dbAppt) {
+      console.error("Appointment operation failed:", apptErr?.message, apptErr?.code);
+      showToast("Failed to book slot appointment in database.", "error");
+      return;
+    }
 
     const newAppt: Appointment = {
-      id: `appt-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      id: dbAppt.id,
       patientId: pat.id,
       patientName: pat.name,
       doctor: slotDoctor,
-      treatment: slotTreatment,
-      time: selectedSlotData.time,
-      date: selectedSlotData.date,
-      status: "Scheduled",
+      treatment: dbAppt.procedure_name || "Consultation",
+      time: dbAppt.time_slot || "09:00 AM",
+      date: convertToUiDate(dbAppt.appointment_date || ""),
+      status: dbAppt.status as any || "Scheduled",
       avatarColor: "bg-indigo-100 text-indigo-600"
     };
 
@@ -2814,9 +3076,21 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   };
 
   // Today's appointments custom transitions
-  const handleApptCheckIn = (apptId: string) => {
+  const handleApptCheckIn = async (apptId: string) => {
     const activeApptsCount = appointments.filter(a => a.status === "Waiting" || a.status === "Checked In" || a.status === "In Procedure" || a.status === "Completed").length;
     const tokenStr = `T-0${activeApptsCount + 1}`;
+
+    const { error } = await supabase
+      .from("appointments")
+      .update({ status: "Checked In", queue_token: tokenStr })
+      .eq("id", apptId);
+
+    if (error) {
+      console.error("Appointment operation failed:", error.message, error.code);
+      showToast("Failed to update status in database.", "error");
+      return;
+    }
+    
     setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: "Checked In", token: tokenStr } : a));
     
     const app = appointments.find(a => a.id === apptId);
@@ -2829,7 +3103,18 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }
   };
 
-  const handleApptStartProcedure = (apptId: string) => {
+  const handleApptStartProcedure = async (apptId: string) => {
+    const { error } = await supabase
+      .from("appointments")
+      .update({ status: "In Procedure" })
+      .eq("id", apptId);
+
+    if (error) {
+      console.error("Appointment operation failed:", error.message, error.code);
+      showToast("Failed to update status in database.", "error");
+      return;
+    }
+
     setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: "In Procedure" } : a));
     const app = appointments.find(a => a.id === apptId);
     if (app) {
@@ -2842,6 +3127,17 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   };
 
   const handleApptCompleteProcedure = async (apptId: string) => {
+    const { error } = await supabase
+      .from("appointments")
+      .update({ status: "Completed" })
+      .eq("id", apptId);
+
+    if (error) {
+      console.error("Appointment operation failed:", error.message, error.code);
+      showToast("Failed to complete appointment in database.", "error");
+      return;
+    }
+
     setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: "Completed" } : a));
     const app = appointments.find(a => a.id === apptId);
     if (app) {
@@ -2995,7 +3291,18 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                   <button onClick={() => handleStartConsultation(app.id)} className="h-8 px-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-xs">In Consult</button>
                 )}
                 {app.status !== "Completed" && app.status !== "Cancelled" && (
-                  <button onClick={() => setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Cancelled" } : a))} className="h-8 px-2.5 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold">Cancel</button>
+                  <button onClick={async () => {
+                    const { error } = await supabase
+                      .from("appointments")
+                      .update({ status: "Cancelled" })
+                      .eq("id", app.id);
+                    if (error) {
+                      console.error("Appointment operation failed:", error.message, error.code);
+                      showToast("Failed to cancel appointment in database.", "error");
+                      return;
+                    }
+                    setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Cancelled" } : a));
+                  }} className="h-8 px-2.5 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold">Cancel</button>
                 )}
               </div>
             </div>
@@ -4935,10 +5242,19 @@ Apex Clinic`;
                   </Button>
                   <Button 
                     variant="outline"
-                    onClick={() => {
+                    onClick={async () => {
                       const newDate = prompt("Enter new date (e.g. 15 Aug 2026):", selectedApptDetail.date);
                       const newTime = prompt("Enter new time (e.g. 11:30 AM):", selectedApptDetail.time);
                       if (newDate && newTime) {
+                        const { error } = await supabase
+                          .from("appointments")
+                          .update({ appointment_date: convertToDbDate(newDate), time_slot: newTime })
+                          .eq("id", selectedApptDetail.id);
+                        if (error) {
+                          console.error("Appointment operation failed:", error.message, error.code);
+                          showToast("Failed to reschedule appointment in database.", "error");
+                          return;
+                        }
                         setAppointments(prev => prev.map(a => a.id === selectedApptDetail.id ? { ...a, date: newDate, time: newTime } : a));
                         pushActivity("Appointment", `Rescheduled ${selectedApptDetail.patientName} to ${newDate} at ${newTime}.`);
                       }
@@ -4959,7 +5275,16 @@ Apex Clinic`;
                     Edit
                   </Button>
                   <Button 
-                    onClick={() => {
+                    onClick={async () => {
+                      const { error } = await supabase
+                        .from("appointments")
+                        .update({ status: "Cancelled" })
+                        .eq("id", selectedApptDetail.id);
+                      if (error) {
+                        console.error("Appointment operation failed:", error.message, error.code);
+                        showToast("Failed to cancel appointment in database.", "error");
+                        return;
+                      }
                       setAppointments(prev => prev.map(a => a.id === selectedApptDetail.id ? { ...a, status: "Cancelled" } : a));
                       pushActivity("Appointment", `Cancelled appointment for ${selectedApptDetail.patientName}.`);
                       setSelectedApptDetail(null);
@@ -5666,9 +5991,18 @@ Apex Clinic`;
                                       <Input type="date" value={rescheduleDate} onChange={e => setRescheduleDate(e.target.value)} className="h-7 w-28 text-[10px] p-1" />
                                       <Input value={rescheduleTime} onChange={e => setRescheduleTime(e.target.value)} placeholder="09:00 AM" className="h-7 w-20 text-[10px] p-1" />
                                       <button 
-                                        onClick={() => {
+                                        onClick={async () => {
                                           if (!rescheduleDate || !rescheduleTime) return;
-                                          setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, date: rescheduleDate, time: rescheduleTime } : a));
+                                          const { error } = await supabase
+                                            .from("appointments")
+                                            .update({ appointment_date: convertToDbDate(rescheduleDate), time_slot: rescheduleTime })
+                                            .eq("id", app.id);
+                                          if (error) {
+                                            console.error("Appointment operation failed:", error.message, error.code);
+                                            showToast("Failed to reschedule appointment in database.", "error");
+                                            return;
+                                          }
+                                          setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, date: convertToUiDate(rescheduleDate), time: rescheduleTime } : a));
                                           setReschedulingApptId(null);
                                           showToast("Appointment rescheduled.", "success");
                                         }}
@@ -5683,7 +6017,16 @@ Apex Clinic`;
                                       {app.status === "Scheduled" && (
                                         <>
                                           <button 
-                                            onClick={() => {
+                                            onClick={async () => {
+                                              const { error } = await supabase
+                                                .from("appointments")
+                                                .update({ status: "Checked In" })
+                                                .eq("id", app.id);
+                                              if (error) {
+                                                console.error("Appointment operation failed:", error.message, error.code);
+                                                showToast("Failed to update status in database.", "error");
+                                                return;
+                                              }
                                               setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Checked In" } : a));
                                               showToast("Patient checked in.", "success");
                                             }}
@@ -5706,7 +6049,16 @@ Apex Clinic`;
                                       
                                       {(app.status === "Checked In" || app.status === "Waiting") && (
                                         <button 
-                                          onClick={() => {
+                                          onClick={async () => {
+                                            const { error } = await supabase
+                                              .from("appointments")
+                                              .update({ status: "Completed" })
+                                              .eq("id", app.id);
+                                            if (error) {
+                                              console.error("Appointment operation failed:", error.message, error.code);
+                                              showToast("Failed to complete appointment in database.", "error");
+                                              return;
+                                            }
                                             setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Completed" } : a));
                                             showToast("Appointment completed.", "success");
                                           }}
@@ -5718,11 +6070,20 @@ Apex Clinic`;
 
                                       {app.status !== "Cancelled" && app.status !== "Completed" && (
                                         <button 
-                                          onClick={() => {
+                                          onClick={async () => {
+                                            const { error } = await supabase
+                                              .from("appointments")
+                                              .update({ status: "Cancelled" })
+                                              .eq("id", app.id);
+                                            if (error) {
+                                              console.error("Appointment operation failed:", error.message, error.code);
+                                              showToast("Failed to cancel appointment in database.", "error");
+                                              return;
+                                            }
                                             setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Cancelled" } : a));
                                             showToast("Appointment cancelled.", "success");
                                           }}
-                                          className="h-7 px-2.5 rounded border border-red-200 text-red-650 hover:bg-red-50 font-semibold text-[10px]"
+                                          className="h-7 px-2.5 rounded border border-red-200 text-red-655 hover:bg-red-50 font-semibold text-[10px]"
                                         >
                                           Cancel
                                         </button>
@@ -10357,7 +10718,16 @@ Apex Clinic`;
 
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
+                        const { error } = await supabase
+                          .from("appointments")
+                          .update({ status: "Cancelled" })
+                          .eq("id", selectedSlotData.appointment!.id);
+                        if (error) {
+                          console.error("Appointment operation failed:", error.message, error.code);
+                          showToast("Failed to block slot: cancel existing appointment failed.", "error");
+                          return;
+                        }
                         setBlockedSlots(prev => {
                           const copy = { ...prev };
                           const key = `${selectedSlotData.date}_${selectedSlotData.time}`;
@@ -10374,11 +10744,20 @@ Apex Clinic`;
 
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
+                        const { error } = await supabase
+                          .from("appointments")
+                          .update({ status: "Cancelled" })
+                          .eq("id", selectedSlotData.appointment!.id);
+                        if (error) {
+                          console.error("Appointment operation failed:", error.message, error.code);
+                          showToast("Failed to cancel appointment in database.", "error");
+                          return;
+                        }
                         setAppointments(prev => prev.map(a => a.id === selectedSlotData.appointment!.id ? { ...a, status: "Cancelled" } : a));
                         setSelectedSlotData(null);
                       }}
-                      className="h-12 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] border border-red-200 text-red-655 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/20 transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
+                      className="h-12 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] border border-red-200 text-red-655 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-955/20 transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                     >
                       Cancel
                     </button>
