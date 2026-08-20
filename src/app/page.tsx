@@ -900,8 +900,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     dateStr: string;
     rect: { top: number; left: number; width: number; height: number };
     appointments: Appointment[];
+    isPinned?: boolean;
   } | null>(null);
   const hoverTimeoutRef = useRef<any>(null);
+  const hoveredApptDayRef = useRef(hoveredApptDay);
+
+  useEffect(() => {
+    hoveredApptDayRef.current = hoveredApptDay;
+  }, [hoveredApptDay]);
 
   // Clinical Notes form states (integrated into Prescriptions)
   const [noteTitle, setNoteTitle] = useState("");
@@ -1235,11 +1241,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }
   }, [selectedSlotData]);
 
-  const handleCellMouseEnter = (rect: DOMRect, dateStr: string, appointments: Appointment[]) => {
+  const handleCellClick = (e: React.MouseEvent<HTMLElement>, dateStr: string, appointments: Appointment[]) => {
+    e.stopPropagation();
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
       hoverTimeoutRef.current = null;
     }
+    const rect = e.currentTarget.getBoundingClientRect();
     setHoveredApptDay({
       dateStr,
       rect: {
@@ -1248,14 +1256,43 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         width: rect.width,
         height: rect.height
       },
-      appointments
+      appointments,
+      isPinned: true
+    });
+  };
+
+  const handleCellMouseEnter = (rect: DOMRect, dateStr: string, appointments: Appointment[]) => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setHoveredApptDay(prev => {
+      if (prev && prev.isPinned && prev.dateStr === dateStr) {
+        return prev;
+      }
+      return {
+        dateStr,
+        rect: {
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height
+        },
+        appointments,
+        isPinned: false
+      };
     });
   };
 
   const handleCellMouseLeave = () => {
+    if (hoveredApptDayRef.current?.isPinned || (typeof window !== "undefined" && window.innerWidth < 640)) {
+      return;
+    }
     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     hoverTimeoutRef.current = setTimeout(() => {
-      setHoveredApptDay(null);
+      if (!hoveredApptDayRef.current?.isPinned) {
+        setHoveredApptDay(null);
+      }
     }, 200);
   };
 
@@ -1267,9 +1304,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   };
 
   const handlePopoverMouseLeave = () => {
+    if (hoveredApptDayRef.current?.isPinned || (typeof window !== "undefined" && window.innerWidth < 640)) {
+      return;
+    }
     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     hoverTimeoutRef.current = setTimeout(() => {
-      setHoveredApptDay(null);
+      if (!hoveredApptDayRef.current?.isPinned) {
+        setHoveredApptDay(null);
+      }
     }, 200);
   };
 
@@ -4816,7 +4858,7 @@ Apex Clinic`;
                         }`}
                         onClick={(e) => {
                           if (dayAppts.length > 0) {
-                            handleCellMouseEnter(e.currentTarget.getBoundingClientRect(), dayDateStr, dayAppts);
+                            handleCellClick(e, dayDateStr, dayAppts);
                           }
                         }}
                         onMouseEnter={(e) => {
@@ -10956,10 +10998,15 @@ Apex Clinic`;
 
       {hoveredApptDay && (
         <>
-          {/* Mobile backdrop for easy dismissal */}
+          {/* Mobile and Pinned backdrop for easy dismissal */}
           <div 
-            className="fixed inset-0 z-[9998] bg-slate-900/40 backdrop-blur-xs sm:hidden"
-            onClick={() => setHoveredApptDay(null)}
+            className={`fixed inset-0 z-[9998] bg-slate-900/40 backdrop-blur-xs ${
+              hoveredApptDay.isPinned ? "block" : "hidden sm:hidden"
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setHoveredApptDay(null);
+            }}
           />
           <div
             style={
@@ -10970,7 +11017,7 @@ Apex Clinic`;
                     left: "50%",
                     transform: "translate(-50%, -50%)",
                     width: "calc(100vw - 2rem)",
-                    maxWidth: "340px",
+                    maxWidth: "360px",
                     maxHeight: "85vh",
                     zIndex: 9999
                   }
@@ -10984,6 +11031,7 @@ Apex Clinic`;
                     zIndex: 9999
                   }
             }
+            onClick={(e) => e.stopPropagation()}
             onMouseEnter={handlePopoverMouseEnter}
             onMouseLeave={handlePopoverMouseLeave}
             className="animate-scaleIn bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-4 text-xs font-semibold text-slate-700 flex flex-col gap-3 max-h-[85vh] overflow-y-auto"
@@ -10999,8 +11047,12 @@ Apex Clinic`;
                 </span>
                 <button 
                   type="button" 
-                  onClick={() => setHoveredApptDay(null)} 
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded sm:hidden"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setHoveredApptDay(null);
+                  }}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer flex items-center justify-center"
+                  title="Close"
                 >
                   <X className="h-4 w-4" />
                 </button>
