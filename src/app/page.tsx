@@ -3589,7 +3589,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             </div>
    
             {/* Day Selector Navigation Row */}
-            <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+            <div className="flex items-center justify-between gap-2 sm:gap-4 border-b border-slate-100 dark:border-slate-800 pb-3 sm:pb-4">
               <button
                 type="button"
                 onClick={handlePrevWeek}
@@ -3599,31 +3599,33 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 <ChevronLeft className="h-4 w-4" />
               </button>
               
-              <div className="flex-1 grid grid-cols-7 gap-2">
-                {CALENDAR_DAYS.map((d) => {
-                  const isActive = selectedCalendarDay === d.date;
-                  const hasAppts = appointments.some(a => a.date === d.date && a.status !== "Cancelled");
-                  return (
-                    <button
-                      key={d.date}
-                      type="button"
-                      onClick={() => setSelectedCalendarDay(d.date)}
-                      className={`day-btn flex flex-col items-center justify-center py-2.5 rounded-xl transition-all border outline-none cursor-pointer ${
-                        isActive
-                          ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-105"
-                          : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
-                      }`}
-                    >
-                      <span className="text-[12px] font-normal uppercase tracking-wider opacity-70 mb-0.5">{d.name}</span>
-                      <span className="text-[14px] font-medium flex items-center gap-1 leading-none">
-                        {parseInt(d.date.split(" ")[0])}
-                      </span>
-                      {hasAppts && (
-                        <span className={`h-1.5 w-1.5 rounded-full mt-1.5 ${isActive ? "bg-white" : "bg-blue-600"}`} />
-                      )}
-                    </button>
-                  );
-                })}
+              <div className="flex-1 min-w-0 overflow-x-auto scrollbar-none sm:overflow-visible py-0.5 px-0.5">
+                <div className="flex sm:grid sm:grid-cols-7 gap-2">
+                  {CALENDAR_DAYS.map((d) => {
+                    const isActive = selectedCalendarDay === d.date;
+                    const hasAppts = appointments.some(a => a.date === d.date && a.status !== "Cancelled");
+                    return (
+                      <button
+                        key={d.date}
+                        type="button"
+                        onClick={() => setSelectedCalendarDay(d.date)}
+                        className={`day-btn flex-shrink-0 min-w-[56px] sm:min-w-0 flex-1 flex flex-col items-center justify-center py-2 sm:py-2.5 px-1.5 rounded-xl transition-all border outline-none cursor-pointer select-none ${
+                          isActive
+                            ? "bg-blue-600 border-blue-600 text-white shadow-sm scale-100 sm:scale-105"
+                            : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
+                        }`}
+                      >
+                        <span className="text-[10px] sm:text-[12px] font-normal uppercase tracking-wider opacity-70 mb-0.5 whitespace-nowrap">{d.name}</span>
+                        <span className="text-[14px] font-medium flex items-center gap-1 leading-none">
+                          {parseInt(d.date.split(" ")[0])}
+                        </span>
+                        {hasAppts && (
+                          <span className={`h-1.5 w-1.5 rounded-full mt-1.5 shrink-0 ${isActive ? "bg-white" : "bg-blue-600"}`} />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               
               <button
