@@ -9789,36 +9789,36 @@ Apex Clinic`;
       {/* 2. Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto transition-all duration-300 ease-in-out">
         {/* Top Navbar */}
-        <header className="h-20 bg-white dark:bg-slate-955 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 flex items-center justify-between px-6 shrink-0">
+        <header className="h-16 sm:h-20 bg-white dark:bg-slate-955 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 flex items-center justify-between px-3 sm:px-6 shrink-0 gap-2">
           
-          <div className="flex items-center gap-7 flex-grow">
+          <div className="flex items-center gap-2 sm:gap-7 flex-grow min-w-0">
             {sidebarCollapsed && (
-              <span className="text-[22px] font-bold text-slate-900 dark:text-white shrink-0 hidden md:inline-block">
+              <span className="text-[18px] sm:text-[22px] font-bold text-slate-900 dark:text-white shrink-0 hidden md:inline-block">
                 {activeTab}
               </span>
             )}
-            <div className="flex items-center gap-3 flex-grow max-w-[540px] w-full relative">
+            <div className="flex items-center gap-2 sm:gap-3 flex-grow max-w-[540px] w-full relative min-w-0">
               <button
                 onClick={() => setMobileMenuOpen(true)}
-                className="md:hidden p-1.5 text-slate-500 hover:text-slate-808 dark:text-slate-400 dark:hover:text-white"
+                className="md:hidden p-1.5 text-slate-500 hover:text-slate-808 dark:text-slate-400 dark:hover:text-white shrink-0 cursor-pointer"
               >
                 <Menu className="h-6 w-6" />
               </button>
 
               {/* Global Search input */}
               <div className="relative w-full flex items-center">
-                <Search className="absolute left-4 h-4.5 w-4.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                <Search className="absolute left-3 sm:left-4 h-4 w-4 sm:h-4.5 sm:w-4.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search patients, appointments..."
                   value={globalSearchQuery}
                   onChange={(e) => setGlobalSearchQuery(e.target.value)}
-                  className="h-11 w-full pl-[46px] pr-4 rounded-[11px] bg-slate-50/50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 text-[14px] font-medium text-slate-808 dark:text-slate-200 outline-none hover:border-slate-350 dark:hover:border-slate-700 focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 transition-all duration-150 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-[14px] placeholder:font-normal"
+                  className="h-9 sm:h-11 w-full pl-9 sm:pl-[46px] pr-3 rounded-[11px] bg-slate-50/50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 text-xs sm:text-[14px] font-medium text-slate-808 dark:text-slate-200 outline-none hover:border-slate-350 dark:hover:border-slate-700 focus:bg-white dark:focus:bg-slate-955 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 transition-all duration-150 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
               
                 {/* Global search dropdown */}
                 {globalSearchQuery && (
-                  <div className="absolute top-12 left-0 w-full rounded-2xl border border-slate-100 bg-white shadow-xl dark:bg-slate-955 dark:border-slate-900/60 p-3 z-50 text-xs font-semibold max-h-80 overflow-y-auto">
+                  <div className="absolute top-12 left-0 w-full sm:w-[480px] max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-100 bg-white shadow-xl dark:bg-slate-955 dark:border-slate-900/60 p-3 z-50 text-xs font-semibold max-h-80 overflow-y-auto">
                   <div className="flex justify-between items-center border-b pb-2 mb-2">
                     <span className="text-[10px] text-slate-405 uppercase">Grouped Search Results</span>
                     <button onClick={() => setGlobalSearchQuery("")} className="text-slate-400 hover:text-slate-600 text-[10px]">Clear</button>
@@ -9895,25 +9895,26 @@ Apex Clinic`;
           </div>
         </div>
 
-          <div className="flex items-center gap-2 sm:gap-3.5">
+          <div className="flex items-center gap-1.5 sm:gap-3.5 shrink-0">
             {/* + Quick Add Dropdown */}
             <div ref={quickAddRef} className="relative">
               <button
                 onClick={() => setQuickAddOpen(!quickAddOpen)}
-                className="h-9 flex items-center gap-1 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-sm active:scale-95 transition-all"
+                className="h-8 sm:h-9 flex items-center gap-1 px-2.5 sm:px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-sm active:scale-95 transition-all cursor-pointer shrink-0"
               >
                 <Plus className="h-4 w-4" />
-                <span>Quick Add</span>
+                <span className="hidden sm:inline">Quick Add</span>
+                <span className="sm:hidden">Add</span>
               </button>
               
-              <div className={`absolute right-0 mt-2 w-60 rounded-xl border border-slate-200 bg-white shadow-xl dark:bg-slate-950 dark:border-slate-800 p-1.5 z-50 text-[14px] font-semibold text-left transition-all duration-200 origin-top-right transform ${
+              <div className={`absolute right-0 mt-2 w-52 sm:w-60 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 bg-white shadow-xl dark:bg-slate-955 dark:border-slate-800 p-1.5 z-50 text-[13px] sm:text-[14px] font-semibold text-left transition-all duration-200 origin-top-right transform ${
                 quickAddOpen
                   ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
                   : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
               }`}>
                 <button
                   onClick={() => { setActiveModal("addPatient"); setQuickAddOpen(false); }}
-                  className="w-full h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
+                  className="w-full h-10 sm:h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
                 >
                   <UserPlus className="h-[18px] w-[18px] text-blue-500 shrink-0" />
                   <span className="truncate">New Patient</span>
@@ -9926,28 +9927,28 @@ Apex Clinic`;
                     setActiveModal("addAppointment");
                     setQuickAddOpen(false);
                   }}
-                  className="w-full h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
+                  className="w-full h-10 sm:h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
                 >
                   <CalendarDays className="h-[18px] w-[18px] text-cyan-500 shrink-0" />
                   <span className="truncate">New Appointment</span>
                 </button>
                 <button
                   onClick={() => { setActiveModal("addWalkIn"); setQuickAddOpen(false); }}
-                  className="w-full h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
+                  className="w-full h-10 sm:h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
                 >
                   <UserCheck className="h-[18px] w-[18px] text-amber-500 shrink-0" />
                   <span className="truncate">Walk-in Patient</span>
                 </button>
                 <button
                   onClick={() => { selectTab("Billing"); setActiveSubTab("Invoices"); setQuickAddOpen(false); }}
-                  className="w-full h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
+                  className="w-full h-10 sm:h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
                 >
                   <FileText className="h-[18px] w-[18px] text-red-500 shrink-0" />
                   <span className="truncate">Invoice List</span>
                 </button>
                 <button
                   onClick={() => { selectTab("Billing"); setActiveSubTab("Payments"); setQuickAddOpen(false); }}
-                  className="w-full h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
+                  className="w-full h-10 sm:h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
                 >
                   <Receipt className="h-[18px] w-[18px] text-emerald-500 shrink-0" />
                   <span className="truncate">Payment Logs</span>
@@ -9959,7 +9960,7 @@ Apex Clinic`;
             <div className="relative">
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-505 hover:text-slate-808 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400 relative"
+                className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-505 hover:text-slate-808 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400 relative cursor-pointer"
               >
                 <Bell className="h-4 w-4" />
                 {notifications.some(n => n.unread) && (
@@ -9968,7 +9969,7 @@ Apex Clinic`;
               </button>
  
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 rounded-xl border border-slate-200 bg-white shadow-xl dark:bg-slate-955 dark:border-slate-800 p-2 z-50 text-xs">
+                <div className="absolute right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 bg-white shadow-xl dark:bg-slate-955 dark:border-slate-800 p-2 z-50 text-xs">
                   <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 mb-2">
                     <span className="font-bold">Clinic Notifications</span>
                     <button
@@ -10001,7 +10002,7 @@ Apex Clinic`;
             </div>
  
             {/* Profile Avatar */}
-            <div className="h-9 w-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold border-2 border-slate-100 shadow-sm shrink-0">
+            <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold border-2 border-slate-100 shadow-sm shrink-0 text-xs sm:text-sm">
               AN
             </div>
           </div>
@@ -10009,14 +10010,14 @@ Apex Clinic`;
 
         {/* Dynamic Inner Sub-tabs Bar (hidden if in active consultation mode) */}
         {!activeConsultationApptId && !selectedPatientId && activeTab !== "Dashboard" && activeTab !== "Treatments" && activeTab !== "Settings" && (
-          <div className="bg-white dark:bg-slate-955 border-b border-slate-200 dark:border-slate-800 px-6 py-2.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none sticky top-20 z-20 shrink-0">
+          <div className="bg-white dark:bg-slate-955 border-b border-slate-200 dark:border-slate-800 px-3 sm:px-6 py-2.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none sticky top-16 sm:top-20 z-20 shrink-0 max-w-full">
             {moduleSubTabs[activeTab]?.map((subTab) => {
               const active = activeSubTab === subTab;
               return (
                 <button
                   key={subTab}
                   onClick={() => setActiveSubTab(subTab)}
-                  className={`px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all duration-200 ${
+                  className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                     active
                       ? "bg-blue-50 text-blue-705 dark:bg-blue-955/40 dark:text-blue-400"
                       : "text-slate-505 hover:text-slate-850 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-900"
@@ -10030,7 +10031,7 @@ Apex Clinic`;
         )}
 
         {/* Dashboard inner panels switcher */}
-        <main className="p-4 sm:p-5 lg:p-5 space-y-4 max-w-7xl w-full mx-auto flex-grow">
+        <main className="p-3 sm:p-5 space-y-4 max-w-7xl w-full mx-auto flex-grow min-w-0 overflow-x-hidden">
           {activeConsultationApptId ? (
             renderActiveConsultationWorkspace()
           ) : (
@@ -10049,18 +10050,18 @@ Apex Clinic`;
 
       {/* MOBILE DRAWER OVERLAY */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden bg-slate-900/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex md:hidden bg-slate-900/60 backdrop-blur-sm">
           <motion.div
             initial={{ x: -260 }}
             animate={{ x: 0 }}
-            className="w-64 bg-white dark:bg-slate-955 h-full p-4 flex flex-col justify-between"
+            className="w-64 bg-white dark:bg-slate-955 h-full p-4 flex flex-col justify-between shadow-2xl"
           >
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                 <DentalLogo showText={true} />
                 <button
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-1 hover:bg-slate-100 rounded-md dark:hover:bg-slate-800"
+                  className="p-1.5 hover:bg-slate-100 rounded-md dark:hover:bg-slate-800 text-slate-500 cursor-pointer"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -10076,9 +10077,9 @@ Apex Clinic`;
                         selectTab(item.name);
                         setMobileMenuOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
                         active
-                          ? "bg-blue-600 text-white"
+                          ? "bg-blue-600 text-white shadow-sm"
                           : "text-slate-655 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-900"
                       }`}
                     >
@@ -10095,7 +10096,7 @@ Apex Clinic`;
             <div className="border-t border-slate-100 dark:border-slate-800 pt-3 flex flex-col gap-2.5">
               <button
                 onClick={handleLogout}
-                className="text-xs font-semibold text-red-655 flex items-center gap-2 text-left"
+                className="text-xs font-semibold text-red-655 flex items-center gap-2 text-left p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-955/20 transition-colors cursor-pointer"
               >
                 <LogOut className="h-4 w-4" /> Logout
               </button>
