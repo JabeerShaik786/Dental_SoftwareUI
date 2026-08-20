@@ -4795,12 +4795,12 @@ Apex Clinic`;
             {/* TODAY - MONTH VIEW */}
             {activeSubTab === "Today" && apptView === "Month" && (
               <div>
-                <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-400 mb-3 border-b pb-2">
+                <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center text-[10px] sm:text-xs font-bold text-slate-400 mb-2 sm:mb-3 border-b pb-1.5 sm:pb-2">
                   {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
                     <div key={d} className="py-1">{d}</div>
                   ))}
                 </div>
-                <div className="grid grid-cols-7 gap-2">
+                <div className="grid grid-cols-7 gap-1 sm:gap-2">
                   {getDaysInMonth(apptCalendarDate).map((dayObj, index) => {
                     const dayDateStr = formatDateString(dayObj.date);
                     const dayAppts = filteredAppts.filter(a => a.date === dayDateStr);
@@ -4809,11 +4809,16 @@ Apex Clinic`;
                     return (
                       <div 
                         key={index} 
-                        className={`min-h-[110px] p-2 border rounded-xl flex flex-col justify-between transition-colors overflow-hidden relative cursor-pointer ${
+                        className={`min-h-[50px] sm:min-h-[110px] p-1 sm:p-2 border rounded-lg sm:rounded-xl flex flex-col justify-between transition-colors overflow-hidden relative cursor-pointer ${
                           dayObj.isCurrentMonth 
                             ? "bg-white border-slate-200 dark:bg-slate-955 dark:border-slate-800" 
                             : "bg-slate-50/50 border-slate-100 text-slate-400 dark:bg-slate-900/10 dark:border-slate-900"
                         }`}
+                        onClick={(e) => {
+                          if (dayAppts.length > 0) {
+                            handleCellMouseEnter(e.currentTarget.getBoundingClientRect(), dayDateStr, dayAppts);
+                          }
+                        }}
                         onMouseEnter={(e) => {
                           if (dayAppts.length > 0) {
                             handleCellMouseEnter(e.currentTarget.getBoundingClientRect(), dayDateStr, dayAppts);
@@ -4821,20 +4826,21 @@ Apex Clinic`;
                         }}
                         onMouseLeave={handleCellMouseLeave}
                       >
-                        <div className="flex justify-between items-center mb-1">
-                          <span className={`text-[10px] font-extrabold h-5 w-5 rounded-full flex items-center justify-center ${
+                        <div className="flex justify-between items-center mb-0.5 sm:mb-1">
+                          <span className={`text-[9px] sm:text-[10px] font-extrabold h-4 w-4 sm:h-5 sm:w-5 rounded-full flex items-center justify-center ${
                             isToday ? "bg-blue-600 text-white shadow-xs" : "text-slate-808 dark:text-slate-202"
                           }`}>
                             {dayObj.date.getDate()}
                           </span>
                         </div>
                         
-                        <div className="flex flex-col items-center justify-center flex-1 h-full pb-2">
+                        <div className="flex flex-col items-center justify-center flex-1 h-full pb-0.5 sm:pb-2">
                           {dayAppts.length > 0 && (
                             <div 
-                              className="px-2.5 py-1.5 rounded-lg bg-blue-50/70 border border-blue-100 text-blue-700 dark:bg-blue-955/20 dark:border-blue-900/30 dark:text-blue-400 text-[10px] font-extrabold text-center flex items-center justify-center whitespace-nowrap transition-all hover:scale-105"
+                              className="px-1 sm:px-2.5 py-0.5 sm:py-1.5 rounded-md sm:rounded-lg bg-blue-50/70 border border-blue-100 text-blue-700 dark:bg-blue-955/20 dark:border-blue-900/30 dark:text-blue-400 text-[8.5px] sm:text-[10px] font-extrabold text-center flex items-center justify-center whitespace-nowrap transition-all hover:scale-105"
                             >
-                              {dayAppts.length} {dayAppts.length === 1 ? "Appointment" : "Appointments"}
+                              <span className="hidden sm:inline">{dayAppts.length} {dayAppts.length === 1 ? "Appointment" : "Appointments"}</span>
+                              <span className="sm:hidden">{dayAppts.length}</span>
                             </div>
                           )}
                         </div>
@@ -10949,29 +10955,57 @@ Apex Clinic`;
       )}
 
       {hoveredApptDay && (
-        <div
-          style={{
-            position: "fixed",
-            top: hoveredApptDay.rect.top,
-            left: (typeof window !== "undefined" && hoveredApptDay.rect.left + hoveredApptDay.rect.width + 8 + 320 > window.innerWidth)
-              ? hoveredApptDay.rect.left - 328
-              : hoveredApptDay.rect.left + hoveredApptDay.rect.width + 8,
-            width: "320px",
-            zIndex: 9999
-          }}
-          onMouseEnter={handlePopoverMouseEnter}
-          onMouseLeave={handlePopoverMouseLeave}
-          className="animate-scaleIn bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-4 text-xs font-semibold text-slate-700 flex flex-col gap-3"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-850 pb-2">
-            <span className="font-bold text-slate-800 dark:text-white text-[13px]">
-              Appointments — {hoveredApptDay.dateStr}
-            </span>
-            <span className="text-[10px] bg-blue-50 text-blue-600 dark:bg-blue-955/30 dark:text-blue-400 px-1.5 py-0.5 rounded font-extrabold">
-              {hoveredApptDay.appointments.length}
-            </span>
-          </div>
+        <>
+          {/* Mobile backdrop for easy dismissal */}
+          <div 
+            className="fixed inset-0 z-[9998] bg-slate-900/40 backdrop-blur-xs sm:hidden"
+            onClick={() => setHoveredApptDay(null)}
+          />
+          <div
+            style={
+              typeof window !== "undefined" && window.innerWidth < 640
+                ? {
+                    position: "fixed",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    width: "calc(100vw - 2rem)",
+                    maxWidth: "340px",
+                    maxHeight: "85vh",
+                    zIndex: 9999
+                  }
+                : {
+                    position: "fixed",
+                    top: Math.min(hoveredApptDay.rect.top, (typeof window !== "undefined" ? window.innerHeight - 340 : 500)),
+                    left: (typeof window !== "undefined" && hoveredApptDay.rect.left + hoveredApptDay.rect.width + 8 + 320 > window.innerWidth)
+                      ? Math.max(16, hoveredApptDay.rect.left - 328)
+                      : hoveredApptDay.rect.left + hoveredApptDay.rect.width + 8,
+                    width: "320px",
+                    zIndex: 9999
+                  }
+            }
+            onMouseEnter={handlePopoverMouseEnter}
+            onMouseLeave={handlePopoverMouseLeave}
+            className="animate-scaleIn bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-4 text-xs font-semibold text-slate-700 flex flex-col gap-3 max-h-[85vh] overflow-y-auto"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-850 pb-2">
+              <span className="font-bold text-slate-800 dark:text-white text-[13px]">
+                Appointments — {hoveredApptDay.dateStr}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] bg-blue-50 text-blue-600 dark:bg-blue-955/30 dark:text-blue-400 px-1.5 py-0.5 rounded font-extrabold">
+                  {hoveredApptDay.appointments.length}
+                </span>
+                <button 
+                  type="button" 
+                  onClick={() => setHoveredApptDay(null)} 
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded sm:hidden"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
 
           {/* List */}
           <div className="space-y-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-1">
@@ -11016,6 +11050,7 @@ Apex Clinic`;
             ))}
           </div>
         </div>
+        </>
       )}
 
       {/* Floating Hover Popover Card for Booked Calendar Slots */}
