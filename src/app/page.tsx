@@ -1366,56 +1366,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleTime, setRescheduleTime] = useState("");
 
-  const [rescheduleModalAppt, setRescheduleModalAppt] = useState<Appointment | null>(null);
-  const [rescheduleModalDate, setRescheduleModalDate] = useState("");
-  const [rescheduleModalTime, setRescheduleModalTime] = useState("");
-
-  const openRescheduleModal = (appt: Appointment) => {
-    setRescheduleModalAppt(appt);
-    setRescheduleModalDate(convertToDbDate(appt.date));
-    setRescheduleModalTime(appt.time || "09:30 AM");
-  };
-
-  const handleConfirmRescheduleModal = async () => {
-    if (!rescheduleModalAppt || !rescheduleModalDate) return;
-    const formattedUiDate = convertToUiDate(rescheduleModalDate);
-    const formattedTime = rescheduleModalTime || rescheduleModalAppt.time;
-
-    if (clinicId) {
-      const { error } = await supabase
-        .from("appointments")
-        .update({
-          appointment_date: convertToDbDate(rescheduleModalDate),
-          time_slot: formattedTime
-        })
-        .eq("id", rescheduleModalAppt.id);
-
-      if (error) {
-        console.error("Reschedule DB update failed:", error.message);
-        showToast("Failed to reschedule appointment in database.", "error");
-        return;
-      }
-    }
-
-    setAppointments((prev) =>
-      prev.map((a) =>
-        a.id === rescheduleModalAppt.id
-          ? { ...a, date: formattedUiDate, time: formattedTime }
-          : a
-      )
-    );
-
-    if (selectedApptDetail && selectedApptDetail.id === rescheduleModalAppt.id) {
-      setSelectedApptDetail((prev) =>
-        prev ? { ...prev, date: formattedUiDate, time: formattedTime } : null
-      );
-    }
-
-    pushActivity("Appointment", `Rescheduled ${rescheduleModalAppt.patientName} to ${formattedUiDate} at ${formattedTime}.`);
-    showToast(`Appointment rescheduled to ${formattedUiDate} at ${formattedTime}.`, "success");
-    setRescheduleModalAppt(null);
-  };
-
   // --- PRESCRIPTION BUILDER STATES ---
   const [prescDoctor, setPrescDoctor] = useState("");
   const [prescDate, setPrescDate] = useState("");
@@ -3959,7 +3909,15 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           {/* Reschedule Button */}
                           <button
                             type="button"
-                            onClick={() => openRescheduleModal(app)}
+                            onClick={() => {
+                              const newDate = prompt("Enter new date (e.g. 12 Aug 2026):", app.date);
+                              const newTime = prompt("Enter new time (e.g. 09:30 AM):", app.time);
+                              if (newDate && newTime) {
+                                setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, date: newDate, time: newTime } : a));
+                                pushActivity("Appointment", `Rescheduled ${app.patientName} to ${newDate} at ${newTime}.`);
+                                showToast("Appointment rescheduled.", "success");
+                              }
+                            }}
                             className="px-3.5 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer shrink-0"
                           >
                             Reschedule
@@ -5284,8 +5242,25 @@ Apex Clinic`;
                   </Button>
                   <Button 
                     variant="outline"
-                    onClick={() => openRescheduleModal(selectedApptDetail)}
-                    className="h-10 text-[11px] font-bold rounded-lg cursor-pointer"
+                    onClick={async () => {
+                      const newDate = prompt("Enter new date (e.g. 15 Aug 2026):", selectedApptDetail.date);
+                      const newTime = prompt("Enter new time (e.g. 11:30 AM):", selectedApptDetail.time);
+                      if (newDate && newTime) {
+                        const { error } = await supabase
+                          .from("appointments")
+                          .update({ appointment_date: convertToDbDate(newDate), time_slot: newTime })
+                          .eq("id", selectedApptDetail.id);
+                        if (error) {
+                          console.error("Appointment operation failed:", error.message, error.code);
+                          showToast("Failed to reschedule appointment in database.", "error");
+                          return;
+                        }
+                        setAppointments(prev => prev.map(a => a.id === selectedApptDetail.id ? { ...a, date: newDate, time: newTime } : a));
+                        pushActivity("Appointment", `Rescheduled ${selectedApptDetail.patientName} to ${newDate} at ${newTime}.`);
+                      }
+                      setSelectedApptDetail(null);
+                    }}
+                    className="h-10 text-[11px] font-bold rounded-lg"
                   >
                     Reschedule
                   </Button>
@@ -9227,81 +9202,6 @@ Apex Clinic`;
           </div>
 
         </div>
-
-        {/* RESCHEDULE APPOINTMENT MODAL */}
-        {rescheduleModalAppt && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5 animate-scaleIn">
-              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-blue-600" />
-                  <h3 className="text-[16px] font-bold text-slate-900 dark:text-white">Reschedule Appointment</h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setRescheduleModalAppt(null)}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1 rounded-lg"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div className="bg-slate-50 dark:bg-slate-900 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 text-xs">
-                  <div className="font-bold text-slate-900 dark:text-white text-sm">{rescheduleModalAppt.patientName}</div>
-                  <div className="text-slate-500 mt-0.5 font-medium">
-                    {rescheduleModalAppt.treatment} • Dr. {rescheduleModalAppt.doctor}
-                  </div>
-                  <div className="text-blue-600 dark:text-blue-400 font-bold mt-1.5 flex items-center gap-1.5">
-                    <span>Current Slot: {rescheduleModalAppt.date} at {rescheduleModalAppt.time}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-                    Select New Appointment Date
-                  </label>
-                  <input
-                    type="date"
-                    value={rescheduleModalDate}
-                    onChange={(e) => setRescheduleModalDate(e.target.value)}
-                    className="w-full px-3 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-blue-600 cursor-pointer"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-                    Appointment Time
-                  </label>
-                  <input
-                    type="text"
-                    value={rescheduleModalTime}
-                    onChange={(e) => setRescheduleModalTime(e.target.value)}
-                    placeholder="e.g. 09:30 AM"
-                    className="w-full px-3 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-blue-600"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setRescheduleModalAppt(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmRescheduleModal}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-xs cursor-pointer transition-colors"
-                >
-                  Confirm Reschedule
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* --- DOCTOR ADD/EDIT MODAL --- */}
         {doctorModalOpen && (
