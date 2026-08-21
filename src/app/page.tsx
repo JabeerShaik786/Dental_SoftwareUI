@@ -4734,47 +4734,49 @@ Apex Clinic`;
         <div className="lg:col-span-10 space-y-4">
           
           {/* Filters Row */}
-          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-xs flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-605">
-            <div className="flex items-center gap-1.5">
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-xs flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs font-semibold text-slate-605">
+            <div className="hidden sm:flex items-center gap-1.5">
               <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400" />
               <span className="font-semibold text-slate-700 dark:text-slate-300">Filters:</span>
             </div>
 
-            <select 
-              value={apptSelectedStatus}
-              onChange={(e) => setApptSelectedStatus(e.target.value)}
-              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[12px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700 dark:text-slate-300"
-            >
-              <option value="All">All Statuses</option>
-              <option value="Scheduled">Scheduled</option>
-              <option value="Waiting">Waiting</option>
-              <option value="In Procedure">In Procedure</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
+            <div className="grid grid-cols-3 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:gap-3">
+              <select 
+                value={apptSelectedStatus}
+                onChange={(e) => setApptSelectedStatus(e.target.value)}
+                className="h-8.5 sm:h-8 w-full sm:w-auto px-2 sm:px-2.5 rounded-lg border border-slate-200 bg-white text-[11.5px] sm:text-[12px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700 dark:text-slate-300 truncate"
+              >
+                <option value="All">All Statuses</option>
+                <option value="Scheduled">Scheduled</option>
+                <option value="Waiting">Waiting</option>
+                <option value="In Procedure">In Procedure</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
 
-            <select 
-              value={apptSelectedTreatment}
-              onChange={(e) => setApptSelectedTreatment(e.target.value)}
-              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[12px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700 dark:text-slate-300"
-            >
-              <option value="All">All Treatments</option>
-              <option value="Root Canal">Root Canal</option>
-              <option value="Scaling">Scaling</option>
-              <option value="Implant">Implant</option>
-              <option value="Crown">Crown</option>
-              <option value="Consultation">Consultation</option>
-            </select>
+              <select 
+                value={apptSelectedTreatment}
+                onChange={(e) => setApptSelectedTreatment(e.target.value)}
+                className="h-8.5 sm:h-8 w-full sm:w-auto px-2 sm:px-2.5 rounded-lg border border-slate-200 bg-white text-[11.5px] sm:text-[12px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700 dark:text-slate-300 truncate"
+              >
+                <option value="All">All Treatments</option>
+                <option value="Root Canal">Root Canal</option>
+                <option value="Scaling">Scaling</option>
+                <option value="Implant">Implant</option>
+                <option value="Crown">Crown</option>
+                <option value="Consultation">Consultation</option>
+              </select>
 
-            <select 
-              value={apptSelectedType}
-              onChange={(e) => setApptSelectedType(e.target.value)}
-              className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[12px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700 dark:text-slate-300"
-            >
-              <option value="All">All Types</option>
-              <option value="Scheduled">Scheduled Only</option>
-              <option value="Walk-In">Walk-Ins Only</option>
-            </select>
+              <select 
+                value={apptSelectedType}
+                onChange={(e) => setApptSelectedType(e.target.value)}
+                className="h-8.5 sm:h-8 w-full sm:w-auto px-2 sm:px-2.5 rounded-lg border border-slate-200 bg-white text-[11.5px] sm:text-[12px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700 dark:text-slate-300 truncate"
+              >
+                <option value="All">All Types</option>
+                <option value="Scheduled">Scheduled Only</option>
+                <option value="Walk-In">Walk-Ins Only</option>
+              </select>
+            </div>
           </div>
 
           {/* Unified Calendar/Queue/History Card */}
