@@ -364,7 +364,7 @@ const menuItems = [
 const moduleSubTabs: Record<string, string[]> = {
   Dashboard: ["Overview"],
   Appointments: ["Today", "Queue", "History"],
-  Patients: ["All Patients", "Add Patient", "Dental Chart"],
+  Patients: ["All Patients", "Add Patient"],
   Treatments: ["Active Treatments", "Completed", "Treatment Plans"],
   Billing: ["Invoices", "Payments"],
   Reports: ["Revenue", "Patients", "Treatments", "Appointments"],
