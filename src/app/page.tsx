@@ -7082,17 +7082,17 @@ Apex Clinic`;
                 </Button>
               </div>
             </div>
-          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs font-semibold">
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs overflow-x-auto scrollbar-thin">
+            <table className="w-full min-w-[760px] text-left border-collapse text-xs font-semibold">
               <thead>
-                <tr className="border-b text-[10px] text-slate-450 uppercase tracking-wider">
-                  <th className="pb-2.5">Patient Name</th>
-                  <th className="pb-2.5">Phone</th>
-                  <th className="pb-2.5">Age</th>
-                  <th className="pb-2.5">Last Visit</th>
-                  <th className="pb-2.5">Balance</th>
-                  <th className="pb-2.5">Status</th>
-                  <th className="pb-2.5 text-center">Action</th>
+                <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] text-slate-450 uppercase tracking-wider">
+                  <th className="py-3 px-3 whitespace-nowrap min-w-[170px]">Patient Name</th>
+                  <th className="py-3 px-3 whitespace-nowrap min-w-[140px]">Phone</th>
+                  <th className="py-3 px-3 whitespace-nowrap min-w-[120px]">Age</th>
+                  <th className="py-3 px-3 whitespace-nowrap min-w-[110px]">Last Visit</th>
+                  <th className="py-3 px-3 whitespace-nowrap min-w-[100px]">Balance</th>
+                  <th className="py-3 px-3 whitespace-nowrap min-w-[100px]">Status</th>
+                  <th className="py-3 px-3 whitespace-nowrap text-center min-w-[120px]">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-705">
@@ -7103,23 +7103,23 @@ Apex Clinic`;
                     return pat.name.toLowerCase().includes(q) || pat.id.toLowerCase().includes(q) || pat.phone.includes(q);
                   })
                   .map((pat) => (
-                    <tr key={pat.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
-                      <td className="py-3 font-semibold text-slate-900 dark:text-white">
-                        <button onClick={() => setSelectedPatientId(pat.id)} className="hover:underline text-left text-[16px] font-semibold">
+                    <tr key={pat.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-colors">
+                      <td className="py-3.5 px-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
+                        <button onClick={() => setSelectedPatientId(pat.id)} className="hover:underline text-left text-[15px] sm:text-[16px] font-semibold cursor-pointer">
                           {pat.name}
                         </button>
                       </td>
-                      <td className="py-3 text-[14px] font-normal text-slate-500">{pat.phone}</td>
-                      <td className="py-3 text-[14px] font-normal">{pat.age} Years ({pat.gender[0]})</td>
-                      <td className="py-3 text-[12px] font-normal text-slate-455">{pat.visit}</td>
-                      <td className="py-3 text-[14px] font-semibold text-red-600">{pat.balance}</td>
-                      <td className="py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[12px] font-normal ${
+                      <td className="py-3.5 px-3 text-[13px] sm:text-[14px] font-normal text-slate-500 whitespace-nowrap">{pat.phone}</td>
+                      <td className="py-3.5 px-3 text-[13px] sm:text-[14px] font-normal whitespace-nowrap">{pat.age} Years ({pat.gender[0]})</td>
+                      <td className="py-3.5 px-3 text-[12px] font-normal text-slate-455 whitespace-nowrap">{pat.visit}</td>
+                      <td className="py-3.5 px-3 text-[13px] sm:text-[14px] font-semibold text-red-600 whitespace-nowrap">{pat.balance}</td>
+                      <td className="py-3.5 px-3 whitespace-nowrap">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[11px] sm:text-[12px] font-normal inline-block ${
                           pat.status === "Active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
                         }`}>{pat.status}</span>
                       </td>
-                      <td className="py-3 text-center">
-                        <button onClick={() => setSelectedPatientId(pat.id)} className="text-blue-605 hover:underline text-[14px] font-semibold">
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                        <button onClick={() => setSelectedPatientId(pat.id)} className="text-blue-605 hover:underline text-[13px] sm:text-[14px] font-semibold cursor-pointer">
                           Open Profile
                         </button>
                       </td>
