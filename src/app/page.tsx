@@ -4937,16 +4937,16 @@ Apex Clinic`;
             {activeSubTab === "Queue" && (
               <div className="space-y-4">
                 {queueAppts.length > 0 ? (
-                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-                    <table className="w-full text-left border-collapse text-xs font-semibold">
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto scrollbar-thin">
+                    <table className="w-full min-w-[680px] text-left border-collapse text-xs font-semibold">
                       <thead>
                         <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-400">
-                          <th className="p-3">Time</th>
-                          <th className="p-3">Patient</th>
-                          <th className="p-3">Doctor</th>
-                          <th className="p-3">Treatment</th>
-                          <th className="p-3">Status</th>
-                          <th className="p-3 text-right">Actions</th>
+                          <th className="p-3.5 whitespace-nowrap w-[90px]">Time</th>
+                          <th className="p-3.5 whitespace-nowrap min-w-[150px]">Patient</th>
+                          <th className="p-3.5 whitespace-nowrap min-w-[160px]">Doctor</th>
+                          <th className="p-3.5 whitespace-nowrap min-w-[130px]">Treatment</th>
+                          <th className="p-3.5 whitespace-nowrap min-w-[110px]">Status</th>
+                          <th className="p-3.5 whitespace-nowrap text-right min-w-[130px]">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-700 dark:text-slate-300">
@@ -4954,28 +4954,28 @@ Apex Clinic`;
                           const docInitials = appt.doctor.replace("Dr. ", "").split(" ").map(n => n[0]).join("").toUpperCase();
                           return (
                             <tr key={appt.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
-                              <td className="p-3 font-bold text-slate-808 dark:text-white">{appt.time}</td>
-                              <td className="p-3">
+                              <td className="p-3.5 font-bold text-slate-808 dark:text-white whitespace-nowrap">{appt.time}</td>
+                              <td className="p-3.5 whitespace-nowrap">
                                 <div>
-                                  <span className="font-bold text-slate-900 dark:text-white block">{appt.patientName}</span>
+                                  <span className="font-bold text-slate-900 dark:text-white block truncate">{appt.patientName}</span>
                                   <span className="text-[10px] text-slate-400 block">{appt.patientId}</span>
                                 </div>
                               </td>
-                              <td className="p-3">
+                              <td className="p-3.5 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
                                   <div className="h-6 w-6 rounded-full bg-blue-100 text-blue-755 font-bold text-[10px] flex items-center justify-center shrink-0">
                                     {docInitials}
                                   </div>
-                                  <span className="font-semibold text-slate-755 dark:text-slate-250">{appt.doctor}</span>
+                                  <span className="font-semibold text-slate-755 dark:text-slate-250 truncate">{appt.doctor}</span>
                                 </div>
                               </td>
-                              <td className="p-3">
-                                <span className="bg-blue-50 text-blue-700 dark:bg-blue-955/20 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase">
+                              <td className="p-3.5 whitespace-nowrap">
+                                <span className="bg-blue-50 text-blue-700 dark:bg-blue-955/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase inline-block">
                                   {appt.treatment}
                                 </span>
                               </td>
-                              <td className="p-3">
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              <td className="p-3.5 whitespace-nowrap">
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase inline-block ${
                                   appt.status === "Waiting" || appt.status === "Checked In"
                                     ? "bg-amber-50 text-amber-700 dark:bg-amber-955/20"
                                     : appt.status === "In Procedure"
@@ -4985,12 +4985,12 @@ Apex Clinic`;
                                   {appt.status}
                                 </span>
                               </td>
-                              <td className="p-3 text-right">
-                                <div className="flex justify-end gap-1.5">
+                              <td className="p-3.5 text-right whitespace-nowrap">
+                                <div className="flex justify-end gap-1.5 shrink-0">
                                   {appt.status === "Scheduled" && (
                                     <button 
                                       onClick={() => handleApptCheckIn(appt.id)}
-                                      className="px-2.5 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[10px]"
+                                      className="px-2.5 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[10px] cursor-pointer shrink-0"
                                     >
                                       Check In
                                     </button>
@@ -4998,7 +4998,7 @@ Apex Clinic`;
                                   {(appt.status === "Waiting" || appt.status === "Checked In") && (
                                     <button 
                                       onClick={() => handleApptStartProcedure(appt.id)}
-                                      className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px]"
+                                      className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] cursor-pointer shrink-0"
                                     >
                                       Start
                                     </button>
@@ -5009,14 +5009,14 @@ Apex Clinic`;
                                         setAppointments(prev => prev.map(a => a.id === appt.id ? { ...a, status: "Completed" } : a));
                                         pushActivity("Treatment", `Completed ${appt.treatment} for ${appt.patientName}.`);
                                       }}
-                                      className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px]"
+                                      className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] cursor-pointer shrink-0"
                                     >
                                       Complete
                                     </button>
                                   )}
                                   <button 
                                     onClick={() => setSelectedApptDetail(appt)}
-                                    className="px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-500 text-[10px]"
+                                    className="px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-500 text-[10px] cursor-pointer shrink-0"
                                   >
                                     Details
                                   </button>
@@ -5040,16 +5040,16 @@ Apex Clinic`;
             {activeSubTab === "History" && (
               <div className="space-y-4">
                 {historyAppts.length > 0 ? (
-                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-                    <table className="w-full text-left border-collapse text-xs font-semibold">
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto scrollbar-thin">
+                    <table className="w-full min-w-[720px] text-left border-collapse text-xs font-semibold">
                       <thead>
                         <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-400">
-                          <th className="p-3">Date & Time</th>
-                          <th className="p-3">Patient</th>
-                          <th className="p-3">Doctor</th>
-                          <th className="p-3">Treatment</th>
-                          <th className="p-3">Status</th>
-                          <th className="p-3">Clinical Notes</th>
+                          <th className="p-3.5 whitespace-nowrap min-w-[120px]">Date & Time</th>
+                          <th className="p-3.5 whitespace-nowrap min-w-[150px]">Patient</th>
+                          <th className="p-3.5 whitespace-nowrap min-w-[160px]">Doctor</th>
+                          <th className="p-3.5 whitespace-nowrap min-w-[130px]">Treatment</th>
+                          <th className="p-3.5 whitespace-nowrap min-w-[110px]">Status</th>
+                          <th className="p-3.5 whitespace-nowrap min-w-[180px]">Clinical Notes</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-700 dark:text-slate-300">
@@ -5057,33 +5057,33 @@ Apex Clinic`;
                           const docInitials = appt.doctor.replace("Dr. ", "").split(" ").map(n => n[0]).join("").toUpperCase();
                           return (
                             <tr key={appt.id} onClick={() => setSelectedApptDetail(appt)} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10 cursor-pointer">
-                              <td className="p-3">
+                              <td className="p-3.5 whitespace-nowrap">
                                 <div>
                                   <span className="font-bold text-slate-808 dark:text-white block">{appt.date}</span>
                                   <span className="text-[10px] text-slate-400 block">{appt.time}</span>
                                 </div>
                               </td>
-                              <td className="p-3">
+                              <td className="p-3.5 whitespace-nowrap">
                                 <div>
-                                  <span className="font-bold text-slate-900 dark:text-white block">{appt.patientName}</span>
+                                  <span className="font-bold text-slate-900 dark:text-white block truncate">{appt.patientName}</span>
                                   <span className="text-[10px] text-slate-405 block">{appt.patientId}</span>
                                 </div>
                               </td>
-                              <td className="p-3">
+                              <td className="p-3.5 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
                                   <div className="h-6 w-6 rounded-full bg-blue-105 text-blue-700 font-bold text-[10px] flex items-center justify-center shrink-0">
                                     {docInitials}
                                   </div>
-                                  <span className="font-semibold text-slate-750 dark:text-slate-250">{appt.doctor}</span>
+                                  <span className="font-semibold text-slate-750 dark:text-slate-250 truncate">{appt.doctor}</span>
                                 </div>
                               </td>
-                              <td className="p-3">
-                                <span className="bg-blue-50 text-blue-700 dark:bg-blue-955/20 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase">
+                              <td className="p-3.5 whitespace-nowrap">
+                                <span className="bg-blue-50 text-blue-700 dark:bg-blue-955/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase inline-block">
                                   {appt.treatment}
                                 </span>
                               </td>
-                              <td className="p-3">
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              <td className="p-3.5 whitespace-nowrap">
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase inline-block ${
                                   appt.status === "Completed"
                                     ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/20"
                                     : "bg-red-50 text-red-700 dark:bg-red-955/20"
@@ -5091,7 +5091,7 @@ Apex Clinic`;
                                   {appt.status}
                                 </span>
                               </td>
-                              <td className="p-3 text-slate-500 font-medium max-w-[200px] truncate">
+                              <td className="p-3.5 text-slate-500 font-medium max-w-[220px] truncate whitespace-nowrap">
                                 {appt.notes || "—"}
                               </td>
                             </tr>
