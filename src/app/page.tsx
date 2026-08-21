@@ -10023,7 +10023,32 @@ Apex Clinic`;
                   <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 mb-2">
                     <span className="font-bold">Clinic Notifications</span>
                     <button
-                      onClick={() => setNotifications(n => n.map(item => ({ ...item, unread: false })))}
+                      onClick={async () => {
+                        const userClinicId = clinicId;
+                        if (!userClinicId) {
+                          console.error("Clinic ID is missing. Cannot mark notifications as read.");
+                          return;
+                        }
+
+                        const { error } = await supabase
+                          .from("notifications")
+                          .update({ is_read: true })
+                          .eq("clinic_id", userClinicId)
+                          .eq("is_read", false);
+
+                        if (error) {
+                          console.error("Failed to mark notifications as read:", error);
+                          return;
+                        }
+
+                        setNotifications(prev =>
+                          prev.map(notification => ({
+                            ...notification,
+                            unread: false,
+                            is_read: true
+                          }))
+                        );
+                      }}
                       className="text-[10px] text-blue-605 hover:underline font-semibold"
                     >
                       Mark all read
@@ -10191,9 +10216,9 @@ Apex Clinic`;
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-md bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden text-xs font-semibold"
+            className="w-full max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[90vh] flex flex-col bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden text-xs font-semibold"
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
               <span className="font-bold text-base text-slate-900 dark:text-white">
                 {activeModal === "addPatient" && "Register New Patient File"}
                 {activeModal === "addAppointment" && "Book Clinic Appointment"}
@@ -10204,7 +10229,7 @@ Apex Clinic`;
               </button>
             </div>
 
-            <div className="p-5">
+            <div className="p-5 flex-1 min-h-0 flex flex-col overflow-hidden">
               {/* Register Patient Modal */}
               {activeModal === "addPatient" && (
                 <form onSubmit={async (e) => {
@@ -10224,39 +10249,41 @@ Apex Clinic`;
                     setNewPatAllergies("None");
                     setActiveModal(null);
                   }
-                }} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="newPatName">Patient Full Name</Label>
-                    <Input id="newPatName" placeholder="e.g. Aarav Mehta" value={newPatName} onChange={e => setNewPatName(e.target.value)} required />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
+                }} className="flex flex-col min-h-0 h-full">
+                  <div className="flex-1 overflow-y-auto space-y-4 pr-1 py-1">
                     <div className="space-y-1.5">
-                      <Label htmlFor="newPatPhone">Mobile Number</Label>
-                      <Input id="newPatPhone" placeholder="e.g. +91 98112 09230" value={newPatPhone} onChange={e => setNewPatPhone(e.target.value)} />
+                      <Label htmlFor="newPatName">Patient Full Name</Label>
+                      <Input id="newPatName" placeholder="e.g. Aarav Mehta" value={newPatName} onChange={e => setNewPatName(e.target.value)} required />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="newPatPhone">Mobile Number</Label>
+                        <Input id="newPatPhone" placeholder="e.g. +91 98112 09230" value={newPatPhone} onChange={e => setNewPatPhone(e.target.value)} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="newPatAge">Age</Label>
+                        <Input id="newPatAge" type="number" value={newPatAge} onChange={e => setNewPatAge(parseInt(e.target.value) || 30)} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="newPatGender">Gender</Label>
+                        <select id="newPatGender" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-808 focus:outline-none dark:bg-slate-950 dark:border-slate-800" value={newPatGender} onChange={e => setNewPatGender(e.target.value as "Male" | "Female")}>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="newPatAllergies">Medical Warnings</Label>
+                        <Input id="newPatAllergies" placeholder="e.g. Penicillin Allergy" value={newPatAllergies} onChange={e => setNewPatAllergies(e.target.value)} />
+                      </div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="newPatAge">Age</Label>
-                      <Input id="newPatAge" type="number" value={newPatAge} onChange={e => setNewPatAge(parseInt(e.target.value) || 30)} />
+                      <Label htmlFor="newPatAddress">Address</Label>
+                      <Input id="newPatAddress" placeholder="e.g. Indiranagar, Bengaluru" value={newPatAddress} onChange={e => setNewPatAddress(e.target.value)} />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="newPatGender">Gender</Label>
-                      <select id="newPatGender" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-808 focus:outline-none dark:bg-slate-950 dark:border-slate-800" value={newPatGender} onChange={e => setNewPatGender(e.target.value as "Male" | "Female")}>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="newPatAllergies">Medical Warnings</Label>
-                      <Input id="newPatAllergies" placeholder="e.g. Penicillin Allergy" value={newPatAllergies} onChange={e => setNewPatAllergies(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="newPatAddress">Address</Label>
-                    <Input id="newPatAddress" placeholder="e.g. Indiranagar, Bengaluru" value={newPatAddress} onChange={e => setNewPatAddress(e.target.value)} />
-                  </div>
-                  <div className="flex gap-3 justify-end pt-2">
+                  <div className="flex gap-3 justify-end pt-3 border-t border-slate-100 dark:border-slate-800 mt-3 shrink-0">
                     <Button type="button" variant="outline" onClick={() => setActiveModal(null)}>Cancel</Button>
                     <Button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-semibold">Register Patient</Button>
                   </div>
@@ -10265,55 +10292,74 @@ Apex Clinic`;
 
               {/* Book Appointment Modal */}
               {activeModal === "addAppointment" && (
-                <form onSubmit={handleGlobalBookAppointment} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="apptPatientId">Select Patient</Label>
-                    <select
-                      id="apptPatientId"
-                      className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-808 focus:outline-none dark:bg-slate-955 dark:border-slate-800"
-                      value={apptPatientId}
-                      onChange={e => setApptPatientId(e.target.value)}
-                      required
-                    >
-                      <option value="">-- Pick Patient Record --</option>
-                      {patients.map(p => (
-                        <option key={p.id} value={p.id}>{p.name} ({p.id})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
+                <form onSubmit={handleGlobalBookAppointment} className="flex flex-col min-h-0 h-full">
+                  <div className="flex-1 overflow-y-auto space-y-4 pr-1 py-1">
                     <div className="space-y-1.5">
-                      <Label htmlFor="apptDoctor">Doctor</Label>
-                      <select id="apptDoctor" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-808 focus:outline-none dark:bg-slate-950 dark:border-slate-800" value={apptDoctor} onChange={e => setApptDoctor(e.target.value)}>
-                        {doctors.map(d => (
-                          <option key={d.name} value={d.name}>{d.name}</option>
+                      <Label htmlFor="apptPatientId">Select Patient</Label>
+                      <select
+                        id="apptPatientId"
+                        className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-808 focus:outline-none dark:bg-slate-955 dark:border-slate-800"
+                        value={apptPatientId}
+                        onChange={e => setApptPatientId(e.target.value)}
+                        required
+                      >
+                        <option value="">-- Pick Patient Record --</option>
+                        {patients.map(p => (
+                          <option key={p.id} value={p.id}>{p.name} ({p.id})</option>
                         ))}
                       </select>
                     </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="apptDoctor">Doctor</Label>
+                        <select id="apptDoctor" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-808 focus:outline-none dark:bg-slate-950 dark:border-slate-800" value={apptDoctor} onChange={e => setApptDoctor(e.target.value)}>
+                          {doctors.map(d => (
+                            <option key={d.name} value={d.name}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="apptTime">Time Block</Label>
+                        <select
+                          id="apptTime"
+                          className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-808 focus:outline-none dark:bg-slate-950 dark:border-slate-800"
+                          value={apptTime}
+                          onChange={e => setApptTime(e.target.value)}
+                          required
+                        >
+                          <option value="">-- Pick Time Slot --</option>
+                          {["09:00 AM", "09:15 AM", "09:30 AM", "09:45 AM", "10:00 AM", "10:15 AM", "10:30 AM", "10:45 AM", "11:00 AM", "11:15 AM", "11:30 AM", "11:45 AM", "12:00 PM", "12:15 PM", "12:30 PM", "12:45 PM", "01:00 PM", "01:15 PM", "01:30 PM", "01:45 PM", "02:00 PM", "02:15 PM", "02:30 PM", "02:45 PM", "03:00 PM", "03:15 PM", "03:30 PM", "03:45 PM", "04:00 PM", "04:15 PM", "04:30 PM", "04:45 PM", "05:00 PM"].map(t => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="apptTreatment">Treatment Category</Label>
+                        <select id="apptTreatment" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-808 focus:outline-none dark:bg-slate-955 dark:border-slate-800" value={apptTreatment} onChange={e => setApptTreatment(e.target.value)}>
+                          {Object.keys(TREATMENT_PRICES).map(t => (
+                            <option key={t} value={t}>{t} (₹{TREATMENT_PRICES[t]})</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="apptDate">Date</Label>
+                        <Input
+                          id="apptDate"
+                          type="date"
+                          value={apptDate}
+                          onChange={e => setApptDate(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="apptTime">Time Block</Label>
-                      <Input id="apptTime" placeholder="e.g. 02:30 PM" value={apptTime} onChange={e => setApptTime(e.target.value)} required />
+                      <Label htmlFor="apptNotes">Notes</Label>
+                      <Input id="apptNotes" placeholder="e.g. Needs consultation review" value={apptNotes} onChange={e => setApptNotes(e.target.value)} />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="apptTreatment">Treatment Category</Label>
-                      <select id="apptTreatment" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-808 focus:outline-none dark:bg-slate-955 dark:border-slate-800" value={apptTreatment} onChange={e => setApptTreatment(e.target.value)}>
-                        {Object.keys(TREATMENT_PRICES).map(t => (
-                          <option key={t} value={t}>{t} (₹{TREATMENT_PRICES[t]})</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="apptDate">Date</Label>
-                      <Input id="apptDate" placeholder="12 Aug 2026" value={apptDate} onChange={e => setApptDate(e.target.value)} required />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="apptNotes">Notes</Label>
-                    <Input id="apptNotes" placeholder="e.g. Needs consultation review" value={apptNotes} onChange={e => setApptNotes(e.target.value)} />
-                  </div>
-                  <div className="flex gap-3 justify-end pt-2">
+                  <div className="flex gap-3 justify-end pt-3 border-t border-slate-100 dark:border-slate-800 mt-3 shrink-0">
                     <Button type="button" variant="outline" onClick={() => setActiveModal(null)}>Cancel</Button>
                     <Button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-semibold">Book Slot</Button>
                   </div>
@@ -10322,35 +10368,37 @@ Apex Clinic`;
 
               {/* Immediate Walk-In Check-In Modal */}
               {activeModal === "addWalkIn" && (
-                <form onSubmit={handleRegisterWalkIn} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="walkinName">Patient Name</Label>
-                    <Input id="walkinName" placeholder="e.g. Sneha Reddy" value={newPatName} onChange={e => setNewPatName(e.target.value)} required />
+                <form onSubmit={handleRegisterWalkIn} className="flex flex-col min-h-0 h-full">
+                  <div className="flex-1 overflow-y-auto space-y-4 pr-1 py-1">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="walkinName">Patient Name</Label>
+                      <Input id="walkinName" placeholder="e.g. Sneha Reddy" value={newPatName} onChange={e => setNewPatName(e.target.value)} required />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="walkinPhone">Mobile Number</Label>
+                        <Input id="walkinPhone" placeholder="e.g. +91 95408 81229" value={newPatPhone} onChange={e => setNewPatPhone(e.target.value)} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="walkinAge">Age</Label>
+                        <Input id="walkinAge" type="number" value={newPatAge} onChange={e => setNewPatAge(parseInt(e.target.value) || 30)} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="walkinGender">Gender</Label>
+                        <select id="walkinGender" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-808 focus:outline-none dark:bg-slate-950 dark:border-slate-800" value={newPatGender} onChange={e => setNewPatGender(e.target.value as "Male" | "Female")}>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="walkinAllergies">Medical Warnings / Allergies</Label>
+                        <Input id="walkinAllergies" placeholder="e.g. Penicillin Allergy" value={newPatAllergies} onChange={e => setNewPatAllergies(e.target.value)} />
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="walkinPhone">Mobile Number</Label>
-                      <Input id="walkinPhone" placeholder="e.g. +91 95408 81229" value={newPatPhone} onChange={e => setNewPatPhone(e.target.value)} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="walkinAge">Age</Label>
-                      <Input id="walkinAge" type="number" value={newPatAge} onChange={e => setNewPatAge(parseInt(e.target.value) || 30)} />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="walkinGender">Gender</Label>
-                      <select id="walkinGender" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-808 focus:outline-none dark:bg-slate-950 dark:border-slate-800" value={newPatGender} onChange={e => setNewPatGender(e.target.value as "Male" | "Female")}>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="walkinAllergies">Medical Warnings / Allergies</Label>
-                      <Input id="walkinAllergies" placeholder="e.g. Penicillin Allergy" value={newPatAllergies} onChange={e => setNewPatAllergies(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="flex gap-3 justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex gap-3 justify-end pt-3 border-t border-slate-100 dark:border-slate-800 mt-3 shrink-0">
                     <Button type="button" variant="outline" onClick={() => setActiveModal(null)}>Cancel</Button>
                     <Button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-semibold">Checked In Waiting</Button>
                   </div>
