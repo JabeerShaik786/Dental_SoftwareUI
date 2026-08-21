@@ -472,13 +472,11 @@ const convertToUiDate = (dbDate: string): string => {
 export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initialTab?: string } = {}) {
   const router = useRouter();
   const [loadingSession, setLoadingSession] = useState(true);
-  const [clinicId, setClinicId] = useState<string | null>(null);
   const supabase = createClient();
 
-  const seedMockPatients = async (userClinicId: string) => {
+  const seedMockPatients = async () => {
     const insertRows = DEFAULT_MOCK_PATIENTS.map(p => ({
       patient_id: p.id,
-      clinic_id: userClinicId,
       name: p.name,
       phone: p.phone,
       age: p.age,
@@ -503,12 +501,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }
   };
 
-  const fetchClinicData = async (userClinicId: string) => {
+  const fetchClinicData = async () => {
     // 1. Fetch patients
     const { data: dbPatients, error: patErr } = await supabase
       .from("patients")
       .select("*")
-      .eq("clinic_id", userClinicId)
       .order("created_at", { ascending: false });
 
     if (patErr) {
@@ -519,9 +516,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     if (dbPatients) {
       if (dbPatients.length === 0) {
-        await seedMockPatients(userClinicId);
+        await seedMockPatients();
         // Re-fetch data statefully after insert completion
-        return fetchClinicData(userClinicId);
+        return fetchClinicData();
       }
 
       const mappedPatients: Patient[] = dbPatients.map(p => ({
@@ -551,7 +548,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const { data: dbBilling, error: billErr } = await supabase
       .from("billing")
       .select("*")
-      .eq("clinic_id", userClinicId)
       .order("created_at", { ascending: false });
 
     if (billErr) {
@@ -582,8 +578,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     // 3. Fetch doctors
     const { data: dbDoctors } = await supabase
       .from("doctors")
-      .select("*")
-      .eq("clinic_id", userClinicId);
+      .select("*");
 
     if (dbDoctors && dbDoctors.length > 0) {
       const mappedDoctors: Doctor[] = dbDoctors.map(d => ({
@@ -600,7 +595,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const { data: dbAppointments, error: apptErr } = await supabase
       .from("appointments")
       .select("*")
-      .eq("clinic_id", userClinicId)
       .order("created_at", { ascending: true });
 
     if (apptErr) {
@@ -653,7 +647,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       .from("billing")
       .insert({
         invoice_id: newInvoice.id,
-        clinic_id: clinicId,
         patient_id: dbPatientUuid,
         patient_name: newInvoice.patientName,
         doctor: newInvoice.doctor,
@@ -684,7 +677,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const handleSessionSuccess = async (session: any) => {
       let { data: profile, error: profileErr } = await supabase
         .from("profiles")
-        .select("clinic_id")
+        .select("id, role, full_name")
         .eq("id", session.user.id)
         .maybeSingle();
 
@@ -694,28 +687,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         return;
       }
 
-      let userClinicId = profile?.clinic_id;
-
       if (!profile) {
-        const { data: clinic, error: clinicErr } = await supabase
-          .from("clinics")
-          .insert({ name: "Heal OS Practice" })
-          .select()
-          .single();
-
-        if (clinicErr || !clinic) {
-          showToast("Error provisioning clinic workspace.", "error");
-          setLoadingSession(false);
-          return;
-        }
-
-        userClinicId = clinic.id;
-
         const { error: insertProfileErr } = await supabase
           .from("profiles")
           .insert({
             id: session.user.id,
-            clinic_id: userClinicId,
             role: "admin",
             full_name: session.user.email?.split("@")[0] || "User"
           });
@@ -727,8 +703,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         }
       }
 
-      setClinicId(userClinicId);
-      await fetchClinicData(userClinicId);
+      await fetchClinicData();
       setLoadingSession(false);
     };
 
@@ -1962,11 +1937,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       showToast("Selected patient record has no database UUID associated.", "error");
       return;
     }
-    const userClinicId = clinicId;
-    if (!userClinicId) {
-      showToast("Clinic ID is not available. Please re-authenticate.", "error");
-      return;
-    }
 
     const selectedDoctorName = patApptDoctor || (doctors[0]?.name || "");
     const doctorRecord = doctors.find(d => d.name === selectedDoctorName);
@@ -1975,7 +1945,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const { data: dbAppt, error: apptErr } = await supabase
       .from("appointments")
       .insert({
-        clinic_id: userClinicId,
         patient_id: patientItem.uuid,
         doctor_id: doctorId,
         appointment_date: convertToDbDate(patApptDate),
@@ -2645,33 +2614,12 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       return;
     }
 
-    // Get that user's clinic_id from the profiles table
-    const { data: profile, error: profileErr } = await supabase
-      .from("profiles")
-      .select("clinic_id")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (profileErr) {
-      console.error("Walk-in registration failed: profile query error", profileErr.message, profileErr.code);
-      showToast("Failed to retrieve user profile.", "error");
-      return;
-    }
-
-    const activeClinicId = profile?.clinic_id;
-    if (!activeClinicId) {
-      console.error("Walk-in registration failed: user profile has no associated clinic_id");
-      showToast("No clinic workspace associated with your account.", "error");
-      return;
-    }
-
     // Check for duplicate mobile number in database
     const trimmedPhone = (newPatPhone || "").trim();
     if (trimmedPhone) {
       const { data: duplicatePat, error: checkErr } = await supabase
         .from("patients")
         .select("id")
-        .eq("clinic_id", activeClinicId)
         .eq("phone", trimmedPhone)
         .maybeSingle();
 
@@ -2686,8 +2634,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     // Generate unique Patient ID by counting rows in the database
     const { count, error: countErr } = await supabase
       .from("patients")
-      .select("*", { count: "exact", head: true })
-      .eq("clinic_id", activeClinicId);
+      .select("*", { count: "exact", head: true });
 
     if (countErr) {
       console.error("Walk-in ID generation failed: count query error", countErr.message, countErr.code);
@@ -2701,7 +2648,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       .from("patients")
       .insert({
         patient_id: patientId,
-        clinic_id: activeClinicId,
         name: newPatName,
         phone: newPatPhone || "+91 99000 11000",
         age: newPatAge,
@@ -2749,7 +2695,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const { data: dbAppt, error: apptErr } = await supabase
       .from("appointments")
       .insert({
-        clinic_id: activeClinicId,
         patient_id: insertedPat.id,
         doctor_id: doctorId,
         appointment_date: new Date().toISOString().split("T")[0],
@@ -2803,11 +2748,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       showToast("Selected patient has no database UUID associated.", "error");
       return;
     }
-    const userClinicId = clinicId;
-    if (!userClinicId) {
-      showToast("Clinic ID is not available. Please re-authenticate.", "error");
-      return;
-    }
 
     const doctorRecord = doctors.find(d => d.name === apptDoctor);
     const doctorId = doctorRecord?.id || null;
@@ -2815,7 +2755,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const { data: dbAppt, error: apptErr } = await supabase
       .from("appointments")
       .insert({
-        clinic_id: userClinicId,
         patient_id: pat.uuid,
         doctor_id: doctorId,
         appointment_date: convertToDbDate(apptDate),
@@ -2901,31 +2840,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       return false;
     }
 
-    // Get that user's clinic_id from the profiles table
-    const { data: profile, error: profileErr } = await supabase
-      .from("profiles")
-      .select("clinic_id")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (profileErr) {
-      console.error("Patient insert failed: profile query error", profileErr.message, profileErr.code);
-      showToast("Failed to retrieve user profile.", "error");
-      return false;
-    }
-
-    const activeClinicId = profile?.clinic_id;
-    if (!activeClinicId) {
-      console.error("Patient insert failed: user profile has no associated clinic_id");
-      showToast("No clinic workspace associated with your account.", "error");
-      return false;
-    }
-
     // Check for duplicate mobile number in database
     const { data: duplicatePat, error: checkErr } = await supabase
       .from("patients")
       .select("id")
-      .eq("clinic_id", activeClinicId)
       .eq("phone", trimmedPhone)
       .maybeSingle();
 
@@ -2939,8 +2857,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     // Generate unique Patient ID by counting rows in the database
     const { count, error: countErr } = await supabase
       .from("patients")
-      .select("*", { count: "exact", head: true })
-      .eq("clinic_id", activeClinicId);
+      .select("*", { count: "exact", head: true });
 
     if (countErr) {
       console.error("Patient ID generation failed: count query error", countErr.message, countErr.code);
@@ -2955,7 +2872,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       .from("patients")
       .insert({
         patient_id: patientId,
-        clinic_id: activeClinicId,
         name: trimmedName,
         phone: trimmedPhone,
         age: patientData.age,
@@ -3052,11 +2968,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       showToast("Selected patient record has no database UUID associated.", "error");
       return;
     }
-    const userClinicId = clinicId;
-    if (!userClinicId) {
-      showToast("Clinic ID is not available. Please re-authenticate.", "error");
-      return;
-    }
 
     const doctorRecord = doctors.find(d => d.name === slotDoctor);
     const doctorId = doctorRecord?.id || null;
@@ -3064,7 +2975,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const { data: dbAppt, error: apptErr } = await supabase
       .from("appointments")
       .insert({
-        clinic_id: userClinicId,
         patient_id: pat.uuid,
         doctor_id: doctorId,
         appointment_date: convertToDbDate(selectedSlotData.date),
@@ -10026,16 +9936,9 @@ Apex Clinic`;
                     <span className="font-bold">Clinic Notifications</span>
                     <button
                       onClick={async () => {
-                        const userClinicId = clinicId;
-                        if (!userClinicId) {
-                          console.error("Clinic ID is missing. Cannot mark notifications as read.");
-                          return;
-                        }
-
                         const { error } = await supabase
                           .from("notifications")
                           .update({ is_read: true })
-                          .eq("clinic_id", userClinicId)
                           .eq("is_read", false);
 
                         if (error) {
