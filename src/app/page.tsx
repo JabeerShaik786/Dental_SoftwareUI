@@ -11049,7 +11049,7 @@ Apex Clinic`;
           {/* Mobile and Pinned backdrop for easy dismissal */}
           <div 
             className={`fixed inset-0 z-[9998] bg-slate-900/40 backdrop-blur-xs ${
-              hoveredApptDay.isPinned ? "block" : "hidden sm:hidden"
+              hoveredApptDay.isPinned ? "block" : "block sm:hidden"
             }`}
             onClick={(e) => {
               e.stopPropagation();
@@ -11058,31 +11058,19 @@ Apex Clinic`;
           />
           <div
             style={
-              typeof window !== "undefined" && window.innerWidth < 640
+              typeof window !== "undefined"
                 ? {
-                    position: "fixed",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    width: "calc(100vw - 2rem)",
-                    maxWidth: "360px",
-                    maxHeight: "85vh",
-                    zIndex: 9999
-                  }
-                : {
-                    position: "fixed",
-                    top: Math.min(hoveredApptDay.rect.top, (typeof window !== "undefined" ? window.innerHeight - 340 : 500)),
-                    left: (typeof window !== "undefined" && hoveredApptDay.rect.left + hoveredApptDay.rect.width + 8 + 320 > window.innerWidth)
+                    top: Math.min(hoveredApptDay.rect.top, Math.max(16, window.innerHeight - 340)),
+                    left: (hoveredApptDay.rect.left + hoveredApptDay.rect.width + 8 + 320 > window.innerWidth)
                       ? Math.max(16, hoveredApptDay.rect.left - 328)
                       : hoveredApptDay.rect.left + hoveredApptDay.rect.width + 8,
-                    width: "320px",
-                    zIndex: 9999
                   }
+                : undefined
             }
             onClick={(e) => e.stopPropagation()}
             onMouseEnter={handlePopoverMouseEnter}
             onMouseLeave={handlePopoverMouseLeave}
-            className="animate-scaleIn bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-4 text-xs font-semibold text-slate-700 flex flex-col gap-3 max-h-[85vh] overflow-y-auto"
+            className="animate-scaleIn bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-4 text-xs font-semibold text-slate-700 flex flex-col gap-3 z-[9999] max-h-[85vh] overflow-y-auto max-sm:fixed! max-sm:top-1/2! max-sm:left-1/2! max-sm:-translate-x-1/2! max-sm:-translate-y-1/2! max-sm:w-[calc(100vw-32px)]! max-sm:max-w-[360px]! max-sm:m-0! sm:fixed sm:w-[320px]"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-850 pb-2">
