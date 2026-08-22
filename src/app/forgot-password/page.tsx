@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, AlertCircle, ArrowLeft, MailCheck, Mail } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
 
 const forgotPasswordSchema = z.object({
   email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
@@ -22,6 +23,9 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  const supabase = createClient();
 
   const {
     register,
@@ -36,13 +40,25 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (data: ForgotPasswordSchemaType) => {
     setIsLoading(true);
+    setApiError(null);
     setSubmittedEmail(data.email);
     
-    // Simulate API Request
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    setIsLoading(false);
-    setIsSuccess(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+
+      if (error) {
+        setApiError(error.message || "Failed to send reset link. Please check the email address.");
+        setIsLoading(false);
+      } else {
+        setIsLoading(false);
+        setIsSuccess(true);
+      }
+    } catch {
+      setApiError("A network error occurred. Please try again later.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -70,6 +86,13 @@ export default function ForgotPasswordPage() {
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {apiError && (
+                <div className="flex items-center gap-3 rounded-xl bg-red-50 p-4 text-[14px] text-red-750 border border-red-100">
+                  <AlertCircle className="h-5 w-5 shrink-0" />
+                  <span>{apiError}</span>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <Label htmlFor="email" className="text-[#334155] dark:text-slate-300 font-medium text-[16px] block">
                   Email Address

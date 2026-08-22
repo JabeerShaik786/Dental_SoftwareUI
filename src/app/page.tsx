@@ -160,6 +160,8 @@ interface Staff {
   role: string;
   phone: string;
   status: "Active" | "Inactive" | "On Leave";
+  has_login?: boolean;
+  email?: string;
 }
 
 interface BackupHistoryItem {
@@ -517,6 +519,21 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   };
 
   const fetchClinicData = async () => {
+    if (currentUserId) {
+      const { data: currentProfile } = await supabase
+        .from("profiles")
+        .select("status")
+        .eq("id", currentUserId)
+        .maybeSingle();
+
+      if (currentProfile && currentProfile.status === "Inactive") {
+        showToast("Your account has been deactivated. Signing out.", "error");
+        await supabase.auth.signOut();
+        router.push("/login");
+        return;
+      }
+    }
+
     // 1. Fetch patients
     const { data: dbPatients, error: patErr } = await supabase
       .from("patients")
@@ -675,7 +692,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
             name: p.full_name || "Unknown Staff",
             role: p.custom_title || p.role || "staff",
             phone: p.phone || "",
-            status: (p.status === "Active" || p.status === "Inactive" || p.status === "On Leave") ? p.status : "Active"
+            status: (p.status === "Active" || p.status === "Inactive" || p.status === "On Leave") ? p.status : "Active",
+            has_login: p.has_login || false,
+            email: p.email || ""
           };
         });
       setStaffList(mappedStaff);
@@ -828,12 +847,20 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       setCurrentUserId(session.user.id);
       let { data: profile, error: profileErr } = await supabase
         .from("profiles")
-        .select("id, role, full_name")
+        .select("id, role, full_name, status")
         .eq("id", session.user.id)
         .maybeSingle();
 
       if (profileErr) {
         showToast("Error retrieving user profile.", "error");
+        setLoadingSession(false);
+        return;
+      }
+
+      if (profile && profile.status === "Inactive") {
+        showToast("Your account has been deactivated. Please contact the administrator.", "error");
+        await supabase.auth.signOut();
+        router.push("/login");
         setLoadingSession(false);
         return;
       }
@@ -1653,11 +1680,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [docFormPhone, setDocFormPhone] = useState("");
   const [docFormStatus, setDocFormStatus] = useState<"Available" | "In Consultation" | "On Break" | "Finished Today">("Available");
 
-  // Form states for adding/editing staff
   const [staffFormName, setStaffFormName] = useState("");
   const [staffFormRole, setStaffFormRole] = useState("Desk Operations");
   const [staffFormPhone, setStaffFormPhone] = useState("");
   const [staffFormStatus, setStaffFormStatus] = useState<"Active" | "Inactive" | "On Leave">("Active");
+  const [staffFormEmail, setStaffFormEmail] = useState("");
+  const [staffFormPassword, setStaffFormPassword] = useState("");
+  const [staffFormHasLogin, setStaffFormHasLogin] = useState(false);
 
   const [activities, setActivities] = useState<ActivityItem[]>([]);
 
@@ -9013,6 +9042,9 @@ Apex Clinic`;
       setStaffFormRole("Desk Operations");
       setStaffFormPhone("");
       setStaffFormStatus("Active");
+      setStaffFormEmail("");
+      setStaffFormPassword("");
+      setStaffFormHasLogin(false);
       setStaffModalOpen(true);
     };
 
@@ -9022,6 +9054,9 @@ Apex Clinic`;
       setStaffFormRole(st.role);
       setStaffFormPhone(st.phone);
       setStaffFormStatus(st.status);
+      setStaffFormEmail(st.email || "");
+      setStaffFormPassword("");
+      setStaffFormHasLogin(st.has_login || false);
       setStaffModalOpen(true);
     };
 
@@ -9052,7 +9087,8 @@ Apex Clinic`;
             role: dbRole,
             custom_title: trimmedRole,
             phone: staffFormPhone.trim(),
-            status: staffFormStatus
+            status: staffFormStatus,
+            email: staffFormEmail.trim() || null
           })
           .eq("id", editingStaff.id);
 
@@ -9062,6 +9098,36 @@ Apex Clinic`;
           return;
         }
         showToast("Staff member updated successfully.", "success");
+      } else if (staffFormHasLogin) {
+        if (!staffFormEmail.trim() || !staffFormPassword.trim()) {
+          showToast("Email and password are required for login access.", "error");
+          return;
+        }
+
+        const res = await fetch("/api/staff", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            email: staffFormEmail.trim(),
+            password: staffFormPassword.trim(),
+            fullName: trimmedName,
+            role: dbRole,
+            customTitle: trimmedRole,
+            phone: staffFormPhone.trim() || "+91 98765 00000",
+            status: staffFormStatus
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          console.error("Failed to create staff account:", data.error);
+          showToast(data.error || "Failed to create staff member account.", "error");
+          return;
+        }
+
+        showToast("New staff member account created successfully.", "success");
       } else {
         const newId = typeof window !== "undefined" && window.crypto && window.crypto.randomUUID
           ? window.crypto.randomUUID()
@@ -9080,7 +9146,8 @@ Apex Clinic`;
             custom_title: trimmedRole,
             phone: staffFormPhone.trim() || "+91 98765 00000",
             status: staffFormStatus,
-            has_login: false
+            has_login: false,
+            email: staffFormEmail.trim() || null
           });
 
         if (error) {
@@ -9830,6 +9897,62 @@ Apex Clinic`;
                     <option value="On Leave">On Leave</option>
                   </select>
                 </div>
+
+                {!editingStaff && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="enableLogin"
+                        checked={staffFormHasLogin}
+                        onChange={(e) => setStaffFormHasLogin(e.target.checked)}
+                        className="rounded border-slate-200 dark:border-slate-800 text-blue-600 focus:ring-blue-500 h-4 w-4"
+                      />
+                      <label htmlFor="enableLogin" className="text-[13px] font-medium select-none">
+                        Enable Login Access
+                      </label>
+                    </div>
+
+                    {staffFormHasLogin && (
+                      <div className="space-y-4 border-l-2 border-slate-100 dark:border-slate-800 pl-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-[13px] font-medium">Login Email</Label>
+                          <Input
+                            type="email"
+                            required={staffFormHasLogin}
+                            placeholder="staff@healthos.com"
+                            value={staffFormEmail}
+                            onChange={(e) => setStaffFormEmail(e.target.value)}
+                            className="h-10 text-[13px]"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-[13px] font-medium">Login Password</Label>
+                          <Input
+                            type="password"
+                            required={staffFormHasLogin}
+                            placeholder="Min. 8 characters"
+                            value={staffFormPassword}
+                            onChange={(e) => setStaffFormPassword(e.target.value)}
+                            className="h-10 text-[13px]"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {editingStaff && editingStaff.has_login && (
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-medium">Login Email</Label>
+                    <Input
+                      type="email"
+                      value={staffFormEmail}
+                      onChange={(e) => setStaffFormEmail(e.target.value)}
+                      className="h-10 text-[13px]"
+                    />
+                  </div>
+                )}
 
                 <div className="flex justify-end gap-3 pt-2">
                   <Button type="button" variant="outline" onClick={() => setStaffModalOpen(false)} className="h-10 px-4 text-xs">

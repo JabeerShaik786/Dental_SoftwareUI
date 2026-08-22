@@ -58,7 +58,7 @@ export default function LoginPage() {
     setApiError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
@@ -70,12 +70,27 @@ export default function LoginPage() {
           setApiError("An authentication error occurred. Please check your credentials.");
         }
         setIsLoading(false);
+      } else if (signInData?.user) {
+        // Check profile status
+        const { data: profile, error: profileErr } = await supabase
+          .from("profiles")
+          .select("status")
+          .eq("id", signInData.user.id)
+          .maybeSingle();
+
+        if (profile && profile.status === "Inactive") {
+          setApiError("Your account has been deactivated. Please contact the administrator.");
+          await supabase.auth.signOut();
+          setIsLoading(false);
+        } else {
+          setIsSuccess(true);
+          setIsLoading(false);
+          setTimeout(() => {
+            router.push("/");
+          }, 1500);
+        }
       } else {
-        setIsSuccess(true);
         setIsLoading(false);
-        setTimeout(() => {
-          router.push("/");
-        }, 1500);
       }
     } catch {
       setApiError("A network error occurred. Please try again later.");
