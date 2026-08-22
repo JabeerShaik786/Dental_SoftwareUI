@@ -1552,10 +1552,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
-  const [invoices, setInvoices] = useState<InvoiceItem[]>([
-    { id: "INV-1001", patientId: "DS-1011", patientName: "Vikram Malhotra", doctor: "Dr. Deepa Kodali", treatment: "Consultation", items: [{ description: "Consultation Fee", amount: 500 }, { description: "Pain Reliever pills", amount: 300 }], discount: 10, tax: 0, subtotal: 800, total: 720, paidAmount: 720, status: "Paid", paymentDate: "10 Aug 2026", paymentLogs: [{ method: "UPI GPay", amount: 720, date: "10 Aug 2026" }] },
-    { id: "INV-1002", patientId: "DS-1012", patientName: "Meera Nair", doctor: "Dr. Raghuram", treatment: "Scaling", items: [{ description: "Scaling and Polishing", amount: 1500 }], discount: 0, tax: 0, subtotal: 1500, total: 1500, paidAmount: 1000, status: "Partially Paid", paymentDate: "05 Aug 2026", paymentLogs: [{ method: "Cash", amount: 1000, date: "05 Aug 2026" }] }
-  ]);
+  const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
 
   const [doctors, setDoctors] = useState<Doctor[]>([]);
 
