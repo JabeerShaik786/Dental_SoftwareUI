@@ -1383,6 +1383,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleTime, setRescheduleTime] = useState("");
 
+  const [rescheduleModalAppt, setRescheduleModalAppt] = useState<Appointment | null>(null);
+  const [reschedulePickerDate, setReschedulePickerDate] = useState("");
+  const [reschedulePickerTime, setReschedulePickerTime] = useState("");
+
   // --- PRESCRIPTION BUILDER STATES ---
   const [prescDoctor, setPrescDoctor] = useState("");
   const [prescDate, setPrescDate] = useState("");
@@ -3864,13 +3868,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => {
-                              const newDate = prompt("Enter new date (e.g. 12 Aug 2026):", app.date);
-                              const newTime = prompt("Enter new time (e.g. 09:30 AM):", app.time);
-                              if (newDate && newTime) {
-                                setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, date: newDate, time: newTime } : a));
-                                pushActivity("Appointment", `Rescheduled ${app.patientName} to ${newDate} at ${newTime}.`);
-                                showToast("Appointment rescheduled.", "success");
-                              }
+                              setRescheduleModalAppt(app);
+                              setReschedulePickerDate(convertToDbDate(app.date));
+                              setReschedulePickerTime(app.time || "09:30 AM");
                             }}
                             className="px-3.5 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer shrink-0"
                           >
@@ -5204,22 +5204,10 @@ Apex Clinic`;
                   </Button>
                   <Button 
                     variant="outline"
-                    onClick={async () => {
-                      const newDate = prompt("Enter new date (e.g. 15 Aug 2026):", selectedApptDetail.date);
-                      const newTime = prompt("Enter new time (e.g. 11:30 AM):", selectedApptDetail.time);
-                      if (newDate && newTime) {
-                        const { error } = await supabase
-                          .from("appointments")
-                          .update({ appointment_date: convertToDbDate(newDate), time_slot: newTime })
-                          .eq("id", selectedApptDetail.id);
-                        if (error) {
-                          console.error("Appointment operation failed:", error.message, error.code);
-                          showToast("Failed to reschedule appointment in database.", "error");
-                          return;
-                        }
-                        setAppointments(prev => prev.map(a => a.id === selectedApptDetail.id ? { ...a, date: newDate, time: newTime } : a));
-                        pushActivity("Appointment", `Rescheduled ${selectedApptDetail.patientName} to ${newDate} at ${newTime}.`);
-                      }
+                    onClick={() => {
+                      setRescheduleModalAppt(selectedApptDetail);
+                      setReschedulePickerDate(convertToDbDate(selectedApptDetail.date));
+                      setReschedulePickerTime(selectedApptDetail.time || "09:30 AM");
                       setSelectedApptDetail(null);
                     }}
                     className="h-10 text-[11px] font-bold rounded-lg"
@@ -10656,6 +10644,118 @@ Apex Clinic`;
           </motion.div>
         </div>
       )}
+      {/* RESCHEDULE APPOINTMENT MODAL DIALOG */}
+      <AnimatePresence>
+        {rescheduleModalAppt && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-5 sm:p-6 w-full max-w-md space-y-5"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-955/40 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-900/40">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">Reschedule Appointment</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {rescheduleModalAppt.patientName} • {rescheduleModalAppt.treatment}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRescheduleModalAppt(null)}
+                  className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
+                    Select New Date
+                  </label>
+                  <input
+                    type="date"
+                    value={reschedulePickerDate}
+                    onChange={(e) => setReschedulePickerDate(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
+                    Select Time Slot
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {["09:00 AM", "10:30 AM", "11:30 AM", "02:00 PM", "03:30 PM", "05:00 PM"].map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setReschedulePickerTime(t)}
+                        className={`py-2 px-2 rounded-xl text-xs font-bold transition-all border cursor-pointer text-center ${
+                          reschedulePickerTime === t
+                            ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                            : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setRescheduleModalAppt(null)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!reschedulePickerDate) {
+                      showToast("Please select a valid date.", "error");
+                      return;
+                    }
+                    const formattedUiDate = convertToUiDate(reschedulePickerDate);
+                    const formattedTime = reschedulePickerTime || rescheduleModalAppt.time || "09:30 AM";
+
+                    const { error } = await supabase
+                      .from("appointments")
+                      .update({ appointment_date: convertToDbDate(formattedUiDate), time_slot: formattedTime })
+                      .eq("id", rescheduleModalAppt.id);
+
+                    if (error) {
+                      console.error("Appointment operation failed:", error.message, error.code);
+                      showToast("Failed to reschedule appointment in database.", "error");
+                      return;
+                    }
+
+                    setAppointments(prev => prev.map(a => a.id === rescheduleModalAppt.id ? { ...a, date: formattedUiDate, time: formattedTime } : a));
+                    pushActivity("Appointment", `Rescheduled ${rescheduleModalAppt.patientName} to ${formattedUiDate} at ${formattedTime}.`);
+                    showToast(`Appointment rescheduled to ${formattedUiDate} at ${formattedTime}.`, "success");
+                    setRescheduleModalAppt(null);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                >
+                  Confirm Reschedule
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Calendar Slot Details / Action Modal */}
       {selectedSlotData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/50 backdrop-blur-xs p-4">
