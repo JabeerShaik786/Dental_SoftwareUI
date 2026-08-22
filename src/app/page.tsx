@@ -10047,62 +10047,78 @@ Apex Clinic`;
       </div>
 
       {/* MOBILE DRAWER OVERLAY */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden bg-slate-900/60 backdrop-blur-sm">
-          <motion.div
-            initial={{ x: -260 }}
-            animate={{ x: 0 }}
-            className="w-64 bg-white dark:bg-slate-955 h-full p-4 flex flex-col justify-between shadow-2xl"
-          >
-            <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <DentalLogo showText={true} />
-                <button
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="p-1.5 hover:bg-slate-100 rounded-md dark:hover:bg-slate-800 text-slate-500 cursor-pointer"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-50 flex md:hidden">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25, ease: "easeInOut" }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs"
+            />
+
+            {/* Drawer Content */}
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.25, ease: "easeInOut" }}
+              className="relative w-64 bg-white dark:bg-slate-955 h-full p-4 flex flex-col justify-between shadow-2xl z-10"
+            >
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <DentalLogo showText={true} />
+                  <button
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-1.5 hover:bg-slate-100 rounded-md dark:hover:bg-slate-800 text-slate-500 cursor-pointer"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <nav className="space-y-1.5">
+                  {menuItems.map((item) => {
+                    const active = activeTab === item.name;
+                    return (
+                      <button
+                        key={item.name}
+                        onClick={() => {
+                          selectTab(item.name);
+                          setMobileMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                          active
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "text-slate-655 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-900"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {item.icon}
+                          <span>{item.name}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </nav>
               </div>
 
-              <nav className="space-y-1.5">
-                {menuItems.map((item) => {
-                  const active = activeTab === item.name;
-                  return (
-                    <button
-                      key={item.name}
-                      onClick={() => {
-                        selectTab(item.name);
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-                        active
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "text-slate-655 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-900"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {item.icon}
-                        <span>{item.name}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
+              <div className="border-t border-slate-100 dark:border-slate-800 pt-3 flex flex-col gap-2.5">
+                <button
+                  onClick={handleLogout}
+                  className="text-xs font-semibold text-red-655 flex items-center gap-2 text-left p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-955/20 transition-colors cursor-pointer"
+                >
+                  <LogOut className="h-4 w-4" /> Logout
+                </button>
+              </div>
+            </motion.div>
 
-            <div className="border-t border-slate-100 dark:border-slate-800 pt-3 flex flex-col gap-2.5">
-              <button
-                onClick={handleLogout}
-                className="text-xs font-semibold text-red-655 flex items-center gap-2 text-left p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-955/20 transition-colors cursor-pointer"
-              >
-                <LogOut className="h-4 w-4" /> Logout
-              </button>
-            </div>
-          </motion.div>
-          <div className="flex-grow" onClick={() => setMobileMenuOpen(false)} />
-        </div>
-      )}
+            <div className="flex-grow" onClick={() => setMobileMenuOpen(false)} />
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Global Collapsed Sidebar Tooltip */}
       <AnimatePresence>
