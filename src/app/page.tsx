@@ -1386,6 +1386,22 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [rescheduleModalAppt, setRescheduleModalAppt] = useState<Appointment | null>(null);
   const [reschedulePickerDate, setReschedulePickerDate] = useState("");
   const [reschedulePickerTime, setReschedulePickerTime] = useState("");
+  const [rescheduleHour, setRescheduleHour] = useState("09");
+  const [rescheduleMinute, setRescheduleMinute] = useState("30");
+  const [rescheduleAmPm, setRescheduleAmPm] = useState("AM");
+
+  const parseTimeString = (timeStr: string) => {
+    if (!timeStr) return { hour: "09", minute: "30", ampm: "AM" };
+    const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (match) {
+      return {
+        hour: match[1].padStart(2, "0"),
+        minute: match[2],
+        ampm: match[3].toUpperCase(),
+      };
+    }
+    return { hour: "09", minute: "30", ampm: "AM" };
+  };
 
   // --- PRESCRIPTION BUILDER STATES ---
   const [prescDoctor, setPrescDoctor] = useState("");
@@ -3870,7 +3886,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                             onClick={() => {
                               setRescheduleModalAppt(app);
                               setReschedulePickerDate(convertToDbDate(app.date));
-                              setReschedulePickerTime(app.time || "09:30 AM");
+                              const tObj = parseTimeString(app.time);
+                              setRescheduleHour(tObj.hour);
+                              setRescheduleMinute(tObj.minute);
+                              setRescheduleAmPm(tObj.ampm);
                             }}
                             className="px-3.5 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer shrink-0"
                           >
@@ -5207,7 +5226,10 @@ Apex Clinic`;
                     onClick={() => {
                       setRescheduleModalAppt(selectedApptDetail);
                       setReschedulePickerDate(convertToDbDate(selectedApptDetail.date));
-                      setReschedulePickerTime(selectedApptDetail.time || "09:30 AM");
+                      const tObj = parseTimeString(selectedApptDetail.time);
+                      setRescheduleHour(tObj.hour);
+                      setRescheduleMinute(tObj.minute);
+                      setRescheduleAmPm(tObj.ampm);
                       setSelectedApptDetail(null);
                     }}
                     className="h-10 text-[11px] font-bold rounded-lg"
@@ -10691,23 +10713,66 @@ Apex Clinic`;
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
-                    Select Time Slot
+                    Select Time
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {["09:00 AM", "10:30 AM", "11:30 AM", "02:00 PM", "03:30 PM", "05:00 PM"].map((t) => (
+                  <div className="flex items-center gap-2">
+                    {/* Hour Select */}
+                    <div className="flex-1">
+                      <select
+                        value={rescheduleHour}
+                        onChange={(e) => setRescheduleHour(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer transition-all text-center"
+                      >
+                        {["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"].map((h) => (
+                          <option key={h} value={h}>
+                            {h}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <span className="text-sm font-black text-slate-400 dark:text-slate-500">:</span>
+
+                    {/* Minutes Select */}
+                    <div className="flex-1">
+                      <select
+                        value={rescheduleMinute}
+                        onChange={(e) => setRescheduleMinute(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer transition-all text-center"
+                      >
+                        {["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"].map((m) => (
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* AM / PM Toggle Buttons */}
+                    <div className="flex-1 flex rounded-xl border border-slate-200 dark:border-slate-800 p-0.5 bg-slate-50 dark:bg-slate-900">
                       <button
-                        key={t}
                         type="button"
-                        onClick={() => setReschedulePickerTime(t)}
-                        className={`py-2 px-2 rounded-xl text-xs font-bold transition-all border cursor-pointer text-center ${
-                          reschedulePickerTime === t
-                            ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                            : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        onClick={() => setRescheduleAmPm("AM")}
+                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-center ${
+                          rescheduleAmPm === "AM"
+                            ? "bg-blue-600 text-white shadow-xs"
+                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                         }`}
                       >
-                        {t}
+                        AM
                       </button>
-                    ))}
+                      <button
+                        type="button"
+                        onClick={() => setRescheduleAmPm("PM")}
+                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-center ${
+                          rescheduleAmPm === "PM"
+                            ? "bg-blue-600 text-white shadow-xs"
+                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        PM
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -10728,7 +10793,7 @@ Apex Clinic`;
                       return;
                     }
                     const formattedUiDate = convertToUiDate(reschedulePickerDate);
-                    const formattedTime = reschedulePickerTime || rescheduleModalAppt.time || "09:30 AM";
+                    const formattedTime = `${rescheduleHour}:${rescheduleMinute} ${rescheduleAmPm}`;
 
                     const { error } = await supabase
                       .from("appointments")
