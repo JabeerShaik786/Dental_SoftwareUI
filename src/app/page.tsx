@@ -627,6 +627,44 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       });
       setAppointments(mappedAppointments);
     }
+
+    // 5. Fetch notifications
+    const { data: dbNotifs, error: notifErr } = await supabase
+      .from("notifications")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!notifErr && dbNotifs) {
+      const mappedNotifs = dbNotifs.map(n => ({
+        id: n.id,
+        msg: n.message,
+        unread: !n.is_read
+      }));
+      setNotifications(mappedNotifs);
+    }
+  };
+
+  const insertNotification = async (title: string, message: string, type: string = "info") => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id || null;
+
+      const { error } = await supabase
+        .from("notifications")
+        .insert({
+          user_id: userId,
+          title,
+          message,
+          type,
+          is_read: false
+        });
+
+      if (error) {
+        console.error("Failed to insert notification into database:", error.message);
+      }
+    } catch (e) {
+      console.error("Error inserting notification:", e);
+    }
   };
 
   const insertBillingRecord = async (newInvoice: InvoiceItem) => {
@@ -726,8 +764,44 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       }
     });
 
+    const notificationsChannel = supabase
+      .channel("public:notifications")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications" },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const newNotif = {
+              id: payload.new.id,
+              msg: payload.new.message,
+              unread: !payload.new.is_read
+            };
+            setNotifications(prev => {
+              if (prev.some(n => n.id === newNotif.id)) return prev;
+              return [newNotif, ...prev];
+            });
+          } else if (payload.eventType === "UPDATE") {
+            setNotifications(prev =>
+              prev.map(n =>
+                n.id === payload.new.id
+                  ? {
+                      ...n,
+                      msg: payload.new.message,
+                      unread: !payload.new.is_read
+                    }
+                  : n
+              )
+            );
+          } else if (payload.eventType === "DELETE") {
+            setNotifications(prev => prev.filter(n => n.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       subscription.unsubscribe();
+      supabase.removeChannel(notificationsChannel);
     };
   }, [router, supabase]);
 
@@ -1489,10 +1563,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     { id: "act-2", type: "Appointment", msg: "Aarav Mehta scheduled for Root Canal at 09:00 AM.", time: "45 mins ago" }
   ]);
 
-  const [notifications, setNotifications] = useState([
-    { id: 1, msg: "Follow-up due tomorrow for Priya Patel.", unread: true },
-    { id: 2, msg: "Stock Alert: Lidocaine cartridge stock is below 15%.", unread: false }
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   const [treatments, setTreatments] = useState<TreatmentItem[]>([
     {
@@ -2281,13 +2352,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const appt = appointments.find(a => a.id === apptId);
     if (appt) {
       pushActivity("Appointment", `Patient ${appt.patientName} checked in. Token ${tokenStr} assigned.`);
-      // Add notification
-      const newNotif = {
-        id: Date.now() + Math.floor(Math.random() * 100000),
-        msg: `Token ${tokenStr} (${appt.patientName}) is waiting in the queue.`,
-        unread: true
-      };
-      setNotifications(prev => [newNotif, ...prev]);
+      // Add notification to Supabase
+      insertNotification("Queue Arrival", `Token ${tokenStr} (${appt.patientName}) is waiting in the queue.`, "info");
     }
   };
 
@@ -2920,15 +2986,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setPatients(prev => [newPat, ...prev]);
     pushActivity("Register", `Registered patient ${trimmedName} (${patientId}).`);
 
-    // Add notification
-    setNotifications(prev => [
-      {
-        id: Date.now() + Math.floor(Math.random() * 100000),
-        msg: `New Patient ${trimmedName} registered successfully.`,
-        unread: true
-      },
-      ...prev
-    ]);
+    // Add notification to Supabase
+    insertNotification("Registration", `New Patient ${trimmedName} registered successfully.`, "info");
 
     showToast("Patient registered successfully.", "success");
     return true;
@@ -3048,7 +3107,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const app = appointments.find(a => a.id === apptId);
     if (app) {
       pushActivity("Appointment", `${app.patientName} checked in. Token ${tokenStr} assigned.`);
-      setNotifications(prev => [{ id: Date.now() + Math.floor(Math.random() * 100000), msg: `Token ${tokenStr} (${app.patientName}) arrived.`, unread: true }, ...prev]);
+      insertNotification("Arrival", `Token ${tokenStr} (${app.patientName}) arrived.`, "info");
     }
     if (selectedSlotData && selectedSlotData.appointment?.id === apptId) {
       setSelectedSlotData(null);
