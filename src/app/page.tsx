@@ -576,11 +576,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }
 
     // 3. Fetch doctors
-    const { data: dbDoctors } = await supabase
+    const { data: dbDoctors, error: docErr } = await supabase
       .from("doctors")
       .select("*");
 
-    if (dbDoctors && dbDoctors.length > 0) {
+    if (!docErr && dbDoctors) {
       const mappedDoctors: Doctor[] = dbDoctors.map(d => ({
         id: d.id,
         name: d.name,
@@ -589,6 +589,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         phone: d.phone || ""
       }));
       setDoctors(mappedDoctors);
+    } else if (docErr) {
+      console.error("Failed to load doctors from database:", docErr.message);
     }
 
     // 4. Fetch appointments
@@ -641,6 +643,59 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         unread: !n.is_read
       }));
       setNotifications(mappedNotifs);
+    }
+
+    // 6. Fetch staff from profiles
+    const { data: dbProfiles, error: profilesErr } = await supabase
+      .from("profiles")
+      .select("*")
+      .order("full_name", { ascending: true });
+
+    if (!profilesErr && dbProfiles) {
+      const mappedStaff: Staff[] = dbProfiles
+        .filter(p => p.role !== "doctor" && p.role !== "dentist" && p.role !== "admin")
+        .map(p => {
+          return {
+            id: p.id,
+            name: p.full_name || "Unknown Staff",
+            role: p.custom_title || p.role || "staff",
+            phone: p.phone || "",
+            status: (p.status === "Active" || p.status === "Inactive" || p.status === "On Leave") ? p.status : "Active"
+          };
+        });
+      setStaffList(mappedStaff);
+    } else if (profilesErr) {
+      console.error("Failed to load staff profiles from database:", profilesErr.message);
+    }
+
+    // 7. Fetch treatments
+    const { data: dbTreatments, error: trErr } = await supabase
+      .from("treatments")
+      .select("*")
+      .order("treatment_date", { ascending: false });
+
+    if (!trErr && dbTreatments) {
+      const mappedTreatments: TreatmentItem[] = dbTreatments.map(t => {
+        const patientObj = dbPatients?.find(p => p.id === t.patient_id);
+        const doctorObj = dbDoctors?.find(d => d.id === t.doctor_id);
+        return {
+          id: t.id,
+          name: t.name,
+          patient: patientObj?.name || "Unknown Patient",
+          doctor: doctorObj?.name || "Unknown Doctor",
+          stage: (t.stage === "Completed" || t.stage === "In Progress" || t.stage === "Planned") ? t.stage : "Planned",
+          notes: t.notes || "",
+          nextVisit: "",
+          prescription: "",
+          tooth: t.tooth_number || undefined,
+          cost: Number(t.cost) || 0,
+          diagnosis: t.diagnosis || "",
+          date: t.treatment_date || ""
+        };
+      });
+      setTreatments(mappedTreatments);
+    } else if (trErr) {
+      console.error("Failed to load treatments from database:", trErr.message);
     }
   };
 
@@ -713,6 +768,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
   useEffect(() => {
     const handleSessionSuccess = async (session: any) => {
+      setCurrentUserId(session.user.id);
       let { data: profile, error: profileErr } = await supabase
         .from("profiles")
         .select("id, role, full_name")
@@ -1492,13 +1548,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
   const [patients, setPatients] = useState<Patient[]>([]);
 
-  const MOCK_APPOINTMENTS: Appointment[] = [
-    { id: "appt-1", patientId: "DS-1001", patientName: "Aarav Mehta", doctor: "Dr. Deepa Kodali", treatment: "Root Canal", time: "09:00 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Lower left molar treatment.", avatarColor: "bg-blue-100 text-blue-600" },
-    { id: "appt-2", patientId: "DS-1002", patientName: "Priya Patel", doctor: "Dr. Raghuram", treatment: "Scaling", time: "09:30 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Routine scale and polish.", avatarColor: "bg-cyan-100 text-cyan-600" },
-    { id: "appt-3", patientId: "DS-1003", patientName: "Kabir Singh", doctor: "Dr. Deepa Kodali", treatment: "Root Canal", time: "10:00 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Penicillin allergy precaution.", avatarColor: "bg-purple-100 text-purple-600" },
-    { id: "appt-4", patientId: "DS-1004", patientName: "Ananya Rao", doctor: "Dr. Srinivasa", treatment: "Implant", time: "10:30 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Surgical post review.", avatarColor: "bg-emerald-100 text-emerald-600" },
-    { id: "appt-5", patientId: "DS-1005", patientName: "Rohan Kumar", doctor: "Dr. Priyanka Mane Pado", treatment: "Crown", time: "11:00 AM", date: "12 Aug 2026", status: "Scheduled", notes: "Crown margins assessment.", avatarColor: "bg-indigo-100 text-indigo-600" }
-  ];
+
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
@@ -1507,18 +1557,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     { id: "INV-1002", patientId: "DS-1012", patientName: "Meera Nair", doctor: "Dr. Raghuram", treatment: "Scaling", items: [{ description: "Scaling and Polishing", amount: 1500 }], discount: 0, tax: 0, subtotal: 1500, total: 1500, paidAmount: 1000, status: "Partially Paid", paymentDate: "05 Aug 2026", paymentLogs: [{ method: "Cash", amount: 1000, date: "05 Aug 2026" }] }
   ]);
 
-  const [doctors, setDoctors] = useState<Doctor[]>([
-    { name: "Dr. Deepa Kodali", speciality: "Endodontist", status: "Available", phone: "+91 98112 33445" },
-    { name: "Dr. Raghuram", speciality: "Orthodontist", status: "Available", phone: "+91 98765 43210" },
-    { name: "Dr. Srinivasa", speciality: "Periodontist", status: "Available", phone: "+91 98123 45678" },
-    { name: "Dr. Priyanka Mane Pado", speciality: "Pedodontist", status: "Available", phone: "+91 98234 56789" },
-    { name: "Dr. Krishna Teja", speciality: "Prosthodontist", status: "Available", phone: "+91 98345 67890" }
-  ]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
 
-  const [staffList, setStaffList] = useState<Staff[]>([
-    { id: "st-1", name: "Sneha Rao", role: "Senior Nurse / Hygienist", phone: "+91 98765 11223", status: "Active" },
-    { id: "st-2", name: "Amit Kumar", role: "Desk Operations & Billing", phone: "+91 98765 44556", status: "Active" }
-  ]);
+  const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const [integrationsState, setIntegrationsState] = useState({
     whatsapp: true,
@@ -1565,92 +1607,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
   const [notifications, setNotifications] = useState<any[]>([]);
 
-  const [treatments, setTreatments] = useState<TreatmentItem[]>([
-    {
-      id: "tr-1",
-      name: "Root Canal Therapy",
-      patient: "Aarav Mehta",
-      doctor: "Dr. Deepa Kodali",
-      treatmentPlan: "Root Canal Treatment",
-      stage: "In Progress",
-      completedVisits: 2,
-      totalVisits: 3,
-      cost: 8500,
-      prescription: "Amoxicillin 500mg, Ibuprofen 400mg",
-      notes: "Canal obturated, temp crown placed.",
-      nextVisit: "10 Aug 2026"
-    },
-    {
-      id: "tr-2",
-      name: "Orthodontic Aligners",
-      patient: "Meera Nair",
-      doctor: "Dr. Raghuram",
-      treatmentPlan: "Orthodontic Treatment",
-      stage: "In Progress",
-      completedVisits: 4,
-      totalVisits: 12,
-      cost: 45000,
-      prescription: "Orthodontic Wax",
-      notes: "Tray 4 delivered, tracking well.",
-      nextVisit: "25 Aug 2026"
-    },
-    {
-      id: "tr-3",
-      name: "Dental Implant #16",
-      patient: "Siddharth Rao",
-      doctor: "Dr. Srinivasa",
-      treatmentPlan: "Dental Implant",
-      stage: "In Progress",
-      completedVisits: 1,
-      totalVisits: 4,
-      cost: 35000,
-      prescription: "Augmentin 625mg, Chlorhexidine Mouthwash",
-      notes: "Fixture placed, osseointegration period.",
-      nextVisit: "15 Sep 2026"
-    },
-    {
-      id: "tr-4",
-      name: "Full Mouth Scaling",
-      patient: "Priya Patel",
-      doctor: "Dr. Deepa Kodali",
-      treatmentPlan: "Scaling & Polishing",
-      stage: "Completed",
-      completedVisits: 2,
-      totalVisits: 2,
-      cost: 2500,
-      prescription: "Metrogyl Denta Gel",
-      notes: "Deep scaling & polishing completed.",
-      nextVisit: "Finished"
-    },
-    {
-      id: "tr-5",
-      name: "Zirconia Crown #24",
-      patient: "Vikram Malhotra",
-      doctor: "Dr. Priyanka Mane Pado",
-      treatmentPlan: "Crown Placement",
-      stage: "Planned",
-      completedVisits: 0,
-      totalVisits: 2,
-      cost: 12000,
-      prescription: "None",
-      notes: "Impression scheduled for next visit.",
-      nextVisit: "12 Aug 2026"
-    },
-    {
-      id: "tr-6",
-      name: "Molar Extraction #38",
-      patient: "Kavita Sharma",
-      doctor: "Dr. Krishna Teja",
-      treatmentPlan: "Extraction",
-      stage: "Completed",
-      completedVisits: 1,
-      totalVisits: 1,
-      cost: 3500,
-      prescription: "Ketorol DT",
-      notes: "Impacted third molar extraction.",
-      nextVisit: "Finished"
-    }
-  ]);
+  const [treatments, setTreatments] = useState<TreatmentItem[]>([]);
 
   // --- PATIENT PROFILE FORM SYNC & HANDLERS ---
   useEffect(() => {
@@ -1823,20 +1780,44 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       return;
     }
 
-    const newTreatmentId = `tr-${Date.now()}`;
+    const docRecord = doctors.find(d => d.name === chartDoctor);
+    const doctorId = docRecord?.id || null;
+
+    const { data: dbTr, error: trErr } = await supabase
+      .from("treatments")
+      .insert({
+        patient_id: patientItem.uuid,
+        doctor_id: doctorId,
+        name: chartTreatmentName.trim(),
+        stage: chartStatus,
+        tooth_number: chartSelectedTooth,
+        cost: Number(chartCost) || 0,
+        diagnosis: chartDiagnosis.trim(),
+        notes: chartNotes.trim(),
+        treatment_date: chartDate
+      })
+      .select()
+      .single();
+
+    if (trErr || !dbTr) {
+      console.error("Failed to insert treatment to database:", trErr?.message);
+      showToast("Failed to save tooth treatment to database.", "error");
+      return;
+    }
+
     const newTreatment: TreatmentItem = {
-      id: newTreatmentId,
-      name: chartTreatmentName.trim(),
+      id: dbTr.id,
+      name: dbTr.name,
       patient: patientItem.name,
       doctor: chartDoctor,
-      stage: chartStatus,
-      notes: chartNotes.trim(),
+      stage: dbTr.stage,
+      notes: dbTr.notes || "",
       nextVisit: "",
       prescription: "",
-      tooth: chartSelectedTooth,
-      cost: Number(chartCost) || 0,
-      diagnosis: chartDiagnosis.trim(),
-      date: chartDate
+      tooth: dbTr.tooth_number || undefined,
+      cost: Number(dbTr.cost) || 0,
+      diagnosis: dbTr.diagnosis || "",
+      date: dbTr.treatment_date || ""
     };
 
     setTreatments(prev => [...prev, newTreatment]);
@@ -1936,19 +1917,44 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       }));
     }
 
+    const docRecord = doctors.find(d => d.name === (newTrDoctor || (doctors[0]?.name || "")));
+    const doctorId = docRecord?.id || null;
+
+    const { data: dbTr, error: trErr } = await supabase
+      .from("treatments")
+      .insert({
+        patient_id: patientItem.uuid,
+        doctor_id: doctorId,
+        name: newTrName.trim(),
+        stage: newTrStatus,
+        tooth_number: toothNum || null,
+        cost: costAmt,
+        diagnosis: newTrDiagnosis.trim(),
+        notes: newTrNotes.trim(),
+        treatment_date: new Date().toISOString().split("T")[0]
+      })
+      .select()
+      .single();
+
+    if (trErr || !dbTr) {
+      console.error("Failed to insert treatment to database:", trErr?.message);
+      showToast("Failed to save custom treatment to database.", "error");
+      return;
+    }
+
     const newTreatment: TreatmentItem = {
-      id: newTrId,
-      name: newTrName.trim(),
+      id: dbTr.id,
+      name: dbTr.name,
       patient: patientItem.name,
       doctor: newTrDoctor || (doctors[0]?.name || ""),
-      stage: newTrStatus,
-      notes: newTrNotes.trim(),
+      stage: dbTr.stage,
+      notes: dbTr.notes || "",
       nextVisit: "",
       prescription: "",
-      tooth: toothNum,
-      cost: costAmt,
-      diagnosis: newTrDiagnosis.trim(),
-      date: new Date().toISOString().split("T")[0]
+      tooth: dbTr.tooth_number || undefined,
+      cost: Number(dbTr.cost) || 0,
+      diagnosis: dbTr.diagnosis || "",
+      date: dbTr.treatment_date || ""
     };
 
     setTreatments(prev => [...prev, newTreatment]);
@@ -2378,6 +2384,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     
     const appt = appointments.find(a => a.id === apptId);
     if (appt) {
+      const docRecord = doctors.find(d => d.name === appt.doctor);
+      if (docRecord && docRecord.id) {
+        await supabase
+          .from("doctors")
+          .update({ status: "In Consultation" })
+          .eq("id", docRecord.id);
+      }
       setDoctors(prev =>
         prev.map(d => (d.name === appt.doctor ? { ...d, status: "In Consultation" } : d))
       );
@@ -2449,7 +2462,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       prev.map(app => (app.id === activeConsultationApptId ? { ...app, status: "Completed" } : app))
     );
 
-    // Free the doctor
+    // Free the doctor in database and state
+    const docRecord = doctors.find(d => d.name === appt.doctor);
+    if (docRecord && docRecord.id) {
+      await supabase
+        .from("doctors")
+        .update({ status: "Available" })
+        .eq("id", docRecord.id);
+    }
     setDoctors(prev =>
       prev.map(d => (d.name === appt.doctor ? { ...d, status: "Available" } : d))
     );
@@ -2457,16 +2477,45 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     // Save treatment log into patient database
     const treatmentCost = TREATMENT_PRICES[appt.treatment] || 500;
     const medicineCost = consultPrescription ? 800 : 0; // Simulate medicine cost flat ₹800
-    
+
+    const trDocRecord = doctors.find(d => d.name === appt.doctor);
+    const trDoctorId = trDocRecord?.id || null;
+
+    const { data: dbTr, error: trErr } = await supabase
+      .from("treatments")
+      .insert({
+        patient_id: patientItem.uuid,
+        doctor_id: trDoctorId,
+        name: appt.treatment,
+        stage: "Completed",
+        tooth_number: consultSelectedTooth || null,
+        cost: treatmentCost,
+        diagnosis: "Consultation Treatment",
+        notes: consultNotes,
+        treatment_date: new Date().toISOString().split("T")[0]
+      })
+      .select()
+      .single();
+
+    if (trErr || !dbTr) {
+      console.error("Failed to insert consultation treatment log to database:", trErr?.message);
+      showToast("Failed to save treatment details to database.", "error");
+      return;
+    }
+
     const newTreatmentLog: TreatmentItem = {
-      id: `tr-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      name: appt.treatment,
+      id: dbTr.id,
+      name: dbTr.name,
       patient: appt.patientName,
       doctor: appt.doctor,
       stage: "Completed",
-      notes: consultNotes,
+      notes: dbTr.notes || "",
       nextVisit: "10 Sep 2026",
-      prescription: consultPrescription || "None"
+      prescription: consultPrescription || "None",
+      tooth: dbTr.tooth_number || undefined,
+      cost: Number(dbTr.cost) || 0,
+      diagnosis: dbTr.diagnosis || "",
+      date: dbTr.treatment_date || ""
     };
 
     setTreatments(prev => [newTreatmentLog, ...prev]);
@@ -3129,6 +3178,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: "In Procedure" } : a));
     const app = appointments.find(a => a.id === apptId);
     if (app) {
+      const docRecord = doctors.find(d => d.name === app.doctor);
+      if (docRecord && docRecord.id) {
+        await supabase
+          .from("doctors")
+          .update({ status: "In Consultation" })
+          .eq("id", docRecord.id);
+      }
       setDoctors(prev => prev.map(d => d.name === app.doctor ? { ...d, status: "In Consultation" } : d));
       pushActivity("Treatment", `Procedure started for ${app.patientName} with ${app.doctor}.`);
     }
@@ -3152,6 +3208,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: "Completed" } : a));
     const app = appointments.find(a => a.id === apptId);
     if (app) {
+      const docRecord = doctors.find(d => d.name === app.doctor);
+      if (docRecord && docRecord.id) {
+        await supabase
+          .from("doctors")
+          .update({ status: "Available" })
+          .eq("id", docRecord.id);
+      }
       setDoctors(prev => prev.map(d => d.name === app.doctor ? { ...d, status: "Available" } : d));
       pushActivity("Treatment", `Procedure completed for ${app.patientName} for ${app.treatment}.`);
       
@@ -3920,17 +3983,31 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           )}
 
                           {/* Reschedule Button */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newDate = prompt("Enter new date (e.g. 12 Aug 2026):", app.date);
-                              const newTime = prompt("Enter new time (e.g. 09:30 AM):", app.time);
-                              if (newDate && newTime) {
-                                setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, date: newDate, time: newTime } : a));
-                                pushActivity("Appointment", `Rescheduled ${app.patientName} to ${newDate} at ${newTime}.`);
-                                showToast("Appointment rescheduled.", "success");
-                              }
-                            }}
+                           <button
+                             type="button"
+                             onClick={async () => {
+                               const newDate = prompt("Enter new date (e.g. 12 Aug 2026):", app.date);
+                               const newTime = prompt("Enter new time (e.g. 09:30 AM):", app.time);
+                               if (newDate && newTime) {
+                                 const { error } = await supabase
+                                   .from("appointments")
+                                   .update({
+                                     appointment_date: convertToDbDate(newDate),
+                                     time_slot: newTime
+                                   })
+                                   .eq("id", app.id);
+
+                                 if (error) {
+                                   console.error("Failed to reschedule appointment in database:", error.message);
+                                   showToast("Failed to reschedule appointment.", "error");
+                                   return;
+                                 }
+
+                                 setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, date: newDate, time: newTime } : a));
+                                 pushActivity("Appointment", `Rescheduled ${app.patientName} to ${newDate} at ${newTime}.`);
+                                 showToast("Appointment rescheduled.", "success");
+                               }
+                             }}
                             className="px-3.5 h-[34px] rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-355 hover:bg-slate-50 dark:hover:bg-slate-900 font-medium text-[11.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer shrink-0"
                           >
                             Reschedule
@@ -5064,7 +5141,18 @@ Apex Clinic`;
                                   )}
                                   {appt.status === "In Procedure" && (
                                     <button 
-                                      onClick={() => {
+                                      onClick={async () => {
+                                        const { error } = await supabase
+                                          .from("appointments")
+                                          .update({ status: "Completed" })
+                                          .eq("id", appt.id);
+
+                                        if (error) {
+                                          console.error("Failed to complete appointment in database:", error.message);
+                                          showToast("Failed to complete appointment.", "error");
+                                          return;
+                                        }
+
                                         setAppointments(prev => prev.map(a => a.id === appt.id ? { ...a, status: "Completed" } : a));
                                         pushActivity("Treatment", `Completed ${appt.treatment} for ${appt.patientName}.`);
                                       }}
@@ -5663,7 +5751,18 @@ Apex Clinic`;
                               <td className="py-3 font-bold">₹{(tr.cost || 0).toLocaleString()}</td>
                               <td className="py-3 text-right">
                                 <button 
-                                  onClick={() => {
+                                  onClick={async () => {
+                                    const { error } = await supabase
+                                      .from("treatments")
+                                      .delete()
+                                      .eq("id", tr.id);
+
+                                    if (error) {
+                                      console.error("Failed to delete treatment in database:", error.message);
+                                      showToast("Failed to delete treatment history log.", "error");
+                                      return;
+                                    }
+
                                     setTreatments(prev => prev.filter(t => t.id !== tr.id));
                                     showToast("Treatment history log removed.", "success");
                                   }} 
@@ -6471,8 +6570,22 @@ Apex Clinic`;
                               </div>
                               <button 
                                 type="button"
-                                onClick={() => {
-                                  setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, notes: p.notes.filter((_, i) => i !== noteIndex) } : p));
+                                onClick={async () => {
+                                  const pat = patients.find(p => p.id === selectedPatientId);
+                                  if (!pat) return;
+                                  const updatedNotes = pat.notes.filter((_, i) => i !== noteIndex);
+                                  const { error } = await supabase
+                                    .from("patients")
+                                    .update({ notes: updatedNotes })
+                                    .eq("patient_id", selectedPatientId);
+
+                                  if (error) {
+                                    console.error("Failed to delete clinical note in database:", error.message);
+                                    showToast("Failed to delete clinical note.", "error");
+                                    return;
+                                  }
+
+                                  setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, notes: updatedNotes } : p));
                                   showToast("Clinical note deleted.", "success");
                                 }}
                                 className="text-red-500 hover:underline text-[11px]"
@@ -6501,8 +6614,22 @@ Apex Clinic`;
                       <div key={idx} className="p-3 border border-slate-100 bg-slate-50/20 rounded-xl flex justify-between items-center">
                         <span className="font-semibold">{pr}</span>
                         <button 
-                          onClick={() => {
-                            setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, prescriptions: p.prescriptions.filter((_, i) => i !== idx) } : p));
+                          onClick={async () => {
+                            const pat = patients.find(p => p.id === selectedPatientId);
+                            if (!pat) return;
+                            const updatedPresc = pat.prescriptions.filter((_, i) => i !== idx);
+                            const { error } = await supabase
+                              .from("patients")
+                              .update({ prescriptions: updatedPresc })
+                              .eq("patient_id", selectedPatientId);
+
+                            if (error) {
+                              console.error("Failed to delete prescription in database:", error.message);
+                              showToast("Failed to delete prescription.", "error");
+                              return;
+                            }
+
+                            setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, prescriptions: updatedPresc } : p));
                             showToast("Prescription deleted.", "success");
                           }}
                           className="text-red-500 hover:underline"
@@ -6566,8 +6693,22 @@ Apex Clinic`;
                         <div className="flex items-center gap-3">
                           <button onClick={() => alert(`Downloading file: ${file.name}`)} className="text-[10px] text-blue-650 hover:underline font-bold">Download</button>
                           <button 
-                            onClick={() => {
-                              setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, files: p.files.filter((_, i) => i !== idx) } : p));
+                            onClick={async () => {
+                              const pat = patients.find(p => p.id === selectedPatientId);
+                              if (!pat) return;
+                              const updatedFiles = pat.files.filter((_, i) => i !== idx);
+                              const { error } = await supabase
+                                .from("patients")
+                                .update({ files: updatedFiles })
+                                .eq("patient_id", selectedPatientId);
+
+                              if (error) {
+                                console.error("Failed to delete file in database:", error.message);
+                                showToast("Failed to delete file.", "error");
+                                return;
+                              }
+
+                              setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, files: updatedFiles } : p));
                               showToast("File deleted.", "success");
                             }}
                             className="text-[10px] text-red-500 hover:underline font-bold"
@@ -8651,36 +8792,67 @@ Apex Clinic`;
       setDoctorModalOpen(true);
     };
 
-    const handleSaveDoctor = (e: React.FormEvent) => {
+    const handleSaveDoctor = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!docFormName.trim()) return;
 
+      const formattedName = docFormName.startsWith("Dr.") ? docFormName.trim() : `Dr. ${docFormName.trim()}`;
+
       if (editingDoctor) {
-        setDoctors(prev =>
-          prev.map(d =>
-            d.name === editingDoctor.name
-              ? { ...d, name: docFormName.trim(), speciality: docFormSpeciality, phone: docFormPhone.trim(), status: docFormStatus }
-              : d
-          )
-        );
+        const { error } = await supabase
+          .from("doctors")
+          .update({
+            name: formattedName,
+            specialty: docFormSpeciality,
+            phone: docFormPhone.trim(),
+            status: docFormStatus
+          })
+          .eq("id", editingDoctor.id);
+
+        if (error) {
+          console.error("Failed to update doctor:", error.message);
+          showToast("Failed to update doctor in database.", "error");
+          return;
+        }
         showToast("Doctor details updated successfully.", "success");
       } else {
-        const newDoc: Doctor = {
-          name: docFormName.startsWith("Dr.") ? docFormName.trim() : `Dr. ${docFormName.trim()}`,
-          speciality: docFormSpeciality,
-          phone: docFormPhone.trim() || "+91 98765 43210",
-          status: docFormStatus
-        };
-        setDoctors(prev => [...prev, newDoc]);
+        const { error } = await supabase
+          .from("doctors")
+          .insert({
+            name: formattedName,
+            specialty: docFormSpeciality,
+            phone: docFormPhone.trim() || "+91 98765 43210",
+            status: docFormStatus
+          });
+
+        if (error) {
+          console.error("Failed to add doctor:", error.message);
+          showToast("Failed to add doctor to database.", "error");
+          return;
+        }
         showToast("New doctor registered successfully.", "success");
       }
+
+      await fetchClinicData();
       setDoctorModalOpen(false);
     };
 
-    const handleDeleteDoctor = () => {
+    const handleDeleteDoctor = async () => {
       if (!deleteDoctorConfirm) return;
-      setDoctors(prev => prev.filter(d => d.name !== deleteDoctorConfirm.name));
+
+      const { error } = await supabase
+        .from("doctors")
+        .delete()
+        .eq("id", deleteDoctorConfirm.id);
+
+      if (error) {
+        console.error("Failed to delete doctor:", error.message);
+        showToast("Failed to delete doctor from database.", "error");
+        return;
+      }
+
       showToast(`${deleteDoctorConfirm.name} removed from clinic records.`, "success");
+      await fetchClinicData();
       setDeleteDoctorConfirm(null);
     };
 
@@ -8703,37 +8875,118 @@ Apex Clinic`;
       setStaffModalOpen(true);
     };
 
-    const handleSaveStaff = (e: React.FormEvent) => {
+    const handleSaveStaff = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!staffFormName.trim()) return;
 
+      const trimmedName = staffFormName.trim();
+      const trimmedRole = staffFormRole.trim();
+      
+      let dbRole = "staff";
+      const normalizedRole = trimmedRole.toLowerCase();
+      if (normalizedRole.includes("admin")) {
+        dbRole = "admin";
+      } else if (normalizedRole.includes("reception") || normalizedRole.includes("desk")) {
+        dbRole = "receptionist";
+      } else if (normalizedRole.includes("doctor") || normalizedRole.includes("dentist")) {
+        dbRole = "doctor";
+      } else if (normalizedRole.includes("assistant")) {
+        dbRole = "assistant";
+      }
+
       if (editingStaff) {
-        setStaffList(prev =>
-          prev.map(s =>
-            s.id === editingStaff.id
-              ? { ...s, name: staffFormName.trim(), role: staffFormRole.trim(), phone: staffFormPhone.trim(), status: staffFormStatus }
-              : s
-          )
-        );
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            full_name: trimmedName,
+            role: dbRole,
+            custom_title: trimmedRole,
+            phone: staffFormPhone.trim(),
+            status: staffFormStatus
+          })
+          .eq("id", editingStaff.id);
+
+        if (error) {
+          console.error("Failed to update staff profile:", error.message);
+          showToast("Failed to update staff member in database.", "error");
+          return;
+        }
         showToast("Staff member updated successfully.", "success");
       } else {
-        const newStaff: Staff = {
-          id: `st-${Date.now()}`,
-          name: staffFormName.trim(),
-          role: staffFormRole.trim(),
-          phone: staffFormPhone.trim() || "+91 98765 00000",
-          status: staffFormStatus
-        };
-        setStaffList(prev => [...prev, newStaff]);
+        const newId = typeof window !== "undefined" && window.crypto && window.crypto.randomUUID
+          ? window.crypto.randomUUID()
+          : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+              const r = (Math.random() * 16) | 0;
+              const v = c === "x" ? r : (r & 0x3) | 0x8;
+              return v.toString(16);
+            });
+
+        const { error } = await supabase
+          .from("profiles")
+          .insert({
+            id: newId,
+            full_name: trimmedName,
+            role: dbRole,
+            custom_title: trimmedRole,
+            phone: staffFormPhone.trim() || "+91 98765 00000",
+            status: staffFormStatus,
+            has_login: false
+          });
+
+        if (error) {
+          console.error("Failed to add staff profile:", error.message);
+          showToast("Failed to add staff member to database.", "error");
+          return;
+        }
         showToast("New staff member added successfully.", "success");
       }
+
+      await fetchClinicData();
       setStaffModalOpen(false);
     };
 
-    const handleDeleteStaff = () => {
+    const handleDeleteStaff = async () => {
       if (!deleteStaffConfirm) return;
-      setStaffList(prev => prev.filter(s => s.id !== deleteStaffConfirm.id));
-      showToast(`${deleteStaffConfirm.name} removed from staff records.`, "success");
+
+      const { data: profileRecord, error: checkError } = await supabase
+        .from("profiles")
+        .select("has_login")
+        .eq("id", deleteStaffConfirm.id)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error("Failed to check staff login status:", checkError.message);
+        showToast("Failed to verify staff login status.", "error");
+        return;
+      }
+
+      if (profileRecord?.has_login) {
+        const { error } = await supabase
+          .from("profiles")
+          .update({ status: "Inactive" })
+          .eq("id", deleteStaffConfirm.id);
+
+        if (error) {
+          console.error("Failed to deactivate staff member:", error.message);
+          showToast("Failed to deactivate staff member.", "error");
+          return;
+        }
+        showToast(`${deleteStaffConfirm.name} has login access; deactivated in system.`, "success");
+      } else {
+        const { error } = await supabase
+          .from("profiles")
+          .delete()
+          .eq("id", deleteStaffConfirm.id);
+
+        if (error) {
+          console.error("Failed to delete staff member:", error.message);
+          showToast("Failed to delete staff member from database.", "error");
+          return;
+        }
+        showToast(`${deleteStaffConfirm.name} removed from staff records.`, "success");
+      }
+
+      await fetchClinicData();
       setDeleteStaffConfirm(null);
     };
 
@@ -8926,13 +9179,15 @@ Apex Clinic`;
                         >
                           <Pencil className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300" /> Edit
                         </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => setDeleteStaffConfirm(st)}
-                          className="h-8 px-3 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 text-red-600 hover:bg-red-50 hover:border-red-200 dark:hover:bg-red-955/30 flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-red-600" /> Delete
-                        </Button>
+                        {st.id !== currentUserId && (
+                          <Button
+                            variant="outline"
+                            onClick={() => setDeleteStaffConfirm(st)}
+                            className="h-8 px-3 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 text-red-600 hover:bg-red-50 hover:border-red-200 dark:hover:bg-red-955/30 flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-red-600" /> Delete
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
