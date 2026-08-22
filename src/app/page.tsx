@@ -16,6 +16,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   ChevronDown,
   Menu,
   Search,
@@ -10712,66 +10713,176 @@ Apex Clinic`;
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                     Select Time
                   </label>
-                  <div className="flex items-center gap-2">
-                    {/* Hour Select */}
-                    <div className="flex-1">
-                      <select
-                        value={rescheduleHour}
-                        onChange={(e) => setRescheduleHour(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer transition-all text-center"
-                      >
-                        {["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"].map((h) => (
-                          <option key={h} value={h}>
-                            {h}
-                          </option>
-                        ))}
-                      </select>
+
+                  {/* DESKTOP TIME SPINNER (hidden sm:block) */}
+                  <div className="hidden sm:block">
+                    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5">
+                      <div className="flex items-center justify-center gap-4">
+                        {/* Hours Spinner */}
+                        <div className="flex flex-col items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const hours = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
+                              const idx = hours.indexOf(rescheduleHour);
+                              setRescheduleHour(hours[(idx + 1) % hours.length]);
+                            }}
+                            className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                            title="Increase Hour"
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </button>
+                          <div className="h-10 w-14 rounded-xl bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-sm font-bold text-slate-900 dark:text-white shadow-xs">
+                            {rescheduleHour}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const hours = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
+                              const idx = hours.indexOf(rescheduleHour);
+                              setRescheduleHour(hours[(idx - 1 + hours.length) % hours.length]);
+                            }}
+                            className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                            title="Decrease Hour"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        <span className="text-base font-black text-slate-400 dark:text-slate-500 pb-0.5">:</span>
+
+                        {/* Minutes Spinner */}
+                        <div className="flex flex-col items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const mins = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
+                              const idx = mins.indexOf(rescheduleMinute);
+                              setRescheduleMinute(mins[(idx + 1) % mins.length]);
+                            }}
+                            className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                            title="Increase Minutes"
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </button>
+                          <div className="h-10 w-14 rounded-xl bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-sm font-bold text-slate-900 dark:text-white shadow-xs">
+                            {rescheduleMinute}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const mins = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
+                              const idx = mins.indexOf(rescheduleMinute);
+                              setRescheduleMinute(mins[(idx - 1 + mins.length) % mins.length]);
+                            }}
+                            className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                            title="Decrease Minutes"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        {/* AM / PM Toggle */}
+                        <div className="flex flex-col gap-1 pl-3 border-l border-slate-200 dark:border-slate-800">
+                          <button
+                            type="button"
+                            onClick={() => setRescheduleAmPm("AM")}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                              rescheduleAmPm === "AM"
+                                ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                                : "bg-white dark:bg-slate-955 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            }`}
+                          >
+                            AM
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRescheduleAmPm("PM")}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                              rescheduleAmPm === "PM"
+                                ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                                : "bg-white dark:bg-slate-955 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            }`}
+                          >
+                            PM
+                          </button>
+                        </div>
+                      </div>
                     </div>
+                  </div>
 
-                    <span className="text-sm font-black text-slate-400 dark:text-slate-500">:</span>
+                  {/* MOBILE APPLE/IOS SCROLLING WHEEL (block sm:hidden) */}
+                  <div className="block sm:hidden">
+                    <div className="relative bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-2 h-36 overflow-hidden">
+                      {/* Center Highlight Band */}
+                      <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 h-9 bg-blue-50/80 dark:bg-blue-955/40 border-y border-blue-200 dark:border-blue-800/80 rounded-lg pointer-events-none z-0" />
 
-                    {/* Minutes Select */}
-                    <div className="flex-1">
-                      <select
-                        value={rescheduleMinute}
-                        onChange={(e) => setRescheduleMinute(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer transition-all text-center"
-                      >
-                        {["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"].map((m) => (
-                          <option key={m} value={m}>
-                            {m}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                      <div className="relative z-10 flex items-center justify-around h-full">
+                        {/* Hour Wheel */}
+                        <div className="h-full flex-1 overflow-y-auto scrollbar-none snap-y snap-mandatory py-12 space-y-1 text-center">
+                          {["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"].map((h) => {
+                            const isSelected = rescheduleHour === h;
+                            return (
+                              <div
+                                key={h}
+                                onClick={() => setRescheduleHour(h)}
+                                className={`snap-center h-7 flex items-center justify-center transition-all cursor-pointer select-none ${
+                                  isSelected
+                                    ? "text-blue-600 dark:text-blue-400 font-bold text-sm scale-110"
+                                    : "text-slate-400 dark:text-slate-500 text-xs opacity-50 hover:opacity-100"
+                                }`}
+                              >
+                                {h}
+                              </div>
+                            );
+                          })}
+                        </div>
 
-                    {/* AM / PM Toggle Buttons */}
-                    <div className="flex-1 flex rounded-xl border border-slate-200 dark:border-slate-800 p-0.5 bg-slate-50 dark:bg-slate-900">
-                      <button
-                        type="button"
-                        onClick={() => setRescheduleAmPm("AM")}
-                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-center ${
-                          rescheduleAmPm === "AM"
-                            ? "bg-blue-600 text-white shadow-xs"
-                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        }`}
-                      >
-                        AM
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setRescheduleAmPm("PM")}
-                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer text-center ${
-                          rescheduleAmPm === "PM"
-                            ? "bg-blue-600 text-white shadow-xs"
-                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        }`}
-                      >
-                        PM
-                      </button>
+                        <span className="text-xs font-black text-slate-400 dark:text-slate-500 px-0.5 select-none">:</span>
+
+                        {/* Minute Wheel */}
+                        <div className="h-full flex-1 overflow-y-auto scrollbar-none snap-y snap-mandatory py-12 space-y-1 text-center">
+                          {["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"].map((m) => {
+                            const isSelected = rescheduleMinute === m;
+                            return (
+                              <div
+                                key={m}
+                                onClick={() => setRescheduleMinute(m)}
+                                className={`snap-center h-7 flex items-center justify-center transition-all cursor-pointer select-none ${
+                                  isSelected
+                                    ? "text-blue-600 dark:text-blue-400 font-bold text-sm scale-110"
+                                    : "text-slate-400 dark:text-slate-500 text-xs opacity-50 hover:opacity-100"
+                                }`}
+                              >
+                                {m}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* AM/PM Wheel */}
+                        <div className="h-full flex-1 overflow-y-auto scrollbar-none snap-y snap-mandatory py-12 space-y-1 text-center">
+                          {["AM", "PM"].map((period) => {
+                            const isSelected = rescheduleAmPm === period;
+                            return (
+                              <div
+                                key={period}
+                                onClick={() => setRescheduleAmPm(period)}
+                                className={`snap-center h-7 flex items-center justify-center transition-all cursor-pointer select-none ${
+                                  isSelected
+                                    ? "text-blue-600 dark:text-blue-400 font-bold text-sm scale-110"
+                                    : "text-slate-400 dark:text-slate-500 text-xs opacity-50 hover:opacity-100"
+                                }`}
+                              >
+                                {period}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
