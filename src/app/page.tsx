@@ -423,6 +423,21 @@ const DEFAULT_MOCK_PATIENTS = [
   { id: "DS-1015", name: "Rajesh Khanna", phone: "+91 98100 90123", age: 60, gender: "Male", address: "Richmond Town, Bengaluru", visit: "15 Jun 2026", medicalNotes: "Penicillin Allergy", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] }
 ];
 
+const formatActivityTime = (dateStr: string) => {
+  try {
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins} mins ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  } catch (e) {
+    return "Just now";
+  }
+};
+
 const convertToDbDate = (uiDate: string): string => {
   if (!uiDate) return new Date().toISOString().split("T")[0];
   if (/^\d{4}-\d{2}-\d{2}$/.test(uiDate)) return uiDate;
@@ -696,6 +711,24 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       setTreatments(mappedTreatments);
     } else if (trErr) {
       console.error("Failed to load treatments from database:", trErr.message);
+    }
+
+    // 8. Fetch activities
+    const { data: dbActivities, error: actErr } = await supabase
+      .from("activities")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!actErr && dbActivities) {
+      const mappedActivities: ActivityItem[] = dbActivities.map(act => ({
+        id: act.id,
+        type: act.entity_type as any || "Register",
+        msg: act.description,
+        time: formatActivityTime(act.created_at)
+      }));
+      setActivities(mappedActivities);
+    } else if (actErr) {
+      console.error("Failed to load activities from database:", actErr.message);
     }
   };
 
@@ -1597,10 +1630,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [staffFormPhone, setStaffFormPhone] = useState("");
   const [staffFormStatus, setStaffFormStatus] = useState<"Active" | "Inactive" | "On Leave">("Active");
 
-  const [activities, setActivities] = useState<ActivityItem[]>([
-    { id: "act-1", type: "Register", msg: "Apex Dental database initialized with 15 intake files.", time: "1 hour ago" },
-    { id: "act-2", type: "Appointment", msg: "Aarav Mehta scheduled for Root Canal at 09:00 AM.", time: "45 mins ago" }
-  ]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
 
   const [notifications, setNotifications] = useState<any[]>([]);
 
@@ -1829,14 +1859,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       return p;
     }));
 
-    const newActId = `act-${Date.now()}`;
-    const newAct: ActivityItem = {
-      id: newActId,
-      type: "Chart",
-      msg: `Tooth ${toothDisplay} treatment "${chartTreatmentName.trim()}" saved for ${patientItem.name} (${chartStatus}).`,
-      time: "Just now"
-    };
-    setActivities(prev => [newAct, ...prev]);
+    pushActivity("Chart", `Tooth ${toothDisplay} treatment "${chartTreatmentName.trim()}" saved for ${patientItem.name} (${chartStatus}).`);
 
     if (chartStatus === "Completed") {
       const newInvId = `INV-${Date.now().toString().slice(-4)}`;
@@ -1981,12 +2004,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       await insertBillingRecord(newInvoice);
     }
 
-    setActivities(prev => [{
-      id: `act-${Date.now()}`,
-      type: "Treatment",
-      msg: `New treatment "${newTrName.trim()}" logged for ${patientItem.name}.`,
-      time: "Just now"
-    }, ...prev]);
+    pushActivity("Treatment", `New treatment "${newTrName.trim()}" logged for ${patientItem.name}.`);
 
     setShowAddTreatmentModal(false);
     setNewTrName("");
@@ -2051,12 +2069,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     setAppointments(prev => [...prev, newAppt]);
     
-    setActivities(prev => [{
-      id: `act-${Date.now()}`,
-      type: "Appointment",
-      msg: `New appointment scheduled for ${patientItem.name} with ${newAppt.doctor}.`,
-      time: "Just now"
-    }, ...prev]);
+    pushActivity("Appointment", `New appointment scheduled for ${patientItem.name} with ${newAppt.doctor}.`);
 
     setShowAddApptForm(false);
     setPatApptTreatment("");
@@ -2214,12 +2227,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setInvoices(prev => [...prev, newInvoice]);
     await insertBillingRecord(newInvoice);
 
-    setActivities(prev => [{
-      id: `act-${Date.now()}`,
-      type: "Billing",
-      msg: `Invoice ${newInvId} generated for ${patientItem.name} (${newInvoice.status}).`,
-      time: "Just now"
-    }, ...prev]);
+    pushActivity("Billing", `Invoice ${newInvId} generated for ${patientItem.name} (${newInvoice.status}).`);
 
     setInvProcedure("");
     setInvAmount("");
@@ -2317,14 +2325,38 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     revenueToday: invoices.reduce((sum, inv) => sum + inv.paymentLogs.filter(log => log.date === "12 Aug 2026").reduce((s, l) => s + l.amount, 0), 0)
   };
 
-  const pushActivity = (type: ActivityItem["type"], msg: string) => {
-    const newAct: ActivityItem = {
-      id: `act-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      type,
-      msg,
-      time: "Just now"
-    };
-    setActivities(prev => [newAct, ...prev]);
+  const pushActivity = async (type: ActivityItem["type"], msg: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id || null;
+
+      const { data: dbAct, error } = await supabase
+        .from("activities")
+        .insert({
+          user_id: userId,
+          action: type,
+          entity_type: type,
+          description: msg
+        })
+        .select()
+        .single();
+
+      if (error || !dbAct) {
+        console.error("Failed to insert activity:", error?.message);
+        showToast("Failed to save activity log to database.", "error");
+        return;
+      }
+
+      const newAct: ActivityItem = {
+        id: dbAct.id,
+        type: dbAct.entity_type as any || "Register",
+        msg: dbAct.description,
+        time: "Just now"
+      };
+      setActivities(prev => [newAct, ...prev]);
+    } catch (e) {
+      console.error("Error pushing activity:", e);
+    }
   };
 
   // --- WORKFLOW EVENT HANDLERS ---
