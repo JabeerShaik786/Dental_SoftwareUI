@@ -730,6 +730,30 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     } else if (actErr) {
       console.error("Failed to load activities from database:", actErr.message);
     }
+
+    // 9. Fetch clinic settings
+    const { data: dbSettings, error: settingsErr } = await supabase
+      .from("clinic_settings")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
+
+    if (!settingsErr && dbSettings) {
+      setSettingsRecordId(dbSettings.id);
+      if (dbSettings.clinic_name) setClinicName(dbSettings.clinic_name);
+      if (dbSettings.receptionist_name) setReceptionistName(dbSettings.receptionist_name);
+      if (dbSettings.address) setClinicAddress(dbSettings.address);
+      setIntegrationsState({
+        whatsapp: dbSettings.whatsapp_enabled ?? true,
+        email: dbSettings.email_enabled ?? true,
+        googleCalendar: dbSettings.google_calendar_enabled ?? false,
+        dentalLab: dbSettings.dental_lab_enabled ?? true
+      });
+      setAutoBackupEnabled(dbSettings.auto_backup_enabled ?? true);
+      setBackupFrequency(dbSettings.backup_frequency || "Daily");
+    } else if (settingsErr) {
+      console.error("Failed to load clinic settings from database:", settingsErr.message);
+    }
   };
 
   const insertNotification = async (title: string, message: string, type: string = "info") => {
@@ -1592,6 +1616,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
+  const [settingsRecordId, setSettingsRecordId] = useState<string | null>(null);
+  const [clinicName, setClinicName] = useState("Apex Dental Clinic");
+  const [receptionistName, setReceptionistName] = useState("Anjali");
+  const [clinicAddress, setClinicAddress] = useState("12, MG Road, Bengaluru");
+
   const [integrationsState, setIntegrationsState] = useState({
     whatsapp: true,
     email: true,
@@ -2356,6 +2385,83 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       setActivities(prev => [newAct, ...prev]);
     } catch (e) {
       console.error("Error pushing activity:", e);
+    }
+  };
+
+  const persistSettings = async (updatedFields: any) => {
+    try {
+      const currentSettings = {
+        clinic_name: clinicName.trim(),
+        receptionist_name: receptionistName.trim(),
+        address: clinicAddress.trim(),
+        whatsapp_enabled: integrationsState.whatsapp,
+        email_enabled: integrationsState.email,
+        google_calendar_enabled: integrationsState.googleCalendar,
+        dental_lab_enabled: integrationsState.dentalLab,
+        auto_backup_enabled: autoBackupEnabled,
+        backup_frequency: backupFrequency,
+        ...updatedFields
+      };
+
+      if (settingsRecordId) {
+        const { error } = await supabase
+          .from("clinic_settings")
+          .update(currentSettings)
+          .eq("id", settingsRecordId);
+        if (error) {
+          console.error("Failed to update settings:", error.message);
+          return error;
+        }
+      } else {
+        const { data, error } = await supabase
+          .from("clinic_settings")
+          .insert(currentSettings)
+          .select()
+          .single();
+        if (error) {
+          if (error.code === "23505") { // Unique constraint violation (singleton row exists)
+            const { data: existing, error: fetchErr } = await supabase
+              .from("clinic_settings")
+              .select("*")
+              .limit(1)
+              .maybeSingle();
+            if (!fetchErr && existing) {
+              setSettingsRecordId(existing.id);
+              const { error: updateErr } = await supabase
+                .from("clinic_settings")
+                .update(currentSettings)
+                .eq("id", existing.id);
+              if (updateErr) return updateErr;
+            } else {
+              return fetchErr || error;
+            }
+          } else {
+            console.error("Failed to insert settings:", error.message);
+            return error;
+          }
+        } else if (data) {
+          setSettingsRecordId(data.id);
+        }
+      }
+      return null;
+    } catch (e) {
+      console.error("Error persisting settings:", e);
+      return e;
+    }
+  };
+
+  const handleSaveClinicSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const error = await persistSettings({
+      clinic_name: clinicName.trim(),
+      receptionist_name: receptionistName.trim(),
+      address: clinicAddress.trim()
+    });
+
+    if (error) {
+      showToast("Failed to save clinic settings to database.", "error");
+    } else {
+      showToast("Clinic configurations saved successfully.", "success");
     }
   };
 
@@ -9074,27 +9180,26 @@ Apex Clinic`;
               <div className="space-y-6 max-w-xl">
                 <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Clinic Profile Settings</h2>
 
-                <form className="space-y-4">
+                <form onSubmit={handleSaveClinicSettings} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Clinic Name</Label>
-                      <Input defaultValue="Apex Dental Clinic" className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[14px]" />
+                      <Input value={clinicName} onChange={e => setClinicName(e.target.value)} className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[14px]" />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Receptionist User</Label>
-                      <Input defaultValue="Anjali" className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[14px]" />
+                      <Input value={receptionistName} onChange={e => setReceptionistName(e.target.value)} className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[14px]" />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
                     <Label className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Address</Label>
-                    <Input defaultValue="12, MG Road, Bengaluru" className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[14px]" />
+                    <Input value={clinicAddress} onChange={e => setClinicAddress(e.target.value)} className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[14px]" />
                   </div>
 
                   <div className="pt-2">
                     <Button 
-                      type="button" 
-                      onClick={() => showToast("Clinic configurations saved.", "success")} 
+                      type="submit" 
                       className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-5 rounded-xl text-xs cursor-pointer shadow-xs"
                     >
                       Save Settings
@@ -9254,7 +9359,15 @@ Apex Clinic`;
                       </span>
                       <button
                         type="button"
-                        onClick={() => setIntegrationsState(prev => ({ ...prev, whatsapp: !prev.whatsapp }))}
+                        onClick={async () => {
+                          const nextVal = !integrationsState.whatsapp;
+                          const error = await persistSettings({ whatsapp_enabled: nextVal });
+                          if (error) {
+                            showToast("Failed to update WhatsApp integration in database.", "error");
+                          } else {
+                            setIntegrationsState(prev => ({ ...prev, whatsapp: nextVal }));
+                          }
+                        }}
                         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                           integrationsState.whatsapp ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
                         }`}
@@ -9287,7 +9400,15 @@ Apex Clinic`;
                       </span>
                       <button
                         type="button"
-                        onClick={() => setIntegrationsState(prev => ({ ...prev, email: !prev.email }))}
+                        onClick={async () => {
+                          const nextVal = !integrationsState.email;
+                          const error = await persistSettings({ email_enabled: nextVal });
+                          if (error) {
+                            showToast("Failed to update Email integration in database.", "error");
+                          } else {
+                            setIntegrationsState(prev => ({ ...prev, email: nextVal }));
+                          }
+                        }}
                         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                           integrationsState.email ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
                         }`}
@@ -9320,7 +9441,15 @@ Apex Clinic`;
                       </span>
                       <button
                         type="button"
-                        onClick={() => setIntegrationsState(prev => ({ ...prev, googleCalendar: !prev.googleCalendar }))}
+                        onClick={async () => {
+                          const nextVal = !integrationsState.googleCalendar;
+                          const error = await persistSettings({ google_calendar_enabled: nextVal });
+                          if (error) {
+                            showToast("Failed to update Google Calendar integration in database.", "error");
+                          } else {
+                            setIntegrationsState(prev => ({ ...prev, googleCalendar: nextVal }));
+                          }
+                        }}
                         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                           integrationsState.googleCalendar ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
                         }`}
@@ -9353,7 +9482,15 @@ Apex Clinic`;
                       </span>
                       <button
                         type="button"
-                        onClick={() => setIntegrationsState(prev => ({ ...prev, dentalLab: !prev.dentalLab }))}
+                        onClick={async () => {
+                          const nextVal = !integrationsState.dentalLab;
+                          const error = await persistSettings({ dental_lab_enabled: nextVal });
+                          if (error) {
+                            showToast("Failed to update Dental Lab API integration in database.", "error");
+                          } else {
+                            setIntegrationsState(prev => ({ ...prev, dentalLab: nextVal }));
+                          }
+                        }}
                         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                           integrationsState.dentalLab ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
                         }`}
@@ -9400,7 +9537,11 @@ Apex Clinic`;
                     </div>
                     <button
                       type="button"
-                      onClick={() => setAutoBackupEnabled(!autoBackupEnabled)}
+                      onClick={async () => {
+                        const nextVal = !autoBackupEnabled;
+                        setAutoBackupEnabled(nextVal);
+                        await persistSettings({ auto_backup_enabled: nextVal });
+                      }}
                       className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                         autoBackupEnabled ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
                       }`}
@@ -9418,7 +9559,11 @@ Apex Clinic`;
                     </div>
                     <select
                       value={backupFrequency}
-                      onChange={(e) => setBackupFrequency(e.target.value)}
+                      onChange={async (e) => {
+                        const nextVal = e.target.value;
+                        setBackupFrequency(nextVal);
+                        await persistSettings({ backup_frequency: nextVal });
+                      }}
                       className="h-9 px-3 text-[13px] font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none"
                     >
                       <option value="Daily">Daily</option>
