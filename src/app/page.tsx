@@ -8888,15 +8888,12 @@ Apex Clinic`;
 
                 <div className="space-y-4">
                   {/* WhatsApp */}
-                  <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-4">
+                  <div className="p-3.5 sm:p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3.5">
                       <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-955/40 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-900/40">
                         <MessageCircle className="h-5 w-5" />
                       </div>
-                      <div>
-                        <span className="text-[14px] font-semibold text-slate-900 dark:text-white block">WhatsApp</span>
-                        <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">Send appointment confirmations, reminders and patient communication through WhatsApp.</p>
-                      </div>
+                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white">WhatsApp</span>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <span className={`px-2.5 py-0.5 rounded-full text-[12px] font-medium border ${
@@ -8921,15 +8918,12 @@ Apex Clinic`;
                   </div>
 
                   {/* Email */}
-                  <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-4">
+                  <div className="p-3.5 sm:p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3.5">
                       <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-955/40 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-900/40">
                         <Mail className="h-5 w-5" />
                       </div>
-                      <div>
-                        <span className="text-[14px] font-semibold text-slate-900 dark:text-white block">Email</span>
-                        <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">Send appointment confirmations, reminders and notifications through email.</p>
-                      </div>
+                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white">Email</span>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <span className={`px-2.5 py-0.5 rounded-full text-[12px] font-medium border ${
@@ -8954,15 +8948,12 @@ Apex Clinic`;
                   </div>
 
                   {/* Google Calendar */}
-                  <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-4">
+                  <div className="p-3.5 sm:p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3.5">
                       <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-955/40 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-100 dark:border-amber-900/40">
                         <Calendar className="h-5 w-5" />
                       </div>
-                      <div>
-                        <span className="text-[14px] font-semibold text-slate-900 dark:text-white block">Google Calendar</span>
-                        <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">Sync appointments with Google Calendar.</p>
-                      </div>
+                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white">Google Calendar</span>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <span className={`px-2.5 py-0.5 rounded-full text-[12px] font-medium border ${
@@ -8987,15 +8978,12 @@ Apex Clinic`;
                   </div>
 
                   {/* Apex Dental Lab API */}
-                  <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-4">
+                  <div className="p-3.5 sm:p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3.5">
                       <div className="h-10 w-10 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-955/40 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-100 dark:border-purple-900/40">
                         <Layers className="h-5 w-5" />
                       </div>
-                      <div>
-                        <span className="text-[14px] font-semibold text-slate-900 dark:text-white block">Apex Dental Lab API</span>
-                        <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">Link surgical post scan results to patient clinical profiles.</p>
-                      </div>
+                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white">Apex Dental Lab API</span>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <span className={`px-2.5 py-0.5 rounded-full text-[12px] font-medium border ${
