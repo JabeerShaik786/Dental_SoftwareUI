@@ -3672,28 +3672,43 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     // Today's appointments filtered list
     const todayApptsList = appointments.filter(a => a.date === "12 Aug 2026" && a.status !== "Cancelled");
 
-    // 15-Day Performance Tracker Data
-    const performanceData = [
-      { date: "29 Jul", fullDate: "Jul 29, 2026", consultations: 12, appointments: 8, newPatients: 2 },
-      { date: "30 Jul", fullDate: "Jul 30, 2026", consultations: 15, appointments: 10, newPatients: 3 },
-      { date: "31 Jul", fullDate: "Jul 31, 2026", consultations: 18, appointments: 12, newPatients: 4 },
-      { date: "1 Aug", fullDate: "Aug 1, 2026", consultations: 14, appointments: 11, newPatients: 3 },
-      { date: "2 Aug", fullDate: "Aug 2, 2026", consultations: 8, appointments: 6, newPatients: 1 },
-      { date: "3 Aug", fullDate: "Aug 3, 2026", consultations: 10, appointments: 8, newPatients: 2 },
-      { date: "4 Aug", fullDate: "Aug 4, 2026", consultations: 16, appointments: 11, newPatients: 4 },
-      { date: "5 Aug", fullDate: "Aug 5, 2026", consultations: 20, appointments: 14, newPatients: 5 },
-      { date: "6 Aug", fullDate: "Aug 6, 2026", consultations: 15, appointments: 12, newPatients: 3 },
-      { date: "7 Aug", fullDate: "Aug 7, 2026", consultations: 12, appointments: 9, newPatients: 2 },
-      { date: "8 Aug", fullDate: "Aug 8, 2026", consultations: 9, appointments: 7, newPatients: 1 },
-      { date: "9 Aug", fullDate: "Aug 9, 2026", consultations: 14, appointments: 10, newPatients: 3 },
-      { date: "10 Aug", fullDate: "Aug 10, 2026", consultations: 18, appointments: 13, newPatients: 4 },
-      { date: "11 Aug", fullDate: "Aug 11, 2026", consultations: 22, appointments: 16, newPatients: 6 },
-      { date: "12 Aug", fullDate: "Aug 12, 2026", consultations: 19, appointments: 14, newPatients: 5 }
-    ];
+    // 15-Day Performance Tracker Data (calculated dynamically from local system date calendar days)
+    const performanceData = [];
+    const todayLocal = new Date();
+    
+    for (let i = 14; i >= 0; i--) {
+      const d = new Date(todayLocal);
+      d.setDate(todayLocal.getDate() - i);
+      
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const dayVal = String(d.getDate()).padStart(2, "0");
+      const isoDate = `${year}-${month}-${dayVal}`;
+      
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const shortLabel = `${d.getDate()} ${monthNames[d.getMonth()]}`;
+      const fullLabel = `${monthNames[d.getMonth()]} ${d.getDate()}, ${year}`;
+      
+      const dailyAppts = appointments.filter(a => convertToDbDate(a.date) === isoDate);
+      const dailyConsultations = dailyAppts.filter(a => a.status === "Completed");
+      const dailyNewPatients = patients.filter(p => convertToDbDate(p.visit) === isoDate);
+      
+      performanceData.push({
+        date: shortLabel,
+        fullDate: fullLabel,
+        isoDate: isoDate,
+        consultations: dailyConsultations.length,
+        appointments: dailyAppts.length,
+        newPatients: dailyNewPatients.length
+      });
+    }
 
-    const consultationsPoints = performanceData.map((d, i) => ({ x: 40 + i * 67.14, y: 210 - d.consultations * 7.6 }));
-    const appointmentsPoints = performanceData.map((d, i) => ({ x: 40 + i * 67.14, y: 210 - d.appointments * 7.6 }));
-    const newPatientsPoints = performanceData.map((d, i) => ({ x: 40 + i * 67.14, y: 210 - d.newPatients * 7.6 }));
+    const maxVal = Math.max(1, ...performanceData.flatMap(d => [d.consultations, d.appointments, d.newPatients]));
+    const sf = 170 / maxVal;
+
+    const consultationsPoints = performanceData.map((d, i) => ({ x: 40 + i * 67.14, y: 210 - d.consultations * sf }));
+    const appointmentsPoints = performanceData.map((d, i) => ({ x: 40 + i * 67.14, y: 210 - d.appointments * sf }));
+    const newPatientsPoints = performanceData.map((d, i) => ({ x: 40 + i * 67.14, y: 210 - d.newPatients * sf }));
 
     const getBezierPath = (pts: { x: number; y: number }[]) => {
       if (pts.length === 0) return "";
@@ -4558,9 +4573,9 @@ Apex Clinic`;
                   {/* Data Point Circles */}
                   {performanceData.map((d, i) => {
                     const x = 40 + i * 67.14;
-                    const yC = 210 - d.consultations * 7.6;
-                    const yA = 210 - d.appointments * 7.6;
-                    const yN = 210 - d.newPatients * 7.6;
+                    const yC = 210 - d.consultations * sf;
+                    const yA = 210 - d.appointments * sf;
+                    const yN = 210 - d.newPatients * sf;
                     const isHovered = hoveredIndex === i;
 
                     return (
