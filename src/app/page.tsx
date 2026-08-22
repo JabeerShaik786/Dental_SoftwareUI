@@ -7490,19 +7490,16 @@ Apex Clinic`;
 
     return (
       <div className="space-y-6 animate-fadeIn">
-        <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs overflow-x-auto">
-          <div className="border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
-            <span className="text-[13px] font-bold text-slate-900 dark:text-white">Active Treatment Directory</span>
-          </div>
-          <table className="w-full text-left border-collapse text-xs font-semibold">
+        <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs overflow-x-auto scrollbar-thin">
+          <table className="w-full min-w-[760px] text-left border-collapse text-xs font-semibold">
             <thead>
-              <tr className="border-b text-[10px] text-slate-400 uppercase tracking-wider">
-                <th className="pb-2.5 w-1/6">Treatment Name</th>
-                <th className="pb-2.5 w-1/6">Patient</th>
-                <th className="pb-2.5 w-1/6">Doctor</th>
-                <th className="pb-2.5 w-1/6">Visits</th>
-                <th className="pb-2.5 w-1/6">Status</th>
-                <th className="pb-2.5 w-1/6 text-right">Estimated Cost (₹)</th>
+              <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider">
+                <th className="py-3 px-3 whitespace-nowrap min-w-[180px]">Treatment Name</th>
+                <th className="py-3 px-3 whitespace-nowrap min-w-[160px]">Patient</th>
+                <th className="py-3 px-3 whitespace-nowrap min-w-[160px]">Doctor</th>
+                <th className="py-3 px-3 whitespace-nowrap min-w-[110px]">Visits</th>
+                <th className="py-3 px-3 whitespace-nowrap min-w-[120px]">Status</th>
+                <th className="py-3 px-3 whitespace-nowrap text-right min-w-[130px]">Estimated Cost (₹)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-705">
@@ -7519,24 +7516,24 @@ Apex Clinic`;
                       onClick={() => setSelectedTreatmentDetail(tr)}
                       className="hover:bg-blue-50/40 dark:hover:bg-slate-900/40 transition-colors cursor-pointer group"
                     >
-                      <td className="py-3 font-bold text-slate-900 dark:text-white whitespace-nowrap group-hover:text-blue-600 dark:group-hover:text-blue-400">{tr.name}</td>
-                      <td className="py-3 whitespace-nowrap">{tr.patient}</td>
-                      <td className="py-3 whitespace-nowrap">{tr.doctor}</td>
-                      <td className="py-3 font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                      <td className="py-3.5 px-3 font-bold text-slate-900 dark:text-white whitespace-nowrap group-hover:text-blue-600 dark:group-hover:text-blue-400">{tr.name}</td>
+                      <td className="py-3.5 px-3 whitespace-nowrap">{tr.patient}</td>
+                      <td className="py-3.5 px-3 whitespace-nowrap">{tr.doctor}</td>
+                      <td className="py-3.5 px-3 font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
                         {completed} / {total} Visits
                       </td>
-                      <td className="py-3 whitespace-nowrap">
+                      <td className="py-3.5 px-3 whitespace-nowrap">
                         {isCompleted ? (
                           <span className="h-[22px] px-2.5 rounded-full text-[11px] font-semibold inline-flex items-center gap-1 bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
                             <span className="text-[9px]">⚪</span> Completed
                           </span>
                         ) : (
-                          <span className="h-[22px] px-2.5 rounded-full text-[11px] font-semibold inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40">
+                          <span className="h-[22px] px-2.5 rounded-full text-[11px] font-semibold inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40">
                             <span className="text-[9px]">🟢</span> Active
                           </span>
                         )}
                       </td>
-                      <td className="py-3 text-right font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                      <td className="py-3.5 px-3 text-right font-bold text-slate-900 dark:text-white whitespace-nowrap">
                         ₹{costVal.toLocaleString()}
                       </td>
                     </tr>
