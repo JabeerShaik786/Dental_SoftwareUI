@@ -7552,42 +7552,42 @@ Apex Clinic`;
   const renderBillingModule = () => (
     <div className="space-y-6 animate-fadeIn">
       {activeSubTab === "Invoices" && (
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs font-semibold">
+        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs overflow-x-auto scrollbar-thin">
+          <table className="w-full min-w-[760px] text-left border-collapse text-xs font-semibold">
             <thead>
-              <tr className="border-b text-[10px] text-slate-400 uppercase tracking-wider">
-                <th className="pb-2.5">Invoice Number</th>
-                <th className="pb-2.5">Patient</th>
-                <th className="pb-2.5">Subtotal</th>
-                <th className="pb-2.5">Total Payable</th>
-                <th className="pb-2.5">Paid Amount</th>
-                <th className="pb-2.5">Status</th>
-                <th className="pb-2.5 text-center">Action</th>
+              <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider">
+                <th className="py-3 px-3 whitespace-nowrap min-w-[130px]">Invoice Number</th>
+                <th className="py-3 px-3 whitespace-nowrap min-w-[160px]">Patient</th>
+                <th className="py-3 px-3 whitespace-nowrap min-w-[110px]">Subtotal</th>
+                <th className="py-3 px-3 whitespace-nowrap min-w-[120px]">Total Payable</th>
+                <th className="py-3 px-3 whitespace-nowrap min-w-[120px]">Paid Amount</th>
+                <th className="py-3 px-3 whitespace-nowrap min-w-[110px]">Status</th>
+                <th className="py-3 px-3 whitespace-nowrap text-center min-w-[150px]">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-705">
               {invoices.map((inv) => (
-                <tr key={inv.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
-                  <td className="py-3 font-bold text-slate-900 dark:text-white">
-                    <button onClick={() => setLastGeneratedReceipt(inv)} className="text-blue-600 hover:underline">{inv.id}</button>
+                <tr key={inv.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-colors">
+                  <td className="py-3.5 px-3 font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                    <button onClick={() => setLastGeneratedReceipt(inv)} className="text-blue-600 hover:underline cursor-pointer">{inv.id}</button>
                   </td>
-                  <td className="py-3">{inv.patientName}</td>
-                  <td className="py-3">₹{inv.subtotal.toLocaleString()}</td>
-                  <td className="py-3 font-black">₹{inv.total.toLocaleString()}</td>
-                  <td className="py-3 text-emerald-600 font-extrabold">₹{inv.paidAmount.toLocaleString()}</td>
-                  <td className="py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                  <td className="py-3.5 px-3 whitespace-nowrap">{inv.patientName}</td>
+                  <td className="py-3.5 px-3 whitespace-nowrap">₹{inv.subtotal.toLocaleString()}</td>
+                  <td className="py-3.5 px-3 font-black whitespace-nowrap">₹{inv.total.toLocaleString()}</td>
+                  <td className="py-3.5 px-3 text-emerald-600 font-extrabold whitespace-nowrap">₹{inv.paidAmount.toLocaleString()}</td>
+                  <td className="py-3.5 px-3 whitespace-nowrap">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-block ${
                       inv.status === "Paid" ? "bg-emerald-50 text-emerald-700" :
                       inv.status === "Partially Paid" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"
                     }`}>{inv.status}</span>
                   </td>
-                  <td className="py-3 text-center">
-                    <div className="flex items-center justify-center gap-2">
+                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                    <div className="flex items-center justify-center gap-2 shrink-0">
                       <button
                         type="button"
                         title="Generate Invoice"
                         onClick={() => setLastGeneratedReceipt(inv)}
-                        className="h-9 w-9 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-955/40 dark:text-blue-400 dark:hover:bg-blue-900/60 flex items-center justify-center transition-colors cursor-pointer"
+                        className="h-9 w-9 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-955/40 dark:text-blue-400 dark:hover:bg-blue-900/60 flex items-center justify-center transition-colors cursor-pointer shrink-0"
                       >
                         <FileText className="h-4 w-4" />
                       </button>
@@ -7600,7 +7600,7 @@ Apex Clinic`;
                             window.print();
                           }, 150);
                         }}
-                        className="h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
+                        className="h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer shrink-0"
                       >
                         <Printer className="h-4 w-4" />
                       </button>
@@ -7618,7 +7618,7 @@ Apex Clinic`;
                             setPayTaxPercent(inv.tax);
                             setPayCustomItems([]);
                           }}
-                          className="h-9 w-9 rounded-xl bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-xs transition-colors cursor-pointer"
+                          className="h-9 w-9 rounded-xl bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-xs transition-colors cursor-pointer shrink-0"
                         >
                           <CreditCard className="h-4 w-4" />
                         </button>
