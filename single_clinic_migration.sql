@@ -162,7 +162,7 @@ BEGIN
 END;
 $$;
 
--- 8. Drop Dependent RLS Policies
+-- 8. Drop Dependent RLS Policies (Including custom insert notifications policy)
 DROP POLICY IF EXISTS "Allow users to read profiles in their clinic" ON public.profiles;
 DROP POLICY IF EXISTS "Allow users to insert their own profile details" ON public.profiles;
 DROP POLICY IF EXISTS "Allow users to update their own profile details" ON public.profiles;
@@ -210,6 +210,7 @@ DROP POLICY IF EXISTS "Allow users to insert invoice items in their clinic" ON p
 DROP POLICY IF EXISTS "Allow users to read payments in their clinic" ON public.payments;
 DROP POLICY IF EXISTS "Allow users to insert payments in their clinic" ON public.payments;
 DROP POLICY IF EXISTS "Allow users to read notifications in their clinic" ON public.notifications;
+DROP POLICY IF EXISTS "Allow users to insert notifications in their clinic" ON public.notifications;
 DROP POLICY IF EXISTS "Allow users to update notifications in their clinic" ON public.notifications;
 DROP POLICY IF EXISTS "Allow users to read activities in their clinic" ON public.activities;
 DROP POLICY IF EXISTS "Allow users to insert activities in their clinic" ON public.activities;
@@ -269,30 +270,115 @@ ALTER TABLE public.doctors ADD CONSTRAINT doctors_profile_id_fkey FOREIGN KEY (p
 
 -- 15. Enable RLS and Create Secure Role-Based Access Policies
 
--- Profiles Policies
+-- profiles
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow authenticated read profiles" ON public.profiles;
 CREATE POLICY "Allow authenticated read profiles" ON public.profiles FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Allow authenticated insert own profile" ON public.profiles;
 CREATE POLICY "Allow authenticated insert own profile" ON public.profiles FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
+DROP POLICY IF EXISTS "Allow authenticated update own profile or admin" ON public.profiles;
 CREATE POLICY "Allow authenticated update own profile or admin" ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id OR public.get_user_role() = 'admin');
 
--- Doctors Policies
-ALTER TABLE public.doctors ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow authenticated read doctors" ON public.doctors FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Allow admin edit doctors" ON public.doctors FOR ALL TO authenticated USING (public.get_user_role() = 'admin');
-
--- Patients Policies
+-- patients
 ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow authenticated read patients" ON public.patients FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Allow staff read patients" ON public.patients;
+CREATE POLICY "Allow staff read patients" ON public.patients FOR SELECT TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'receptionist', 'staff', 'dentist', 'assistant'));
+DROP POLICY IF EXISTS "Allow staff write patients" ON public.patients;
 CREATE POLICY "Allow staff write patients" ON public.patients FOR ALL TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'receptionist', 'staff', 'dentist', 'assistant'));
 
--- Appointments Policies
+-- billing
+ALTER TABLE public.billing ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow staff read billing" ON public.billing;
+CREATE POLICY "Allow staff read billing" ON public.billing FOR SELECT TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'receptionist', 'staff', 'dentist', 'assistant'));
+DROP POLICY IF EXISTS "Allow billing staff write" ON public.billing;
+CREATE POLICY "Allow billing staff write" ON public.billing FOR ALL TO authenticated USING (public.get_user_role() IN ('admin', 'receptionist'));
+
+-- doctors
+ALTER TABLE public.doctors ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow authenticated read doctors" ON public.doctors;
+CREATE POLICY "Allow authenticated read doctors" ON public.doctors FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Allow admin edit doctors" ON public.doctors;
+CREATE POLICY "Allow admin edit doctors" ON public.doctors FOR ALL TO authenticated USING (public.get_user_role() = 'admin');
+
+-- clinic_settings
+ALTER TABLE public.clinic_settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow authenticated read settings" ON public.clinic_settings;
+CREATE POLICY "Allow authenticated read settings" ON public.clinic_settings FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Allow admin write settings" ON public.clinic_settings;
+CREATE POLICY "Allow admin write settings" ON public.clinic_settings FOR ALL TO authenticated USING (public.get_user_role() = 'admin');
+
+-- appointments
 ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow authenticated read appointments" ON public.appointments FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Allow staff read appointments" ON public.appointments;
+CREATE POLICY "Allow staff read appointments" ON public.appointments FOR SELECT TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'receptionist', 'staff', 'dentist', 'assistant'));
+DROP POLICY IF EXISTS "Allow staff write appointments" ON public.appointments;
 CREATE POLICY "Allow staff write appointments" ON public.appointments FOR ALL TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'receptionist', 'staff', 'dentist', 'assistant'));
 
--- Billing Policies
-ALTER TABLE public.billing ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow authenticated read billing" ON public.billing FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Allow billing staff write" ON public.billing FOR ALL TO authenticated USING (public.get_user_role() IN ('admin', 'receptionist'));
+-- dental_chart
+ALTER TABLE public.dental_chart ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow staff read dental charts" ON public.dental_chart;
+CREATE POLICY "Allow staff read dental charts" ON public.dental_chart FOR SELECT TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'dentist'));
+DROP POLICY IF EXISTS "Allow staff write dental charts" ON public.dental_chart;
+CREATE POLICY "Allow staff write dental charts" ON public.dental_chart FOR ALL TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'dentist'));
+
+-- treatments
+ALTER TABLE public.treatments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow staff read treatments" ON public.treatments;
+CREATE POLICY "Allow staff read treatments" ON public.treatments FOR SELECT TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'dentist'));
+DROP POLICY IF EXISTS "Allow staff write treatments" ON public.treatments;
+CREATE POLICY "Allow staff write treatments" ON public.treatments FOR ALL TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'dentist'));
+
+-- prescriptions
+ALTER TABLE public.prescriptions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow staff read prescriptions" ON public.prescriptions;
+CREATE POLICY "Allow staff read prescriptions" ON public.prescriptions FOR SELECT TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'dentist'));
+DROP POLICY IF EXISTS "Allow staff write prescriptions" ON public.prescriptions;
+CREATE POLICY "Allow staff write prescriptions" ON public.prescriptions FOR ALL TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'dentist'));
+
+-- clinical_notes
+ALTER TABLE public.clinical_notes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow staff read clinical notes" ON public.clinical_notes;
+CREATE POLICY "Allow staff read clinical notes" ON public.clinical_notes FOR SELECT TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'dentist'));
+DROP POLICY IF EXISTS "Allow staff write clinical notes" ON public.clinical_notes;
+CREATE POLICY "Allow staff write clinical notes" ON public.clinical_notes FOR ALL TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'dentist'));
+
+-- invoices
+ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow staff read invoices" ON public.invoices;
+CREATE POLICY "Allow staff read invoices" ON public.invoices FOR SELECT TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'receptionist', 'staff', 'dentist', 'assistant'));
+DROP POLICY IF EXISTS "Allow staff write invoices" ON public.invoices;
+CREATE POLICY "Allow staff write invoices" ON public.invoices FOR ALL TO authenticated USING (public.get_user_role() IN ('admin', 'receptionist'));
+
+-- invoice_items
+ALTER TABLE public.invoice_items ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow staff read invoice items" ON public.invoice_items;
+CREATE POLICY "Allow staff read invoice items" ON public.invoice_items FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Allow staff write invoice items" ON public.invoice_items;
+CREATE POLICY "Allow staff write invoice items" ON public.invoice_items FOR ALL TO authenticated USING (public.get_user_role() IN ('admin', 'receptionist'));
+
+-- payments
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow staff read payments" ON public.payments;
+CREATE POLICY "Allow staff read payments" ON public.payments FOR SELECT TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'receptionist', 'staff', 'dentist', 'assistant'));
+DROP POLICY IF EXISTS "Allow staff write payments" ON public.payments;
+CREATE POLICY "Allow staff write payments" ON public.payments FOR ALL TO authenticated USING (public.get_user_role() IN ('admin', 'receptionist'));
+
+-- notifications
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow users read own notifications" ON public.notifications;
+CREATE POLICY "Allow users read own notifications" ON public.notifications FOR SELECT TO authenticated USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "Allow authenticated insert notifications" ON public.notifications;
+CREATE POLICY "Allow authenticated insert notifications" ON public.notifications FOR INSERT TO authenticated WITH CHECK (true);
+DROP POLICY IF EXISTS "Allow users update own notifications" ON public.notifications;
+CREATE POLICY "Allow users update own notifications" ON public.notifications FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "Allow users delete own notifications" ON public.notifications;
+CREATE POLICY "Allow users delete own notifications" ON public.notifications FOR DELETE TO authenticated USING (user_id = auth.uid());
+
+-- activities
+ALTER TABLE public.activities ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow staff read activities" ON public.activities;
+CREATE POLICY "Allow staff read activities" ON public.activities FOR SELECT TO authenticated USING (public.get_user_role() IN ('admin', 'receptionist'));
+DROP POLICY IF EXISTS "Allow authenticated insert activities" ON public.activities;
+CREATE POLICY "Allow authenticated insert activities" ON public.activities FOR INSERT TO authenticated WITH CHECK (true);
 
 COMMIT;
