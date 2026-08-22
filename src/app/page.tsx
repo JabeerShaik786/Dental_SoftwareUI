@@ -10699,8 +10699,8 @@ Apex Clinic`;
                 </button>
               </div>
 
-              <div className="space-y-4">
-                <div>
+              <div className="space-y-4 w-full min-w-0 overflow-hidden">
+                <div className="w-full min-w-0">
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                     Select New Date
                   </label>
@@ -10708,11 +10708,11 @@ Apex Clinic`;
                     type="date"
                     value={reschedulePickerDate}
                     onChange={(e) => setReschedulePickerDate(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
+                    className="w-full max-w-full min-w-0 box-border bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
                   />
                 </div>
 
-                <div>
+                <div className="w-full min-w-0">
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                     Select Time
                   </label>
@@ -10815,14 +10815,14 @@ Apex Clinic`;
                   </div>
 
                   {/* MOBILE APPLE/IOS SCROLLING WHEEL (block sm:hidden) */}
-                  <div className="block sm:hidden">
-                    <div className="relative bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-2 h-36 overflow-hidden">
+                  <div className="block sm:hidden w-full min-w-0 overflow-hidden">
+                    <div className="relative bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-2 h-36 overflow-hidden w-full max-w-full touch-pan-y">
                       {/* Center Highlight Band */}
                       <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 h-9 bg-blue-50/80 dark:bg-blue-955/40 border-y border-blue-200 dark:border-blue-800/80 rounded-lg pointer-events-none z-0" />
 
-                      <div className="relative z-10 flex items-center justify-around h-full">
+                      <div className="relative z-10 grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center h-full w-full min-w-0 overflow-hidden touch-pan-y">
                         {/* Hour Wheel */}
-                        <div className="h-full flex-1 overflow-y-auto scrollbar-none snap-y snap-mandatory py-12 space-y-1 text-center">
+                        <div className="h-full w-full overflow-y-auto overflow-x-hidden scrollbar-none snap-y snap-mandatory py-12 space-y-1 text-center touch-pan-y min-w-0">
                           {["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"].map((h) => {
                             const isSelected = rescheduleHour === h;
                             return (
@@ -10841,10 +10841,10 @@ Apex Clinic`;
                           })}
                         </div>
 
-                        <span className="text-xs font-black text-slate-400 dark:text-slate-500 px-0.5 select-none">:</span>
+                        <span className="text-xs font-black text-slate-400 dark:text-slate-500 px-1 select-none flex items-center justify-center shrink-0">:</span>
 
                         {/* Minute Wheel */}
-                        <div className="h-full flex-1 overflow-y-auto scrollbar-none snap-y snap-mandatory py-12 space-y-1 text-center">
+                        <div className="h-full w-full overflow-y-auto overflow-x-hidden scrollbar-none snap-y snap-mandatory py-12 space-y-1 text-center touch-pan-y min-w-0">
                           {["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"].map((m) => {
                             const isSelected = rescheduleMinute === m;
                             return (
@@ -10863,8 +10863,10 @@ Apex Clinic`;
                           })}
                         </div>
 
+                        <span className="text-xs font-black text-slate-400 dark:text-slate-500 px-1 select-none flex items-center justify-center shrink-0 opacity-0">•</span>
+
                         {/* AM/PM Wheel */}
-                        <div className="h-full flex-1 overflow-y-auto scrollbar-none snap-y snap-mandatory py-12 space-y-1 text-center">
+                        <div className="h-full w-full overflow-y-auto overflow-x-hidden scrollbar-none snap-y snap-mandatory py-12 space-y-1 text-center touch-pan-y min-w-0">
                           {["AM", "PM"].map((period) => {
                             const isSelected = rescheduleAmPm === period;
                             return (
