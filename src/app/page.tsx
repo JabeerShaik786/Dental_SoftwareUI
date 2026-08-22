@@ -8021,29 +8021,35 @@ Apex Clinic`;
         {currentSubTab === "Revenue" && (
           <div className="space-y-6 animate-fadeIn">
             {/* Timeframe selector filters */}
-            <div className="flex items-center gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-              <TrendingUp className="h-4 w-4 text-blue-600 animate-pulse" />
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Reports Timeframe:</span>
-              {(["Today", "Week", "Month", "Year"] as const).map((tf) => {
-                const active = reportsFilter === tf;
-                return (
-                  <button
-                    key={tf}
-                    onClick={() => {
-                      setReportsFilter(tf);
-                      setAppliedCustomLabel(null);
-                    }}
-                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                      active ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
-                    }`}
-                  >
-                    {tf}
-                  </button>
-                );
-              })}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 sm:p-4 shadow-xs">
+              <div className="hidden sm:flex items-center gap-2 shrink-0">
+                <TrendingUp className="h-4 w-4 text-blue-600 animate-pulse" />
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Reports Timeframe:</span>
+              </div>
+
+              <div className="grid grid-cols-4 gap-1.5 sm:flex sm:items-center sm:gap-2 w-full sm:w-auto">
+                {(["Today", "Week", "Month", "Year"] as const).map((tf) => {
+                  const active = reportsFilter === tf;
+                  return (
+                    <button
+                      key={tf}
+                      onClick={() => {
+                        setReportsFilter(tf);
+                        setAppliedCustomLabel(null);
+                      }}
+                      className={`text-[11.5px] sm:text-xs font-bold py-2 sm:py-1.5 px-1 sm:px-3 rounded-lg transition-colors cursor-pointer text-center flex items-center justify-center min-w-0 ${
+                        active ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
+                      }`}
+                    >
+                      {tf}
+                    </button>
+                  );
+                })}
+              </div>
+
               <button
                 onClick={() => setCustomRangeModalOpen(true)}
-                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
+                className={`hidden sm:flex text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer items-center gap-1.5 ${
                   reportsFilter === "Custom" ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
                 }`}
               >
@@ -8099,23 +8105,38 @@ Apex Clinic`;
         {currentSubTab === "Patients" && (
           <div className="space-y-6 animate-fadeIn">
             {/* 2. TOP FILTER */}
-            <div className="flex items-center gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-              <TrendingUp className="h-4 w-4 text-blue-600 animate-pulse" />
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Timeframe:</span>
-              {(["Today", "Week", "Month", "Year", "Custom"] as const).map((tf) => {
-                const active = reportsFilter === tf;
-                return (
-                  <button
-                    key={tf}
-                    onClick={() => setReportsFilter(tf as any)}
-                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                      active ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
-                    }`}
-                  >
-                    {tf}
-                  </button>
-                );
-              })}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 sm:p-4 shadow-xs">
+              <div className="hidden sm:flex items-center gap-2 shrink-0">
+                <TrendingUp className="h-4 w-4 text-blue-600 animate-pulse" />
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Reports Timeframe:</span>
+              </div>
+
+              <div className="grid grid-cols-4 gap-1.5 sm:flex sm:items-center sm:gap-2 w-full sm:w-auto">
+                {(["Today", "Week", "Month", "Year"] as const).map((tf) => {
+                  const active = reportsFilter === tf;
+                  return (
+                    <button
+                      key={tf}
+                      onClick={() => setReportsFilter(tf as any)}
+                      className={`text-[11.5px] sm:text-xs font-bold py-2 sm:py-1.5 px-1 sm:px-3 rounded-lg transition-colors cursor-pointer text-center flex items-center justify-center min-w-0 ${
+                        active ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
+                      }`}
+                    >
+                      {tf}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCustomRangeModalOpen(true)}
+                className={`hidden sm:flex text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer items-center gap-1.5 ${
+                  reportsFilter === "Custom" ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
+                }`}
+              >
+                <Calendar className="h-3.5 w-3.5" />
+                {reportsFilter === "Custom" && appliedCustomLabel ? appliedCustomLabel : "Custom"}
+              </button>
             </div>
 
             {/* 3. SUMMARY CARDS */}
@@ -8297,29 +8318,35 @@ Apex Clinic`;
         {currentSubTab === "Treatments" && (
           <div className="space-y-6 animate-fadeIn">
             {/* 1. TIMEFRAME FILTER */}
-            <div className="flex items-center gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-              <TrendingUp className="h-4 w-4 text-blue-600 animate-pulse" />
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Timeframe:</span>
-              {(["Today", "Week", "Month", "Year"] as const).map((tf) => {
-                const active = reportsFilter === tf;
-                return (
-                  <button
-                    key={tf}
-                    onClick={() => {
-                      setReportsFilter(tf);
-                      setAppliedCustomLabel(null);
-                    }}
-                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                      active ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
-                    }`}
-                  >
-                    {tf}
-                  </button>
-                );
-              })}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 sm:p-4 shadow-xs">
+              <div className="hidden sm:flex items-center gap-2 shrink-0">
+                <TrendingUp className="h-4 w-4 text-blue-600 animate-pulse" />
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Reports Timeframe:</span>
+              </div>
+
+              <div className="grid grid-cols-4 gap-1.5 sm:flex sm:items-center sm:gap-2 w-full sm:w-auto">
+                {(["Today", "Week", "Month", "Year"] as const).map((tf) => {
+                  const active = reportsFilter === tf;
+                  return (
+                    <button
+                      key={tf}
+                      onClick={() => {
+                        setReportsFilter(tf);
+                        setAppliedCustomLabel(null);
+                      }}
+                      className={`text-[11.5px] sm:text-xs font-bold py-2 sm:py-1.5 px-1 sm:px-3 rounded-lg transition-colors cursor-pointer text-center flex items-center justify-center min-w-0 ${
+                        active ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
+                      }`}
+                    >
+                      {tf}
+                    </button>
+                  );
+                })}
+              </div>
+
               <button
                 onClick={() => setCustomRangeModalOpen(true)}
-                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
+                className={`hidden sm:flex text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer items-center gap-1.5 ${
                   reportsFilter === "Custom" ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
                 }`}
               >
@@ -8477,29 +8504,35 @@ Apex Clinic`;
         {currentSubTab === "Appointments" && (
           <div className="space-y-6 animate-fadeIn">
             {/* 1. TIMEFRAME FILTER */}
-            <div className="flex items-center gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-              <TrendingUp className="h-4 w-4 text-blue-600 animate-pulse" />
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Timeframe:</span>
-              {(["Today", "Week", "Month", "Year"] as const).map((tf) => {
-                const active = reportsFilter === tf;
-                return (
-                  <button
-                    key={tf}
-                    onClick={() => {
-                      setReportsFilter(tf);
-                      setAppliedCustomLabel(null);
-                    }}
-                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                      active ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
-                    }`}
-                  >
-                    {tf}
-                  </button>
-                );
-              })}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 sm:p-4 shadow-xs">
+              <div className="hidden sm:flex items-center gap-2 shrink-0">
+                <TrendingUp className="h-4 w-4 text-blue-600 animate-pulse" />
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Reports Timeframe:</span>
+              </div>
+
+              <div className="grid grid-cols-4 gap-1.5 sm:flex sm:items-center sm:gap-2 w-full sm:w-auto">
+                {(["Today", "Week", "Month", "Year"] as const).map((tf) => {
+                  const active = reportsFilter === tf;
+                  return (
+                    <button
+                      key={tf}
+                      onClick={() => {
+                        setReportsFilter(tf);
+                        setAppliedCustomLabel(null);
+                      }}
+                      className={`text-[11.5px] sm:text-xs font-bold py-2 sm:py-1.5 px-1 sm:px-3 rounded-lg transition-colors cursor-pointer text-center flex items-center justify-center min-w-0 ${
+                        active ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
+                      }`}
+                    >
+                      {tf}
+                    </button>
+                  );
+                })}
+              </div>
+
               <button
                 onClick={() => setCustomRangeModalOpen(true)}
-                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
+                className={`hidden sm:flex text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer items-center gap-1.5 ${
                   reportsFilter === "Custom" ? "bg-blue-600 text-white shadow-xs" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900"
                 }`}
               >
