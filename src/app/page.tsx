@@ -4198,7 +4198,7 @@ Apex Clinic`;
         </div>
 
         {/* 15-DAY PERFORMANCE TRACKER */}
-        <div className="mt-4">
+        <div className="hidden md:block mt-4">
           <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs flex flex-col h-[340px] relative">
             {/* Header */}
             <div className="flex justify-between items-start mb-3 shrink-0">
