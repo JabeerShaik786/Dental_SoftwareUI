@@ -8267,23 +8267,23 @@ Apex Clinic`;
             </div>
 
             {/* 6. MONTHLY PATIENT TREND */}
-            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-6">
-              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/80 pb-3">
+            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-xs space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-3">
                 <div>
-                  <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                  <h2 className="text-[16px] sm:text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
                     Monthly Patient Trends
                   </h2>
-                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="hidden sm:block text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
                     Month-by-month new vs returning patient volume.
                   </p>
                 </div>
-                <div className="flex items-center gap-4 text-[12px] font-medium shrink-0">
+                <div className="flex items-center gap-3.5 sm:gap-4 text-[11px] sm:text-[12px] font-medium shrink-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="h-3 w-3 rounded-full bg-blue-600 inline-block" />
+                    <span className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-blue-600 inline-block" />
                     <span className="text-slate-700 dark:text-slate-300">New Patients</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="h-3 w-3 rounded-full bg-indigo-600 inline-block" />
+                    <span className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-indigo-600 inline-block" />
                     <span className="text-slate-700 dark:text-slate-300">Returning Patients</span>
                   </div>
                 </div>
