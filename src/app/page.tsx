@@ -9924,13 +9924,6 @@ Apex Clinic`;
                   <span className="truncate">New Appointment</span>
                 </button>
                 <button
-                  onClick={() => { setActiveModal("addWalkIn"); setQuickAddOpen(false); }}
-                  className="w-full h-10 sm:h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
-                >
-                  <UserCheck className="h-[18px] w-[18px] text-amber-500 shrink-0" />
-                  <span className="truncate">Walk-in Patient</span>
-                </button>
-                <button
                   onClick={() => { selectTab("Billing"); setActiveSubTab("Invoices"); setQuickAddOpen(false); }}
                   className="w-full h-10 sm:h-11 flex items-center gap-2.5 px-3 rounded-lg text-slate-700 hover:bg-blue-50/50 hover:text-blue-750 dark:text-slate-300 dark:hover:bg-blue-955/20 dark:hover:text-blue-400 transition-all duration-150"
                 >
@@ -10172,7 +10165,6 @@ Apex Clinic`;
               <span className="font-bold text-base text-slate-900 dark:text-white">
                 {activeModal === "addPatient" && "Register New Patient File"}
                 {activeModal === "addAppointment" && "Book Clinic Appointment"}
-                {activeModal === "addWalkIn" && "Walk-in Patient Immediate Check-In"}
               </span>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-650">
                 <X className="h-4 w-4" />
@@ -10312,45 +10304,6 @@ Apex Clinic`;
                   <div className="flex gap-3 justify-end pt-3 border-t border-slate-100 dark:border-slate-800 mt-3 shrink-0">
                     <Button type="button" variant="outline" onClick={() => setActiveModal(null)}>Cancel</Button>
                     <Button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-semibold">Book Slot</Button>
-                  </div>
-                </form>
-              )}
-
-              {/* Immediate Walk-In Check-In Modal */}
-              {activeModal === "addWalkIn" && (
-                <form onSubmit={handleRegisterWalkIn} className="flex flex-col min-h-0 h-full">
-                  <div className="flex-1 overflow-y-auto space-y-4 pr-1 py-1">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="walkinName">Patient Name</Label>
-                      <Input id="walkinName" placeholder="e.g. Sneha Reddy" value={newPatName} onChange={e => setNewPatName(e.target.value)} required />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="walkinPhone">Mobile Number</Label>
-                        <Input id="walkinPhone" placeholder="e.g. +91 95408 81229" value={newPatPhone} onChange={e => setNewPatPhone(e.target.value)} />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="walkinAge">Age</Label>
-                        <Input id="walkinAge" type="number" value={newPatAge} onChange={e => setNewPatAge(parseInt(e.target.value) || 30)} />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="walkinGender">Gender</Label>
-                        <select id="walkinGender" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-808 focus:outline-none dark:bg-slate-950 dark:border-slate-800" value={newPatGender} onChange={e => setNewPatGender(e.target.value as "Male" | "Female")}>
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                        </select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="walkinAllergies">Medical Warnings / Allergies</Label>
-                        <Input id="walkinAllergies" placeholder="e.g. Penicillin Allergy" value={newPatAllergies} onChange={e => setNewPatAllergies(e.target.value)} />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-3 justify-end pt-3 border-t border-slate-100 dark:border-slate-800 mt-3 shrink-0">
-                    <Button type="button" variant="outline" onClick={() => setActiveModal(null)}>Cancel</Button>
-                    <Button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-semibold">Checked In Waiting</Button>
                   </div>
                 </form>
               )}
