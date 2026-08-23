@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ChevronUp,
   ChevronDown,
+  Building2,
   Menu,
   Search,
   Plus,
@@ -8611,7 +8612,14 @@ Apex Clinic`;
   };
 
   const renderSettingsModule = () => {
-    const settingsTabs = ["Clinic", "Doctors", "Staff", "Integrations", "Backup"];
+    const settingsNavItems = [
+      { name: "Clinic", icon: Building2 },
+      { name: "Doctors", icon: Stethoscope },
+      { name: "Staff", icon: Users },
+      { name: "Integrations", icon: Layers },
+      { name: "Backup", icon: Database },
+    ];
+    const settingsTabs = settingsNavItems.map(i => i.name);
     const currentTab = settingsTabs.includes(activeSubTab) ? activeSubTab : "Clinic";
 
     // Helper handlers for Doctor Add/Edit/Delete
@@ -8745,25 +8753,56 @@ Apex Clinic`;
         {/* NO DUPLICATE SETTINGS HEADING - Begins directly with Settings Container Box */}
         <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs grid grid-cols-1 md:grid-cols-12 min-h-[560px] overflow-hidden">
           
-          {/* Left Settings Navigation Column (5 options: Clinic, Doctors, Staff, Integrations, Backup) */}
-          <div className="md:col-span-3 lg:col-span-3 border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800/80 p-4 space-y-1.5 bg-slate-50/30 dark:bg-slate-950/20">
-            {settingsTabs.map((tab) => {
-              const isActive = currentTab === tab;
+          {/* DESKTOP LEFT NAVIGATION COLUMN (hidden on mobile, visible md+) */}
+          <div className="hidden md:block md:col-span-3 lg:col-span-3 border-r border-slate-100 dark:border-slate-800/80 p-4 space-y-1.5 bg-slate-50/30 dark:bg-slate-950/20">
+            {settingsNavItems.map(({ name, icon: Icon }) => {
+              const isActive = currentTab === name;
               return (
                 <button
-                  key={tab}
+                  key={name}
                   type="button"
-                  onClick={() => setActiveSubTab(tab)}
-                  className={`w-full text-left px-4 py-2.5 rounded-xl text-[14px] transition-all duration-150 cursor-pointer ${
+                  onClick={() => setActiveSubTab(name)}
+                  className={`w-full text-left px-4 py-2.5 rounded-xl text-[14px] transition-all duration-150 cursor-pointer flex items-center gap-2.5 ${
                     isActive
                       ? "bg-blue-50 text-blue-600 dark:bg-blue-955/50 dark:text-blue-400 font-semibold"
                       : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/60 hover:text-slate-900 dark:hover:text-white font-medium"
                   }`}
                 >
-                  {tab}
+                  <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`} />
+                  <span>{name}</span>
                 </button>
               );
             })}
+          </div>
+
+          {/* MOBILE BLOCK CARDS NAVIGATION (visible on mobile, hidden md+) */}
+          <div className="block md:hidden border-b border-slate-100 dark:border-slate-800/80 p-3 bg-slate-50/40 dark:bg-slate-950/30">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+              {settingsNavItems.map(({ name, icon: Icon }) => {
+                const isActive = currentTab === name;
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => setActiveSubTab(name)}
+                    className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all duration-150 cursor-pointer ${
+                      isActive
+                        ? "bg-blue-50/90 border-blue-200 text-blue-600 dark:bg-blue-955/60 dark:border-blue-800 dark:text-blue-400 font-bold shadow-xs"
+                        : "bg-white dark:bg-slate-900/60 border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100/60 dark:hover:bg-slate-800/50 font-semibold"
+                    }`}
+                  >
+                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center mb-1 shrink-0 ${
+                      isActive
+                        ? "bg-blue-600 text-white dark:bg-blue-500"
+                        : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                    }`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <span className="text-[11px] leading-tight truncate w-full">{name}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Right Settings Content Column */}
