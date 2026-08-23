@@ -5404,44 +5404,44 @@ Apex Clinic`;
                 </div>
 
                 {/* Editable Profile Form */}
-                <form onSubmit={handleSavePatientProfile} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-6 text-xs animate-fadeIn">
+                <form onSubmit={handleSavePatientProfile} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6 shadow-xs space-y-6 text-xs animate-fadeIn">
                   <div>
-                    <h3 className="font-bold text-sm text-slate-800 dark:text-white border-b pb-2 mb-4">Edit Patient Profile</h3>
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-5 sm:mb-6">Edit Patient Profile</h3>
                     
                     {/* Basic Info */}
-                    <div className="space-y-4">
-                      <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400">Basic Information</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                          <Label>Patient ID</Label>
+                    <div className="space-y-3.5 sm:space-y-4">
+                      <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400 mb-3.5">Basic Information</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4.5 sm:gap-5">
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Patient ID</Label>
                           <Input value={patientItem.id} disabled className="bg-slate-50 dark:bg-slate-900 border-slate-200" />
                         </div>
-                        <div>
-                          <Label>First Name</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">First Name</Label>
                           <Input value={editFirstName} onChange={e => setEditFirstName(e.target.value)} required />
                         </div>
-                        <div>
-                          <Label>Last Name</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Last Name</Label>
                           <Input value={editLastName} onChange={e => setEditLastName(e.target.value)} />
                         </div>
-                        <div>
-                          <Label>Mobile Number</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Mobile Number</Label>
                           <Input value={editMobile} onChange={e => setEditMobile(e.target.value)} required />
                         </div>
-                        <div>
-                          <Label>Email</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Email</Label>
                           <Input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} />
                         </div>
-                        <div>
-                          <Label>Date of Birth</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Date of Birth</Label>
                           <Input type="date" value={editDob} onChange={e => handleDobChange(e.target.value)} />
                         </div>
-                        <div>
-                          <Label>Age (Auto-calculated)</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Age (Auto-calculated)</Label>
                           <Input type="number" value={editAge} disabled className="bg-slate-50 dark:bg-slate-900 border-slate-200" />
                         </div>
-                        <div>
-                          <Label>Gender</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Gender</Label>
                           <select 
                             className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
                             value={editGender} 
@@ -5451,8 +5451,8 @@ Apex Clinic`;
                             <option value="Female">Female</option>
                           </select>
                         </div>
-                        <div>
-                          <Label>Blood Group</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Blood Group</Label>
                           <select 
                             className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
                             value={editBloodGroup} 
@@ -5469,77 +5469,77 @@ Apex Clinic`;
                             <option value="O-">O-</option>
                           </select>
                         </div>
-                        <div>
-                          <Label>Occupation</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Occupation</Label>
                           <Input value={editOccupation} onChange={e => setEditOccupation(e.target.value)} />
                         </div>
                       </div>
                     </div>
 
                     {/* Address Section */}
-                    <div className="space-y-4 mt-6">
-                      <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400">Address Details</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                        <div className="sm:col-span-2">
-                          <Label>Address Line</Label>
+                    <div className="space-y-3.5 sm:space-y-4 mt-7 sm:mt-8 pt-4 border-t border-slate-100 dark:border-slate-800/60">
+                      <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400 mb-3.5">Address Details</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4.5 sm:gap-5">
+                        <div className="sm:col-span-2 space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Address Line</Label>
                           <Input value={editAddressLine} onChange={e => setEditAddressLine(e.target.value)} />
                         </div>
-                        <div>
-                          <Label>City</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">City</Label>
                           <Input value={editCity} onChange={e => setEditCity(e.target.value)} />
                         </div>
-                        <div>
-                          <Label>State</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">State</Label>
                           <Input value={editState} onChange={e => setEditState(e.target.value)} />
                         </div>
-                        <div>
-                          <Label>Pincode</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Pincode</Label>
                           <Input value={editPincode} onChange={e => setEditPincode(e.target.value)} />
                         </div>
                       </div>
                     </div>
 
                     {/* Medical Section */}
-                    <div className="space-y-4 mt-6">
-                      <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400">Medical History & Emergency Contact</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                          <Label>Allergies</Label>
+                    <div className="space-y-3.5 sm:space-y-4 mt-7 sm:mt-8 pt-4 border-t border-slate-100 dark:border-slate-800/60">
+                      <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400 mb-3.5">Medical History & Emergency Contact</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4.5 sm:gap-5">
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Allergies</Label>
                           <Input value={editAllergies} onChange={e => setEditAllergies(e.target.value)} placeholder="e.g. Penicillin, Latex" />
                         </div>
-                        <div>
-                          <Label>Medical Conditions</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Medical Conditions</Label>
                           <Input value={editMedicalConditions} onChange={e => setEditMedicalConditions(e.target.value)} placeholder="e.g. Hypertension, Diabetes" />
                         </div>
-                        <div>
-                          <Label>Current Medications</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Current Medications</Label>
                           <Input value={editCurrentMedications} onChange={e => setEditCurrentMedications(e.target.value)} placeholder="e.g. Metformin, Lisinopril" />
                         </div>
-                        <div>
-                          <Label>Emergency Contact Person</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Emergency Contact Person</Label>
                           <Input value={editEmergencyContactName} onChange={e => setEditEmergencyContactName(e.target.value)} />
                         </div>
-                        <div>
-                          <Label>Emergency Contact Phone</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Emergency Contact Phone</Label>
                           <Input value={editEmergencyContactPhone} onChange={e => setEditEmergencyContactPhone(e.target.value)} />
                         </div>
                       </div>
                     </div>
 
                     {/* Dental Info */}
-                    <div className="space-y-4 mt-6">
-                      <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400">Dental Preferences</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                          <Label>First Visit Date</Label>
+                    <div className="space-y-3.5 sm:space-y-4 mt-7 sm:mt-8 pt-4 border-t border-slate-100 dark:border-slate-800/60">
+                      <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400 mb-3.5">Dental Preferences</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4.5 sm:gap-5">
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">First Visit Date</Label>
                           <Input type="date" value={editFirstVisit} onChange={e => setEditFirstVisit(e.target.value)} />
                         </div>
-                        <div>
-                          <Label>Last Visit Date</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Last Visit Date</Label>
                           <Input type="date" value={editLastVisit} onChange={e => setEditLastVisit(e.target.value)} />
                         </div>
-                        <div>
-                          <Label>Preferred Dentist</Label>
+                        <div className="space-y-1.5">
+                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Preferred Dentist</Label>
                           <select 
                             className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
                             value={editPreferredDentist} 
@@ -5555,7 +5555,7 @@ Apex Clinic`;
                     </div>
                   </div>
 
-                  <div className="flex gap-3 justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex gap-3 justify-end pt-5 mt-7 border-t border-slate-100 dark:border-slate-800">
                     <Button type="button" onClick={() => setSelectedPatientId(null)} className="h-9 px-4 rounded border font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">
                       Cancel
                     </Button>
