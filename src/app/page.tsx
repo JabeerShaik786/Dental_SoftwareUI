@@ -149,7 +149,7 @@ interface Doctor {
   id?: string;
   name: string;
   speciality: string;
-  status: "Available" | "In Consultation" | "On Break" | "Finished Today";
+  status: "Available" | "In Consultation" | "On Break" | "Finished Today" | "Inactive";
   avatar?: string;
   phone?: string;
 }
@@ -486,6 +486,48 @@ const convertToUiDate = (dbDate: string): string => {
   return dbDate;
 };
 
+const normalizeTimeSlot = (timeStr: string): string => {
+  if (!timeStr) return "09:00 AM";
+  let cleaned = timeStr.trim().toUpperCase();
+  
+  const standardRegex = /^(\d{2}):(\d{2})\s*(AM|PM)$/;
+  if (standardRegex.test(cleaned)) {
+    return cleaned;
+  }
+  
+  const shortRegex = /^(\d{1}):(\d{2})\s*(AM|PM)$/;
+  const shortMatch = cleaned.match(shortRegex);
+  if (shortMatch) {
+    return `${shortMatch[1].padStart(2, "0")}:${shortMatch[2]} ${shortMatch[3]}`;
+  }
+  
+  const militaryRegex = /^(\d{1,2}):(\d{2})$/;
+  const militaryMatch = cleaned.match(militaryRegex);
+  if (militaryMatch) {
+    let hour = parseInt(militaryMatch[1], 10);
+    const min = militaryMatch[2];
+    let period = "AM";
+    if (hour >= 12) {
+      period = "PM";
+      if (hour > 12) hour -= 12;
+    } else if (hour === 0) {
+      hour = 12;
+    }
+    return `${String(hour).padStart(2, "0")}:${min} ${period}`;
+  }
+  
+  const withSecRegex = /^(\d{1,2}):(\d{2}):\d{2}\s*(AM|PM)?$/;
+  const withSecMatch = cleaned.match(withSecRegex);
+  if (withSecMatch) {
+    let hourStr = withSecMatch[1];
+    const min = withSecMatch[2];
+    const period = withSecMatch[3] || "AM";
+    return `${hourStr.padStart(2, "0")}:${min} ${period}`;
+  }
+  
+  return cleaned;
+};
+
 export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initialTab?: string } = {}) {
   const router = useRouter();
   const [loadingSession, setLoadingSession] = useState(true);
@@ -553,26 +595,53 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         return fetchClinicData();
       }
 
-      const mappedPatients: Patient[] = dbPatients.map(p => ({
-        id: p.patient_id,
-        uuid: p.id,
-        name: p.name,
-        phone: p.phone,
-        age: p.age || 0,
-        gender: (p.gender === "Male" || p.gender === "Female") ? p.gender : "Male",
-        address: p.address || "",
-        visit: p.visit || "",
-        medicalNotes: p.medical_notes || "None",
-        balance: p.balance || "₹0",
-        status: (p.status === "Active" || p.status === "Inactive") ? p.status : "Active",
-        dentalChart: p.dental_chart || {},
-        prescriptions: p.prescriptions || [],
-        files: Array.isArray(p.files) ? p.files : [],
-        notes: p.notes || [],
-        email: p.email || undefined,
-        bloodGroup: p.blood_group || undefined,
-        patientType: p.patient_type || undefined
-      }));
+      const mappedPatients: Patient[] = dbPatients.map(p => {
+        const names = (p.name || "").split(" ");
+        const fName = names[0] || "";
+        const lName = names.slice(1).join(" ");
+
+        const addrParts = (p.address || "").split(",");
+        const addrLine = addrParts[0]?.trim() || p.address || "";
+        const cityVal = addrParts[1]?.trim() || "";
+        const statePart = addrParts[2]?.split("-")[0]?.trim() || "";
+        const pinVal = addrParts[2]?.split("-")[1]?.trim() || "";
+
+        return {
+          id: p.patient_id,
+          uuid: p.id,
+          name: p.name,
+          phone: p.phone,
+          age: p.age || 0,
+          gender: (p.gender === "Male" || p.gender === "Female") ? p.gender : "Male",
+          address: p.address || "",
+          visit: p.visit || "",
+          medicalNotes: p.medical_notes || "None",
+          balance: p.balance || "₹0",
+          status: (p.status === "Active" || p.status === "Inactive") ? p.status : "Active",
+          dentalChart: p.dental_chart || {},
+          prescriptions: p.prescriptions || [],
+          files: Array.isArray(p.files) ? p.files : [],
+          notes: p.notes || [],
+          email: p.email || undefined,
+          bloodGroup: p.blood_group || undefined,
+          patientType: p.patient_type || undefined,
+          firstName: fName,
+          lastName: lName,
+          dob: p.dob ?? undefined,
+          occupation: p.occupation ?? undefined,
+          addressLine: addrLine,
+          city: cityVal,
+          state: statePart,
+          pincode: pinVal,
+          allergies: p.allergies ?? undefined,
+          medicalConditions: p.medical_conditions ?? undefined,
+          currentMedications: p.current_medications ?? undefined,
+          emergencyContactName: p.emergency_contact_name ?? undefined,
+          emergencyContactPhone: p.emergency_contact_phone ?? undefined,
+          firstVisit: p.first_visit ?? undefined,
+          preferredDentist: p.preferred_dentist_id ?? undefined
+        };
+      });
       setPatients(mappedPatients);
     }
 
@@ -617,7 +686,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         id: d.id,
         name: d.name,
         speciality: d.specialty || "",
-        status: (d.status === "Available" || d.status === "In Consultation" || d.status === "On Break" || d.status === "Finished Today") ? d.status : "Available",
+        status: (d.status === "Available" || d.status === "In Consultation" || d.status === "On Break" || d.status === "Finished Today" || d.status === "Inactive") ? d.status : "Available",
         phone: d.phone || ""
       }));
       setDoctors(mappedDoctors);
@@ -773,6 +842,91 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     } else if (settingsErr) {
       console.error("Failed to load clinic settings from database:", settingsErr.message);
     }
+
+    // 10. Fetch clinical notes
+    const { data: dbNotes, error: notesErr } = await supabase
+      .from("clinical_notes")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (!notesErr && dbNotes) {
+      setClinicalNotes(dbNotes);
+    } else if (notesErr) {
+      console.error("Failed to load clinical notes from database:", notesErr.message);
+    }
+
+    // 11. Fetch prescriptions
+    const { data: dbPrescriptions, error: prescErr } = await supabase
+      .from("prescriptions")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!prescErr && dbPrescriptions) {
+      setPrescriptionsList(dbPrescriptions);
+    } else if (prescErr) {
+      console.error("Failed to load prescriptions from database:", prescErr.message);
+    }
+
+    // 12. Fetch patient media
+    const { data: dbMedia, error: mediaErr } = await supabase
+      .from("patient_media")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!mediaErr && dbMedia) {
+      const mappedMedia: ClinicalMedia[] = dbMedia.map(m => {
+        const activePat = dbPatients?.find(p => p.id === m.patient_id);
+        return {
+          id: m.id,
+          patientId: activePat?.patient_id || "",
+          name: m.name,
+          type: m.file_type,
+          category: m.category as any,
+          url: m.storage_path,
+          uploadDate: new Date(m.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+          uploadedBy: m.uploaded_by || "",
+          toothNumber: m.tooth_number || undefined,
+          treatment: m.treatment || undefined,
+          appointment: m.appointment || undefined,
+          prescription: m.prescription || undefined
+        };
+      });
+      setPatientMedia(mappedMedia);
+    } else if (mediaErr) {
+      console.error("Failed to load patient media from database:", mediaErr.message);
+    }
+
+    // 13. Fetch patient files
+    const { data: dbFiles, error: filesTableErr } = await supabase
+      .from("patient_files")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!filesTableErr && dbFiles) {
+      setPatientFiles(dbFiles);
+    } else if (filesTableErr) {
+      console.error("Failed to load patient files from database:", filesTableErr.message);
+    }
+
+    // 14. Fetch blocked slots
+    const { data: dbBlockedSlots, error: blockedErr } = await supabase
+      .from("blocked_slots")
+      .select("*");
+
+    if (!blockedErr && dbBlockedSlots) {
+      setBlockedSlotsList(dbBlockedSlots);
+      const mappedBlocks: Record<string, string> = {};
+      dbBlockedSlots.forEach(block => {
+        const uiDate = convertToUiDate(block.blocked_date);
+        const normTime = normalizeTimeSlot(block.time_slot);
+        const docIdStr = block.doctor_id || "global";
+        const key = `${uiDate}_${normTime}_${docIdStr}`;
+        mappedBlocks[key] = block.id;
+      });
+      setBlockedSlots(mappedBlocks);
+    } else if (blockedErr) {
+      console.error("Failed to load blocked slots from database:", blockedErr.message);
+    }
   };
 
   const insertNotification = async (title: string, message: string, type: string = "info") => {
@@ -839,6 +993,18 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       showToast("Failed to save invoice to billing database.", "error");
     } else {
       setInvoices(prev => prev.map(inv => inv.id === newInvoice.id ? { ...inv, uuid: insertedBill.id } : inv));
+
+      // Calculate and update patient's total outstanding balance in database
+      const unpaidInvoices = invoices.filter(i => i.patientId === newInvoice.patientId && i.status !== "Paid");
+      const totalOutstanding = unpaidInvoices.reduce((sum, i) => sum + (i.total - i.paidAmount), 0) + (newInvoice.total - newInvoice.paidAmount);
+      const newBalanceStr = totalOutstanding > 0 ? `₹${totalOutstanding.toLocaleString()}` : "₹0";
+
+      await supabase
+        .from("patients")
+        .update({ balance: newBalanceStr })
+        .eq("patient_id", newInvoice.patientId);
+
+      setPatients(prev => prev.map(p => p.id === newInvoice.patientId ? { ...p, balance: newBalanceStr } : p));
     }
   };
 
@@ -1039,7 +1205,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   // Redesigned dashboard state variables
   const [selectedCalendarDay, setSelectedCalendarDay] = useState("12 Aug 2026");
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date(2026, 7, 10)); // Mon Aug 10, 2026
-  const [blockedSlots, setBlockedSlots] = useState<Record<string, boolean>>({});
+  const [blockedSlots, setBlockedSlots] = useState<Record<string, string>>({});
+  const [blockedSlotsList, setBlockedSlotsList] = useState<any[]>([]);
   
   // Add Patient quick panel inputs
   const [quickFirstName, setQuickFirstName] = useState("");
@@ -1105,34 +1272,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [noteAuthor, setNoteAuthor] = useState("Dr. Deepa Kodali");
 
   // Media Gallery states
-  const [patientMedia, setPatientMedia] = useState<ClinicalMedia[]>([
-    {
-      id: "media-1",
-      patientId: "DS-1001",
-      name: "intraoral_photo_mehta.png",
-      type: "image/png",
-      category: "Clinical Photos",
-      url: "https://images.unsplash.com/photo-1606811971618-4486d14f3f99?q=80&w=600&auto=format&fit=crop",
-      uploadDate: "12 Aug 2026",
-      uploadedBy: "Dr. Deepa Kodali",
-      toothNumber: "16",
-      treatment: "Root Canal Therapy",
-      appointment: "12 Aug 2026 at 09:00 AM",
-      prescription: "Amoxicillin 500mg"
-    },
-    {
-      id: "media-2",
-      patientId: "DS-1001",
-      name: "patient_consent_recording.mp4",
-      type: "video/mp4",
-      category: "Consent Video Recordings",
-      url: "https://www.w3schools.com/html/mov_bbb.mp4",
-      uploadDate: "10 Aug 2026",
-      uploadedBy: "Dr. Deepa Kodali",
-      treatment: "Consultation",
-      appointment: "10 Aug 2026"
-    }
-  ]);
+  const [patientMedia, setPatientMedia] = useState<ClinicalMedia[]>([]);
   const [mediaFilter, setMediaFilter] = useState("All");
   const [selectedMediaForPreview, setSelectedMediaForPreview] = useState<ClinicalMedia | null>(null);
   const [mediaToEdit, setMediaToEdit] = useState<ClinicalMedia | null>(null);
@@ -1297,25 +1437,70 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     startWebcam(selectedCameraId);
   };
 
-  const handleSaveConsentRecording = () => {
+  const handleSaveConsentRecording = async () => {
     if (recordingSeconds < 20) {
       showToast("Please record at least 20 seconds of patient consent.", "error");
       return;
     }
     const currentPat = patients.find(p => p.id === selectedPatientId);
+    if (!currentPat || !currentPat.uuid || !recordedVideoBlob) {
+      showToast("Unable to save recording: patient data or recorded stream is missing.", "error");
+      return;
+    }
     const docName = prescDoctor || (doctors[0]?.name || "Dr. Deepa Kodali");
     const durationStr = formatTimer(recordingSeconds);
+    const fileName = `consent_${selectedPatientId}_${Date.now()}.webm`;
+
+    // 1. Upload video file to Supabase Storage bucket 'patient-media'
+    const { error: uploadErr } = await supabase.storage
+      .from("patient-media")
+      .upload(fileName, recordedVideoBlob, {
+        contentType: "video/webm",
+        cacheControl: "3600"
+      });
+
+    if (uploadErr) {
+      console.error("Failed to upload consent video to storage:", uploadErr.message);
+      showToast("Failed to upload video to storage bucket.", "error");
+      return;
+    }
+
+    // 2. Get the public URL of the uploaded video file
+    const { data: { publicUrl } } = supabase.storage
+      .from("patient-media")
+      .getPublicUrl(fileName);
+
+    // 3. Insert metadata into patient_media table
+    const { data: dbMedia, error: mediaErr } = await supabase
+      .from("patient_media")
+      .insert({
+        patient_id: currentPat.uuid,
+        name: `Consent_Video_${currentPat?.name.replace(/\s+/g, '_') || 'Patient'}_${durationStr.replace(':', 'm')}s.webm`,
+        file_type: "video/webm",
+        category: "Consent Video Recordings",
+        storage_path: publicUrl,
+        uploaded_by: docName,
+        prescription: `Duration: ${durationStr}`
+      })
+      .select()
+      .single();
+
+    if (mediaErr || !dbMedia) {
+      console.error("Failed to insert consent recording metadata:", mediaErr?.message);
+      showToast("Failed to save consent metadata to database.", "error");
+      return;
+    }
 
     const newMedia: ClinicalMedia = {
-      id: `media-consent-${Date.now()}`,
+      id: dbMedia.id,
       patientId: selectedPatientId || "",
-      name: `Consent_Video_${currentPat?.name.replace(/\s+/g, '_') || 'Patient'}_${durationStr.replace(':', 'm')}s.webm`,
-      type: "video/webm",
-      category: "Consent Video Recordings",
-      url: recordedVideoUrl || "https://www.w3schools.com/html/mov_bbb.mp4",
-      uploadDate: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
-      uploadedBy: docName,
-      prescription: `Duration: ${durationStr}`
+      name: dbMedia.name,
+      type: dbMedia.file_type,
+      category: dbMedia.category as any,
+      url: dbMedia.storage_path,
+      uploadDate: new Date(dbMedia.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+      uploadedBy: dbMedia.uploaded_by || "",
+      prescription: dbMedia.prescription || undefined
     };
 
     setPatientMedia(prev => [newMedia, ...prev]);
@@ -1356,13 +1541,33 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }
   }, [mediaToEdit]);
 
-  const handleSaveMediaMetadata = (e: React.FormEvent) => {
+  const handleSaveMediaMetadata = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mediaToEdit) return;
     if (!editMediaName.trim()) {
       showToast("File name cannot be empty.", "error");
       return;
     }
+
+    const { error: dbErr } = await supabase
+      .from("patient_media")
+      .update({
+        name: editMediaName.trim(),
+        category: editMediaCategory,
+        tooth_number: editMediaTooth.trim() || null,
+        treatment: editMediaTreatment.trim() || null,
+        appointment: editMediaAppointment.trim() || null,
+        prescription: editMediaPrescription.trim() || null,
+        uploaded_by: editMediaUploadedBy || null
+      })
+      .eq("id", mediaToEdit.id);
+
+    if (dbErr) {
+      console.error("Failed to update media metadata in database:", dbErr.message);
+      showToast("Failed to update media file details.", "error");
+      return;
+    }
+
     setPatientMedia(prev => prev.map(m => {
       if (m.id === mediaToEdit.id) {
         return {
@@ -1382,30 +1587,80 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     showToast("Clinical media file updated.", "success");
   };
 
-  const handleMockMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMockMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const filesArray = Array.from(e.target.files);
-    
-    const newMediaItems: ClinicalMedia[] = filesArray.map((file, idx) => {
+    const currentPat = patients.find(p => p.id === selectedPatientId);
+    if (!currentPat || !currentPat.uuid) {
+      showToast("Unable to upload: patient data is missing.", "error");
+      return;
+    }
+
+    const docName = prescDoctor || (doctors[0]?.name || "Dr. Deepa Kodali");
+    showToast(`Uploading ${filesArray.length} file(s)...`, "success");
+
+    const newMediaItems: ClinicalMedia[] = [];
+
+    for (let i = 0; i < filesArray.length; i++) {
+      const file = filesArray[i];
       const isVideo = file.type.startsWith("video/") || file.name.endsWith(".mp4") || file.name.endsWith(".mov") || file.name.endsWith(".avi");
       const cat: "Clinical Photos" | "Consent Video Recordings" = isVideo ? "Consent Video Recordings" : "Clinical Photos";
       
-      return {
-        id: `media-${Date.now()}-${idx}`,
+      const fileName = `media_${selectedPatientId}_${Date.now()}_${i}_${file.name.replace(/\s+/g, '_')}`;
+
+      // 1. Upload file to Supabase Storage bucket 'patient-media'
+      const { error: uploadErr } = await supabase.storage
+        .from("patient-media")
+        .upload(fileName, file, {
+          contentType: file.type || (isVideo ? "video/mp4" : "image/png"),
+          cacheControl: "3600"
+        });
+
+      if (uploadErr) {
+        console.error("Failed to upload media file:", file.name, uploadErr.message);
+        showToast(`Failed to upload ${file.name}.`, "error");
+        continue;
+      }
+
+      // 2. Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("patient-media")
+        .getPublicUrl(fileName);
+
+      // 3. Insert metadata into patient_media table
+      const { data: dbMedia, error: mediaErr } = await supabase
+        .from("patient_media")
+        .insert({
+          patient_id: currentPat.uuid,
+          name: file.name,
+          file_type: file.type || (isVideo ? "video/mp4" : "image/png"),
+          category: cat,
+          storage_path: publicUrl,
+          uploaded_by: docName
+        })
+        .select()
+        .single();
+
+      if (mediaErr || !dbMedia) {
+        console.error("Failed to save media metadata for file:", file.name, mediaErr?.message);
+        showToast(`Failed to save metadata for ${file.name}.`, "error");
+        continue;
+      }
+
+      newMediaItems.push({
+        id: dbMedia.id,
         patientId: selectedPatientId || "",
-        name: file.name,
-        type: isVideo ? (file.type || "video/mp4") : (file.type || "image/png"),
-        category: cat,
-        url: isVideo
-          ? "https://www.w3schools.com/html/mov_bbb.mp4"
-          : "https://images.unsplash.com/photo-1606811971618-4486d14f3f99?q=80&w=600&auto=format&fit=crop",
-        uploadDate: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
-        uploadedBy: prescDoctor || (doctors[0]?.name || "Dr. Deepa Kodali")
-      };
-    });
-    
+        name: dbMedia.name,
+        type: dbMedia.file_type,
+        category: dbMedia.category as any,
+        url: dbMedia.storage_path,
+        uploadDate: new Date(dbMedia.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+        uploadedBy: dbMedia.uploaded_by || ""
+      });
+    }
+
     setPatientMedia(prev => [...newMediaItems, ...prev]);
-    showToast(`${filesArray.length} clinical media files uploaded.`, "success");
+    showToast(`${newMediaItems.length} clinical media file(s) uploaded successfully.`, "success");
   };
 
   useEffect(() => {
@@ -1618,6 +1873,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [newFileName, setNewFileName] = useState("");
   const [newFileType, setNewFileType] = useState("X-Ray Scan");
   const [newFileUploadedBy, setNewFileUploadedBy] = useState("");
+  const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
 
 
 
@@ -1639,9 +1895,15 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
 
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [clinicalNotes, setClinicalNotes] = useState<any[]>([]);
+  const [prescriptionsList, setPrescriptionsList] = useState<any[]>([]);
+  const [patientFiles, setPatientFiles] = useState<any[]>([]);
 
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  const currentUserRole = (staffList.find(s => s.id === currentUserId)?.role || "").toLowerCase();
+  const hasReportsAccess = ["admin", "doctor", "dentist"].includes(currentUserRole);
 
   const [settingsRecordId, setSettingsRecordId] = useState<string | null>(null);
   const [clinicName, setClinicName] = useState("Apex Dental Clinic");
@@ -1678,7 +1940,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [docFormName, setDocFormName] = useState("");
   const [docFormSpeciality, setDocFormSpeciality] = useState("General Dentist");
   const [docFormPhone, setDocFormPhone] = useState("");
-  const [docFormStatus, setDocFormStatus] = useState<"Available" | "In Consultation" | "On Break" | "Finished Today">("Available");
+  const [docFormStatus, setDocFormStatus] = useState<"Available" | "In Consultation" | "On Break" | "Finished Today" | "Inactive">("Available");
 
   const [staffFormName, setStaffFormName] = useState("");
   const [staffFormRole, setStaffFormRole] = useState("Desk Operations");
@@ -1771,7 +2033,17 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         medical_notes: mergedMedicalNotes,
         email: editEmail.trim() || null,
         blood_group: editBloodGroup.trim() || null,
-        notes: parsedNotes
+        notes: parsedNotes,
+        visit: editLastVisit || null,
+        dob: editDob || null,
+        occupation: editOccupation.trim() || null,
+        allergies: editAllergies.trim() || null,
+        medical_conditions: editMedicalConditions.trim() || null,
+        current_medications: editCurrentMedications.trim() || null,
+        emergency_contact_name: editEmergencyContactName.trim() || null,
+        emergency_contact_phone: editEmergencyContactPhone.trim() || null,
+        first_visit: editFirstVisit || null,
+        preferred_dentist_id: editPreferredDentist || null
       })
       .eq("patient_id", selectedPatientId);
 
@@ -2092,13 +2364,22 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const doctorRecord = doctors.find(d => d.name === selectedDoctorName);
     const doctorId = doctorRecord?.id || null;
 
+    const normalizedTime = normalizeTimeSlot(patApptTime);
+
+    // Conflict Check
+    const conflict = checkAppointmentConflict(doctorId, patApptDate, normalizedTime);
+    if (conflict.hasConflict) {
+      showToast(conflict.reason, "error");
+      return;
+    }
+
     const { data: dbAppt, error: apptErr } = await supabase
       .from("appointments")
       .insert({
         patient_id: patientItem.uuid,
         doctor_id: doctorId,
         appointment_date: convertToDbDate(patApptDate),
-        time_slot: patApptTime,
+        time_slot: normalizedTime,
         procedure_name: patApptTreatment,
         status: "Scheduled",
         notes: patApptNotes.trim()
@@ -2108,7 +2389,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     if (apptErr || !dbAppt) {
       console.error("Appointment operation failed:", apptErr?.message, apptErr?.code);
-      showToast("Failed to book appointment in database.", "error");
+      if (apptErr?.code === "23505") {
+        showToast("This doctor already has an active appointment at the selected date and time.", "error");
+      } else {
+        showToast("Failed to book appointment in database.", "error");
+      }
       return;
     }
 
@@ -2147,53 +2432,72 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const patientItem = patients.find(p => p.id === selectedPatientId);
     if (!patientItem) return;
 
-    const formattedList = prescMeds.map(m => 
-      `${m.name} (${m.dosage}) - ${m.freq} for ${m.duration} [${m.instructions}]`
-    );
+    const docRecord = doctors.find(d => d.name === (prescDoctor || (doctors[0]?.name || "")));
+    const doctorId = docRecord?.id || null;
 
-    let updatedNotes = [...(patientItem.notes || [])];
-    if (noteTitle.trim() && noteContent.trim()) {
-      const dateStr = prescDate ? new Date(prescDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-      const formattedNote = `Title: ${noteTitle.trim()} | Category: ${noteCategory} | Author: ${noteAuthor} | Content: ${noteContent.trim()} | Date: ${dateStr}`;
-      updatedNotes = [...updatedNotes, formattedNote];
+    const medicinesArray = prescMeds.map(m => ({
+      name: m.name.trim(),
+      dosage: m.dosage.trim(),
+      freq: m.freq.trim(),
+      duration: m.duration.trim(),
+      instructions: m.instructions.trim()
+    }));
+
+    const { data: dbPresc, error: prescErr } = await supabase
+      .from("prescriptions")
+      .insert({
+        patient_id: patientItem.uuid,
+        doctor_id: doctorId,
+        prescription_date: prescDate || new Date().toISOString().split("T")[0],
+        diagnosis: prescDiagnosis.trim() || null,
+        advice: prescAdvice.trim() || null,
+        medicines: medicinesArray
+      })
+      .select()
+      .single();
+
+    if (prescErr || !dbPresc) {
+      console.error("Failed to save prescription:", prescErr?.message);
+      showToast("Failed to save prescription to database.", "error");
+      return;
     }
 
-    const docName = prescDoctor || (doctors[0]?.name || "");
-    
+    setPrescriptionsList(prev => [...prev, dbPresc]);
+
+    // Save Clinical Note if specified
+    if (noteTitle.trim() && noteContent.trim()) {
+      const authorRecord = staffList.find(s => s.name === noteAuthor) || doctors.find(d => d.name === noteAuthor);
+      const authorId = authorRecord?.id || null;
+      const { data: dbNote, error: noteErr } = await supabase
+        .from("clinical_notes")
+        .insert({
+          patient_id: patientItem.uuid,
+          author_id: authorId,
+          title: noteTitle.trim(),
+          category: noteCategory,
+          content: noteContent.trim(),
+          author_name: noteAuthor
+        })
+        .select()
+        .single();
+      if (!noteErr && dbNote) {
+        setClinicalNotes(prev => [...prev, dbNote]);
+      }
+    }
+
+    // Save PDF log to patient files
     const newFile = {
       name: `prescription_${new Date(prescDate || Date.now()).toISOString().slice(0,10)}.pdf`,
       size: "1.5 KB",
       type: "application/pdf"
     };
-
-    const updatedPrescriptions = [...(patientItem.prescriptions || []), ...formattedList];
     const updatedFiles = [...(patientItem.files || []), newFile];
-
-    const { error: prescErr } = await supabase
+    await supabase
       .from("patients")
-      .update({
-        prescriptions: updatedPrescriptions,
-        notes: updatedNotes,
-        files: updatedFiles
-      })
+      .update({ files: updatedFiles })
       .eq("patient_id", selectedPatientId);
 
-    if (prescErr) {
-      showToast("Failed to save prescription to database.", "error");
-      return;
-    }
-
-    setPatients(prev => prev.map(p => {
-      if (p.id === selectedPatientId) {
-        return {
-          ...p,
-          prescriptions: updatedPrescriptions,
-          notes: updatedNotes,
-          files: updatedFiles
-        };
-      }
-      return p;
-    }));
+    setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, files: updatedFiles } : p));
 
     setPrescMeds([{ name: "", dosage: "", freq: "", duration: "", instructions: "" }]);
     setPrescAdvice("");
@@ -2206,6 +2510,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     showToast("Prescription generated and saved.", "success");
   };
 
+
   const handleSaveClinicalNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!noteTitle.trim() || !noteContent.trim()) {
@@ -2215,30 +2520,29 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const patientItem = patients.find(p => p.id === selectedPatientId);
     if (!patientItem) return;
 
-    const dateStr = prescDate ? new Date(prescDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-    const formattedNote = `Title: ${noteTitle.trim()} | Category: ${noteCategory} | Author: ${noteAuthor} | Content: ${noteContent.trim()} | Date: ${dateStr}`;
+    const docRecord = staffList.find(s => s.name === noteAuthor) || doctors.find(d => d.name === noteAuthor);
+    const authorId = docRecord?.id || null;
 
-    const updatedNotes = [...(patientItem.notes || []), formattedNote];
+    const { data: dbNote, error: noteErr } = await supabase
+      .from("clinical_notes")
+      .insert({
+        patient_id: patientItem.uuid,
+        author_id: authorId,
+        title: noteTitle.trim(),
+        category: noteCategory,
+        content: noteContent.trim(),
+        author_name: noteAuthor
+      })
+      .select()
+      .single();
 
-    const { error: noteErr } = await supabase
-      .from("patients")
-      .update({ notes: updatedNotes })
-      .eq("patient_id", selectedPatientId);
-
-    if (noteErr) {
+    if (noteErr || !dbNote) {
+      console.error("Clinical note insertion failed:", noteErr?.message);
       showToast("Failed to save clinical note to database.", "error");
       return;
     }
 
-    setPatients(prev => prev.map(p => {
-      if (p.id === selectedPatientId) {
-        return {
-          ...p,
-          notes: updatedNotes
-        };
-      }
-      return p;
-    }));
+    setClinicalNotes(prev => [...prev, dbNote]);
 
     setNoteTitle("");
     setNoteContent("");
@@ -2302,72 +2606,229 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       showToast("File name is required.", "error");
       return;
     }
+    if (!selectedUploadFile) {
+      showToast("Please choose a file to upload first.", "error");
+      return;
+    }
     const patientItem = patients.find(p => p.id === selectedPatientId);
-    if (!patientItem) return;
-
-    const newFile = {
-      name: newFileName.trim(),
-      size: "2.4 MB",
-      type: newFileType
-    };
-
-    const updatedFiles = [...(patientItem.files || []), newFile];
-
-    const { error: fileErr } = await supabase
-      .from("patients")
-      .update({ files: updatedFiles })
-      .eq("patient_id", selectedPatientId);
-
-    if (fileErr) {
-      showToast("Failed to save file attachment to database.", "error");
+    if (!patientItem || !patientItem.uuid) {
+      showToast("Selected patient record is missing database UUID.", "error");
       return;
     }
 
-    setPatients(prev => prev.map(p => {
-      if (p.id === selectedPatientId) {
-        return {
-          ...p,
-          files: updatedFiles
-        };
-      }
-      return p;
-    }));
+    const fileName = `${Date.now()}_${newFileName.trim().replace(/\s+/g, '_')}`;
+    const storagePath = `${patientItem.uuid}/${fileName}`;
+
+    showToast("Uploading file to server...", "success");
+
+    // 1. Upload file binary to patient-files bucket
+    const { error: uploadErr } = await supabase.storage
+      .from("patient-files")
+      .upload(storagePath, selectedUploadFile, {
+        contentType: selectedUploadFile.type || "application/octet-stream",
+        cacheControl: "3600"
+      });
+
+    if (uploadErr) {
+      console.error("Failed to upload file to storage:", uploadErr.message);
+      showToast("Failed to upload binary file to storage bucket.", "error");
+      return;
+    }
+
+    // 2. Get public URL / storage path
+    const { data: { publicUrl } } = supabase.storage
+      .from("patient-files")
+      .getPublicUrl(storagePath);
+
+    // 3. Insert metadata into public.patient_files table
+    const { data: dbFile, error: fileErr } = await supabase
+      .from("patient_files")
+      .insert({
+        patient_id: patientItem.uuid,
+        name: newFileName.trim(),
+        file_type: selectedUploadFile.type || "application/octet-stream",
+        category: newFileType,
+        storage_path: publicUrl,
+        file_size: selectedUploadFile.size,
+        uploaded_by: currentUserId || null
+      })
+      .select()
+      .single();
+
+    if (fileErr || !dbFile) {
+      console.error("Failed to save file metadata to database:", fileErr?.message);
+      showToast("Failed to link file metadata in database.", "error");
+      return;
+    }
+
+    // 4. Update React state
+    setPatientFiles(prev => [dbFile, ...prev]);
 
     setNewFileName("");
+    setSelectedUploadFile(null);
+    
+    // Clear the physical input element if it exists in the DOM
+    const fileInput = document.getElementById("file-upload-input") as HTMLInputElement;
+    if (fileInput) fileInput.value = "";
+
     showToast("File uploaded and linked successfully.", "success");
   };
 
+  const checkAppointmentConflict = (
+    doctorId: string | null,
+    date: string,
+    time: string,
+    excludeApptId?: string
+  ): { hasConflict: boolean; reason: string } => {
+    const normTime = normalizeTimeSlot(time);
+    const dbDate = convertToDbDate(date);
 
+    // 1. Check if the slot is blocked (either globally or doctor-specific)
+    const isBlocked = blockedSlotsList.some(block => {
+      const blockDate = convertToDbDate(convertToUiDate(block.blocked_date));
+      const blockTime = normalizeTimeSlot(block.time_slot);
+      return blockDate === dbDate && 
+             blockTime === normTime && 
+             (block.doctor_id === null || block.doctor_id === doctorId);
+    });
 
-  // --- HELPER DYNAMIC CALCULATIONS ---
+    if (isBlocked) {
+      return { hasConflict: true, reason: "The selected appointment slot is blocked." };
+    }
+
+    // 2. Check if the doctor is unassigned (doctor_id is null)
+    if (!doctorId) {
+      return { hasConflict: false, reason: "" };
+    }
+
+    // 3. Check for existing active appointments for the same doctor, date, and time slot
+    const cleanT = (t: string) => normalizeTimeSlot(t);
+    const conflictingAppt = appointments.find(a => {
+      if (excludeApptId && a.id === excludeApptId) return false;
+      if (a.status === "Cancelled" || a.status === "No Show") return false;
+
+      const docRecord = doctors.find(d => d.name === a.doctor);
+      const docId = docRecord?.id || null;
+
+      return docId === doctorId && 
+             convertToDbDate(a.date) === dbDate && 
+             cleanT(a.time) === normTime;
+    });
+
+    if (conflictingAppt) {
+      return { 
+        hasConflict: true, 
+        reason: `This doctor (${conflictingAppt.doctor}) already has an appointment at the selected date and time.` 
+      };
+    }
+
+    return { hasConflict: false, reason: "" };
+  };
+
+  const getBlockIdForSlot = (date: string, time: string, docId: string | null): string | null => {
+    const normTime = normalizeTimeSlot(time);
+    const uiDate = convertToUiDate(convertToDbDate(date));
+    
+    // 1. Check for specific doctor block first
+    if (docId) {
+      const docKey = `${uiDate}_${normTime}_${docId}`;
+      if (blockedSlots[docKey]) return blockedSlots[docKey];
+    }
+    
+    // 2. Check for global block
+    const globalKey = `${uiDate}_${normTime}_global`;
+    if (blockedSlots[globalKey]) return blockedSlots[globalKey];
+    
+    return null;
+  };
 
   const totalRevenue = invoices.reduce((sum, inv) => sum + inv.paidAmount, 0);
 
-  const getFilteredReportStats = () => {
-    // Generate filtered revenue calculations based on reporting timeframe selector
-    let revMultiplier = 1;
-    let patientOffset = 0;
-    if (reportsFilter === "Week") { revMultiplier = 5.2; patientOffset = 18; }
-    else if (reportsFilter === "Month") { revMultiplier = 22; patientOffset = 76; }
-    else if (reportsFilter === "Year") { revMultiplier = 240; patientOffset = 880; }
-    else if (reportsFilter === "Custom") {
-      const startMs = customStartDate ? new Date(customStartDate).getTime() : Date.now();
-      const endMs = customEndDate ? new Date(customEndDate).getTime() : Date.now();
-      const days = Math.max(1, Math.round(Math.abs((endMs - startMs) / (1000 * 60 * 60 * 24))));
-      revMultiplier = Math.max(0.5, days * 0.75);
-      patientOffset = Math.round(days * 2.8);
-    }
+  const getPatientBalance = (patientId: string): string => {
+    const unpaid = invoices.filter(i => i.patientId === patientId && i.status !== "Paid");
+    const totalOutstanding = unpaid.reduce((sum, i) => sum + (i.total - i.paidAmount), 0);
+    return totalOutstanding > 0 ? `₹${totalOutstanding.toLocaleString()}` : "₹0";
+  };
 
-    const calculatedRevenue = Math.round(totalRevenue * revMultiplier);
-    const calculatedPatients = patients.length + patientOffset;
-    const calculatedTreatments = treatments.length + Math.round(patientOffset * 1.5);
-    const calculatedAppts = appointments.length + Math.round(patientOffset * 1.8);
+  const parseToDate = (dateStr: string | undefined): Date | null => {
+    if (!dateStr) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const d = new Date(dateStr);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const dbFmt = convertToDbDate(dateStr);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dbFmt)) {
+      const d = new Date(dbFmt);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  const getReportDateRange = (): { start: Date; end: Date } => {
+    const baseToday = new Date(2026, 7, 12);
+    let start = new Date(baseToday);
+    let end = new Date(baseToday);
+    
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+    
+    if (reportsFilter === "Today") {
+      // already today
+    } else if (reportsFilter === "Week") {
+      start.setDate(baseToday.getDate() - 7);
+    } else if (reportsFilter === "Month") {
+      start.setDate(baseToday.getDate() - 30);
+    } else if (reportsFilter === "Year") {
+      start.setDate(baseToday.getDate() - 365);
+    } else if (reportsFilter === "Custom") {
+      if (customStartDate) {
+        start = new Date(customStartDate);
+        start.setHours(0, 0, 0, 0);
+      }
+      if (customEndDate) {
+        end = new Date(customEndDate);
+        end.setHours(23, 59, 59, 999);
+      }
+    }
+    return { start, end };
+  };
+
+  const getFilteredReportStats = () => {
+    const { start, end } = getReportDateRange();
+
+    const timeframeRevenue = invoices.reduce((sum, inv) => {
+      const logs = inv.paymentLogs || [];
+      const logSum = logs.reduce((logAcc, log) => {
+        const logDate = parseToDate(log.date);
+        if (logDate && logDate >= start && logDate <= end) {
+          return logAcc + log.amount;
+        }
+        return logAcc;
+      }, 0);
+      return sum + logSum;
+    }, 0);
+
+    const timeframePatients = patients.filter(p => {
+      const pDate = parseToDate(p.firstVisit || p.visit);
+      return pDate && pDate >= start && pDate <= end;
+    }).length;
+
+    const timeframeTreatments = treatments.filter(t => {
+      const tDate = parseToDate(t.date);
+      return tDate && tDate >= start && tDate <= end && t.stage === "Completed";
+    }).length;
+
+    const timeframeAppts = appointments.filter(a => {
+      const aDate = parseToDate(a.date);
+      return aDate && aDate >= start && aDate <= end;
+    }).length;
 
     return {
-      revenue: calculatedRevenue,
-      patients: calculatedPatients,
-      treatments: calculatedTreatments,
-      appointments: calculatedAppts
+      revenue: timeframeRevenue,
+      patients: timeframePatients,
+      treatments: timeframeTreatments,
+      appointments: timeframeAppts
     };
   };
 
@@ -2786,11 +3247,29 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       return;
     }
 
-    // Apply balance update to patient directory record
-    const remainingBalance = Math.max(0, finalInvoiceTotal - totalPaidAmount);
+    // Calculate new total outstanding balance for this patient across all their invoices
+    // (excluding Paid ones, but including the current invoice's updated state)
+    const patientInvoiceTotalOutstanding = invoices.reduce((sum, inv) => {
+      if (inv.patientId !== selectedInvoiceForPayment.patientId) {
+        return sum;
+      }
+      if (inv.id === selectedInvoiceForPayment.id) {
+        if (finalStatus === "Paid") {
+          return sum;
+        }
+        return sum + Math.max(0, finalInvoiceTotal - totalPaidAmount);
+      }
+      if (inv.status === "Paid") {
+        return sum;
+      }
+      return sum + Math.max(0, inv.total - inv.paidAmount);
+    }, 0);
+
+    const formattedTotalBalance = patientInvoiceTotalOutstanding > 0 ? `₹${patientInvoiceTotalOutstanding.toLocaleString()}` : "₹0";
+
     const { error: patErr } = await supabase
       .from("patients")
-      .update({ balance: remainingBalance > 0 ? `₹${remainingBalance.toLocaleString()}` : "₹0" })
+      .update({ balance: formattedTotalBalance })
       .eq("patient_id", selectedInvoiceForPayment.patientId);
 
     // Update in invoices state
@@ -2819,7 +3298,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setPatients(prev =>
       prev.map(p => {
         if (p.id === selectedInvoiceForPayment.patientId) {
-          return { ...p, balance: remainingBalance > 0 ? `₹${remainingBalance.toLocaleString()}` : "₹0" };
+          return { ...p, balance: formattedTotalBalance };
         }
         return p;
       })
@@ -2884,6 +3363,19 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const handleRegisterWalkIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPatName) return;
+
+    const docRecord = doctors.find(d => d.name.toLowerCase().includes("sharma"));
+    const doctorId = docRecord?.id || null;
+    const walkInDate = new Date().toISOString().split("T")[0];
+    const walkInTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    const normalizedTime = normalizeTimeSlot(walkInTime);
+
+    // Conflict Check
+    const conflict = checkAppointmentConflict(doctorId, walkInDate, normalizedTime);
+    if (conflict.hasConflict) {
+      showToast(conflict.reason, "error");
+      return;
+    }
 
     // Retrieve currently authenticated Supabase user
     const { data: { user }, error: userErr } = await supabase.auth.getUser();
@@ -2968,16 +3460,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     // Book and check in instantly
     const tokenStr = `T-0${appointments.filter(a => a.status === "Waiting" || a.status === "Checked In" || a.status === "In Procedure" || a.status === "Completed").length + 1}`;
     
-    const docRecord = doctors.find(d => d.name.toLowerCase().includes("sharma"));
-    const doctorId = docRecord?.id || null;
-
     const { data: dbAppt, error: apptErr } = await supabase
       .from("appointments")
       .insert({
         patient_id: insertedPat.id,
         doctor_id: doctorId,
-        appointment_date: new Date().toISOString().split("T")[0],
-        time_slot: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+        appointment_date: walkInDate,
+        time_slot: normalizedTime,
         procedure_name: "Consultation",
         status: "Waiting",
         queue_token: tokenStr,
@@ -2988,7 +3477,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     if (apptErr || !dbAppt) {
       console.error("Walk-in appointment insert failed:", apptErr?.message, apptErr?.code);
-      showToast("Walk-in registration succeeded, but failed to create queue appointment.", "error");
+      if (apptErr?.code === "23505") {
+        showToast("Walk-in registration succeeded, but the doctor is already booked at this time.", "error");
+      } else {
+        showToast("Walk-in registration succeeded, but failed to create queue appointment.", "error");
+      }
       setPatients(prev => [newPatientRecord, ...prev]);
       return;
     }
@@ -3031,13 +3524,22 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const doctorRecord = doctors.find(d => d.name === apptDoctor);
     const doctorId = doctorRecord?.id || null;
 
+    const normalizedTime = normalizeTimeSlot(apptTime);
+
+    // Conflict Check
+    const conflict = checkAppointmentConflict(doctorId, apptDate, normalizedTime);
+    if (conflict.hasConflict) {
+      showToast(conflict.reason, "error");
+      return;
+    }
+
     const { data: dbAppt, error: apptErr } = await supabase
       .from("appointments")
       .insert({
         patient_id: pat.uuid,
         doctor_id: doctorId,
         appointment_date: convertToDbDate(apptDate),
-        time_slot: apptTime,
+        time_slot: normalizedTime,
         procedure_name: apptTreatment,
         status: "Scheduled",
         notes: apptNotes
@@ -3047,7 +3549,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     if (apptErr || !dbAppt) {
       console.error("Appointment operation failed:", apptErr?.message, apptErr?.code);
-      showToast("Failed to book appointment in database.", "error");
+      if (apptErr?.code === "23505") {
+        showToast("This doctor already has an active appointment at the selected date and time.", "error");
+      } else {
+        showToast("Failed to book appointment in database.", "error");
+      }
       return;
     }
 
@@ -3244,26 +3750,69 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const doctorRecord = doctors.find(d => d.name === slotDoctor);
     const doctorId = doctorRecord?.id || null;
 
-    const { data: dbAppt, error: apptErr } = await supabase
-      .from("appointments")
-      .insert({
-        patient_id: pat.uuid,
-        doctor_id: doctorId,
-        appointment_date: convertToDbDate(selectedSlotData.date),
-        time_slot: selectedSlotData.time,
-        procedure_name: slotTreatment,
-        status: "Scheduled"
-      })
-      .select()
-      .single();
+    const isEdit = !!selectedSlotData.appointment;
+    const normalizedTime = normalizeTimeSlot(selectedSlotData.time);
 
-    if (apptErr || !dbAppt) {
-      console.error("Appointment operation failed:", apptErr?.message, apptErr?.code);
-      showToast("Failed to book slot appointment in database.", "error");
+    // Conflict Check
+    const conflict = checkAppointmentConflict(
+      doctorId,
+      selectedSlotData.date,
+      normalizedTime,
+      isEdit ? selectedSlotData.appointment!.id : undefined
+    );
+    if (conflict.hasConflict) {
+      showToast(conflict.reason, "error");
       return;
     }
 
-    const newAppt: Appointment = {
+    let dbAppt: any = null;
+    let apptErr: any = null;
+
+    if (isEdit) {
+      // Perform database UPDATE
+      const { data, error } = await supabase
+        .from("appointments")
+        .update({
+          patient_id: pat.uuid,
+          doctor_id: doctorId,
+          appointment_date: convertToDbDate(selectedSlotData.date),
+          time_slot: normalizedTime,
+          procedure_name: slotTreatment
+        })
+        .eq("id", selectedSlotData.appointment!.id)
+        .select()
+        .single();
+      dbAppt = data;
+      apptErr = error;
+    } else {
+      // Perform database INSERT
+      const { data, error } = await supabase
+        .from("appointments")
+        .insert({
+          patient_id: pat.uuid,
+          doctor_id: doctorId,
+          appointment_date: convertToDbDate(selectedSlotData.date),
+          time_slot: normalizedTime,
+          procedure_name: slotTreatment,
+          status: "Scheduled"
+        })
+        .select()
+        .single();
+      dbAppt = data;
+      apptErr = error;
+    }
+
+    if (apptErr || !dbAppt) {
+      console.error("Appointment operation failed:", apptErr?.message, apptErr?.code);
+      if (apptErr?.code === "23505") {
+        showToast("This doctor already has an active appointment at the selected date and time.", "error");
+      } else {
+        showToast(`Failed to ${isEdit ? 'update' : 'book'} slot appointment in database.`, "error");
+      }
+      return;
+    }
+
+    const updatedAppt: Appointment = {
       id: dbAppt.id,
       patientId: pat.id,
       patientName: pat.name,
@@ -3272,30 +3821,83 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       time: dbAppt.time_slot || "09:00 AM",
       date: convertToUiDate(dbAppt.appointment_date || ""),
       status: dbAppt.status as any || "Scheduled",
-      avatarColor: "bg-indigo-100 text-indigo-600"
+      avatarColor: isEdit ? (selectedSlotData.appointment!.avatarColor || "bg-indigo-100 text-indigo-600") : "bg-indigo-100 text-indigo-600",
+      notes: dbAppt.notes || ""
     };
 
-    setAppointments(prev => [...prev, newAppt]);
-    pushActivity("Appointment", `Booked appointment for ${pat.name} on ${selectedSlotData.date} at ${selectedSlotData.time}.`);
+    if (isEdit) {
+      setAppointments(prev => prev.map(a => a.id === selectedSlotData.appointment!.id ? updatedAppt : a));
+      pushActivity("Appointment", `Updated appointment details for ${pat.name} on ${selectedSlotData.date} at ${selectedSlotData.time}.`);
+      showToast("Appointment details updated.", "success");
+    } else {
+      setAppointments(prev => [...prev, updatedAppt]);
+      pushActivity("Appointment", `Booked appointment for ${pat.name} on ${selectedSlotData.date} at ${selectedSlotData.time}.`);
+      showToast("Appointment booked successfully.", "success");
+    }
     
     // Clear and close
     setSlotPatientId("");
     setSelectedSlotData(null);
   };
 
-  const handleBlockSlotToggle = (date: string, time: string) => {
-    const key = `${date}_${time}`;
-    setBlockedSlots(prev => {
-      const copy = { ...prev };
-      if (copy[key]) {
-        delete copy[key];
-        pushActivity("Appointment", `Unblocked slot on ${date} at ${time}.`);
-      } else {
-        copy[key] = true;
-        pushActivity("Appointment", `Blocked slot on ${date} at ${time}.`);
+  const handleBlockSlotToggle = async (date: string, time: string) => {
+    const normalizedTime = normalizeTimeSlot(time);
+    const dbDate = convertToDbDate(date);
+    const doctorRecord = doctors.find(d => d.name === apptSelectedDoctor);
+    const doctorId = doctorRecord?.id || null;
+
+    const exactKey = `${convertToUiDate(dbDate)}_${normalizedTime}_${doctorId || 'global'}`;
+    const existingBlockId = blockedSlots[exactKey];
+
+    if (existingBlockId) {
+      // Unblock: delete from Supabase using record ID
+      const { error } = await supabase
+        .from("blocked_slots")
+        .delete()
+        .eq("id", existingBlockId);
+      
+      if (error) {
+        console.error("Failed to unblock slot in database:", error.message);
+        showToast("Failed to unblock slot in database.", "error");
+        return;
       }
-      return copy;
-    });
+
+      setBlockedSlots(prev => {
+        const copy = { ...prev };
+        delete copy[exactKey];
+        return copy;
+      });
+      setBlockedSlotsList(prev => prev.filter(b => b.id !== existingBlockId));
+      pushActivity("Appointment", `Unblocked slot on ${date} at ${normalizedTime}.`);
+      showToast("Slot unblocked successfully.", "success");
+    } else {
+      // Block: insert into Supabase
+      const { data: dbBlock, error } = await supabase
+        .from("blocked_slots")
+        .insert({
+          blocked_date: dbDate,
+          time_slot: normalizedTime,
+          doctor_id: doctorId,
+          reason: "Clinical Maintenance"
+        })
+        .select()
+        .single();
+
+      if (error || !dbBlock) {
+        console.error("Failed to block slot in database:", error?.message);
+        showToast("Failed to block slot in database.", "error");
+        return;
+      }
+
+      setBlockedSlots(prev => {
+        const copy = { ...prev };
+        copy[exactKey] = dbBlock.id;
+        return copy;
+      });
+      setBlockedSlotsList(prev => [...prev, dbBlock]);
+      pushActivity("Appointment", `Blocked slot on ${date} at ${normalizedTime}.`);
+      showToast("Slot blocked successfully.", "success");
+    }
     setSelectedSlotData(null);
   };
 
@@ -3468,6 +4070,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   };
 
   const selectTab = (tabName: string) => {
+    if (tabName === "Reports" && !hasReportsAccess) {
+      showToast("Access Denied: You do not have permissions to view reports.", "error");
+      return;
+    }
     setActiveTab(tabName);
     setActiveSubTab(moduleSubTabs[tabName]?.[0] || "");
     setSelectedPatientId(null);
@@ -3657,8 +4263,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     // Slot matcher helper
     const getApptForSlot = (date: string, timeSlot: string) => {
-      const cleanT = (t: string) => t.trim().toLowerCase().replace(/^0/, "");
-      return appointments.find(a => a.date === date && cleanT(a.time) === cleanT(timeSlot) && a.status !== "Cancelled");
+      const cleanT = (t: string) => normalizeTimeSlot(t);
+      return appointments.find(a => a.date === date && cleanT(a.time) === cleanT(timeSlot) && a.status !== "Cancelled" && a.status !== "No Show");
     };
 
     // Counters mapping
@@ -3906,7 +4512,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {MORNING_SLOTS.map((time) => {
                     const appt = getApptForSlot(selectedCalendarDay, time);
-                    const isBlocked = blockedSlots[`${selectedCalendarDay}_${time}`];
+                    const docRecord = doctors.find(d => d.name === apptSelectedDoctor);
+                    const doctorId = docRecord?.id || null;
+                    const isBlocked = !!getBlockIdForSlot(selectedCalendarDay, time, doctorId);
                     
                     let statusText = "Open Slot";
                     let statusBadge = "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400";
@@ -3995,7 +4603,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {EVENING_SLOTS.map((time) => {
                     const appt = getApptForSlot(selectedCalendarDay, time);
-                    const isBlocked = blockedSlots[`${selectedCalendarDay}_${time}`];
+                    const docRecord = doctors.find(d => d.name === apptSelectedDoctor);
+                    const doctorId = docRecord?.id || null;
+                    const isBlocked = !!getBlockIdForSlot(selectedCalendarDay, time, doctorId);
                     
                     let statusText = "Open Slot";
                     let statusBadge = "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400";
@@ -4168,17 +4778,32 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                                const newDate = prompt("Enter new date (e.g. 12 Aug 2026):", app.date);
                                const newTime = prompt("Enter new time (e.g. 09:30 AM):", app.time);
                                if (newDate && newTime) {
-                                 const { error } = await supabase
-                                   .from("appointments")
-                                   .update({
-                                     appointment_date: convertToDbDate(newDate),
-                                     time_slot: newTime
-                                   })
-                                   .eq("id", app.id);
+                                  const normalizedTime = normalizeTimeSlot(newTime);
+                                  const docRecord = doctors.find(d => d.name === app.doctor);
+                                  const docId = docRecord?.id || null;
+
+                                  // Conflict Check
+                                  const conflict = checkAppointmentConflict(docId, newDate, normalizedTime, app.id);
+                                  if (conflict.hasConflict) {
+                                    showToast(conflict.reason, "error");
+                                    return;
+                                  }
+
+                                  const { error } = await supabase
+                                    .from("appointments")
+                                    .update({
+                                      appointment_date: convertToDbDate(newDate),
+                                      time_slot: normalizedTime
+                                    })
+                                    .eq("id", app.id);
 
                                  if (error) {
-                                   console.error("Failed to reschedule appointment in database:", error.message);
-                                   showToast("Failed to reschedule appointment.", "error");
+                                    console.error("Failed to reschedule appointment in database:", error.message);
+                                    if (error.code === "23505") {
+                                      showToast("This doctor already has an active appointment at the selected date and time.", "error");
+                                    } else {
+                                      showToast("Failed to reschedule appointment.", "error");
+                                    }
                                    return;
                                  }
 
@@ -5199,7 +5824,7 @@ Apex Clinic`;
                     
                     const slotAppt = filteredAppts.find(a => {
                       if (a.date !== dateStr) return false;
-                      const cleanT = (t: string) => t.trim().toLowerCase().replace(/^0/, "");
+                      const cleanT = (t: string) => normalizeTimeSlot(t);
                       return cleanT(a.time) === cleanT(slotTimeStr);
                     });
 
@@ -5534,17 +6159,32 @@ Apex Clinic`;
                       const newDate = prompt("Enter new date (e.g. 15 Aug 2026):", selectedApptDetail.date);
                       const newTime = prompt("Enter new time (e.g. 11:30 AM):", selectedApptDetail.time);
                       if (newDate && newTime) {
+                        const normalizedTime = normalizeTimeSlot(newTime);
+                        const docRecord = doctors.find(d => d.name === selectedApptDetail.doctor);
+                        const docId = docRecord?.id || null;
+
+                        // Conflict Check
+                        const conflict = checkAppointmentConflict(docId, newDate, normalizedTime, selectedApptDetail.id);
+                        if (conflict.hasConflict) {
+                          showToast(conflict.reason, "error");
+                          return;
+                        }
+
                         const { error } = await supabase
                           .from("appointments")
-                          .update({ appointment_date: convertToDbDate(newDate), time_slot: newTime })
+                          .update({ appointment_date: convertToDbDate(newDate), time_slot: normalizedTime })
                           .eq("id", selectedApptDetail.id);
                         if (error) {
                           console.error("Appointment operation failed:", error.message, error.code);
-                          showToast("Failed to reschedule appointment in database.", "error");
+                          if (error.code === "23505") {
+                            showToast("This doctor already has an active appointment at the selected date and time.", "error");
+                          } else {
+                            showToast("Failed to reschedule appointment in database.", "error");
+                          }
                           return;
                         }
-                        setAppointments(prev => prev.map(a => a.id === selectedApptDetail.id ? { ...a, date: newDate, time: newTime } : a));
-                        pushActivity("Appointment", `Rescheduled ${selectedApptDetail.patientName} to ${newDate} at ${newTime}.`);
+                        setAppointments(prev => prev.map(a => a.id === selectedApptDetail.id ? { ...a, date: newDate, time: normalizedTime } : a));
+                        pushActivity("Appointment", `Rescheduled ${selectedApptDetail.patientName} to ${newDate} at ${normalizedTime}.`);
                       }
                       setSelectedApptDetail(null);
                     }}
@@ -5698,7 +6338,7 @@ Apex Clinic`;
                     <span className="font-bold text-sm block mb-1">Personal Details</span>
                     <p className="text-slate-505">Address: <strong className="text-slate-800 dark:text-slate-200">{patientItem.address}</strong></p>
                     <p className="text-slate-550">Contact: <strong className="text-slate-800 dark:text-slate-200">{patientItem.phone}</strong></p>
-                    <p className="text-slate-550">Outstanding Balance: <strong className="text-slate-800 text-red-650">{patientItem.balance}</strong></p>
+                    <p className="text-slate-550">Outstanding Balance: <strong className="text-slate-800 text-red-650">{getPatientBalance(patientItem.id)}</strong></p>
                     <p className="text-slate-550">Last Visited: <strong className="text-slate-800">{patientItem.visit}</strong></p>
                   </div>
                   <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs">
@@ -5861,7 +6501,7 @@ Apex Clinic`;
                           >
                             <option value="">-- Choose Dentist --</option>
                             {doctors.map(d => (
-                              <option key={d.name} value={d.name}>{d.name}</option>
+                              <option key={d.id} value={d.id}>{d.name}</option>
                             ))}
                           </select>
                         </div>
@@ -5886,15 +6526,17 @@ Apex Clinic`;
                 <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold space-y-4 animate-fadeIn">
                   <div className="flex justify-between items-center border-b pb-2 mb-2">
                     <span className="font-bold text-sm">Patient Treatment History Log</span>
-                    <Button 
-                      onClick={() => {
-                        setShowAddTreatmentModal(true);
-                        setNewTrDoctor(doctors[0]?.name || "");
-                      }} 
-                      className="h-8 px-3 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px]"
-                    >
-                      Add Treatment
-                    </Button>
+                    {hasReportsAccess && (
+                      <Button 
+                        onClick={() => {
+                          setShowAddTreatmentModal(true);
+                          setNewTrDoctor(doctors[0]?.name || "");
+                        }} 
+                        className="h-8 px-3 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px]"
+                      >
+                        Add Treatment
+                      </Button>
+                    )}
                   </div>
 
                   <div className="overflow-x-auto">
@@ -5929,26 +6571,48 @@ Apex Clinic`;
                               </td>
                               <td className="py-3 font-bold">₹{(tr.cost || 0).toLocaleString()}</td>
                               <td className="py-3 text-right">
-                                <button 
-                                  onClick={async () => {
-                                    const { error } = await supabase
-                                      .from("treatments")
-                                      .delete()
-                                      .eq("id", tr.id);
+                                {hasReportsAccess && (
+                                  <button 
+                                    onClick={async () => {
+                                      const { error } = await supabase
+                                        .from("treatments")
+                                        .delete()
+                                        .eq("id", tr.id);
 
-                                    if (error) {
-                                      console.error("Failed to delete treatment in database:", error.message);
-                                      showToast("Failed to delete treatment history log.", "error");
-                                      return;
-                                    }
+                                      if (error) {
+                                        console.error("Failed to delete treatment in database:", error.message);
+                                        showToast("Failed to delete treatment history log.", "error");
+                                        return;
+                                      }
 
-                                    setTreatments(prev => prev.filter(t => t.id !== tr.id));
-                                    showToast("Treatment history log removed.", "success");
-                                  }} 
-                                  className="text-red-500 hover:text-red-750 font-bold"
-                                >
-                                  Delete
-                                </button>
+                                      // If this treatment is linked to a tooth, update the dental chart
+                                      if (tr.tooth && patientItem) {
+                                        const updatedChart = { ...(patientItem.dentalChart || {}) };
+                                        delete updatedChart[tr.tooth];
+                                        
+                                        const { error: chartErr } = await supabase
+                                          .from("patients")
+                                          .update({ dental_chart: updatedChart })
+                                          .eq("patient_id", selectedPatientId);
+                                        
+                                        if (!chartErr) {
+                                          setPatients(prev => prev.map(p => {
+                                            if (p.id === selectedPatientId) {
+                                              return { ...p, dentalChart: updatedChart };
+                                            }
+                                            return p;
+                                          }));
+                                        }
+                                      }
+
+                                      setTreatments(prev => prev.filter(t => t.id !== tr.id));
+                                      showToast("Treatment history log removed.", "success");
+                                    }} 
+                                    className="text-red-500 hover:text-red-750 font-bold"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
                               </td>
                             </tr>
                           ))
@@ -6292,16 +6956,31 @@ Apex Clinic`;
                                       <button 
                                         onClick={async () => {
                                           if (!rescheduleDate || !rescheduleTime) return;
+                                          const normalizedTime = normalizeTimeSlot(rescheduleTime);
+                                          const docRecord = doctors.find(d => d.name === app.doctor);
+                                          const docId = docRecord?.id || null;
+
+                                          // Conflict Check
+                                          const conflict = checkAppointmentConflict(docId, rescheduleDate, normalizedTime, app.id);
+                                          if (conflict.hasConflict) {
+                                            showToast(conflict.reason, "error");
+                                            return;
+                                          }
+
                                           const { error } = await supabase
                                             .from("appointments")
-                                            .update({ appointment_date: convertToDbDate(rescheduleDate), time_slot: rescheduleTime })
+                                            .update({ appointment_date: convertToDbDate(rescheduleDate), time_slot: normalizedTime })
                                             .eq("id", app.id);
                                           if (error) {
                                             console.error("Appointment operation failed:", error.message, error.code);
-                                            showToast("Failed to reschedule appointment in database.", "error");
+                                            if (error.code === "23505") {
+                                              showToast("This doctor already has an active appointment at the selected date and time.", "error");
+                                            } else {
+                                              showToast("Failed to reschedule appointment in database.", "error");
+                                            }
                                             return;
                                           }
-                                          setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, date: convertToUiDate(rescheduleDate), time: rescheduleTime } : a));
+                                          setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, date: convertToUiDate(rescheduleDate), time: normalizedTime } : a));
                                           setReschedulingApptId(null);
                                           showToast("Appointment rescheduled.", "success");
                                         }}
@@ -6407,61 +7086,66 @@ Apex Clinic`;
 
             {profileSubTab === "Invoices" && (
               <div className="space-y-6 animate-fadeIn">
-                {/* Billing invoice creation form */}
-                <form onSubmit={handleSaveInvoice} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
-                  <span className="font-bold text-sm block border-b pb-2 mb-2">Create New Billing Invoice</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label>Procedure / Item</Label>
-                      <select 
-                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
-                        value={invProcedure}
-                        onChange={e => {
-                          setInvProcedure(e.target.value);
-                          if (TREATMENT_PRICES[e.target.value]) {
-                            setInvAmount(String(TREATMENT_PRICES[e.target.value]));
-                          }
-                        }}
-                        required
-                      >
-                        <option value="">-- Choose Procedure --</option>
-                        {Object.keys(TREATMENT_PRICES).map(t => (
-                          <option key={t} value={t}>{t}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <Label>Procedure Amount (₹)</Label>
-                      <Input type="number" value={invAmount} onChange={e => setInvAmount(e.target.value)} required />
-                    </div>
-                    <div>
-                      <Label>Discount (%)</Label>
-                      <Input type="number" min="0" max="100" value={invDiscount} onChange={e => setInvDiscount(e.target.value)} />
-                    </div>
+                {!["admin", "receptionist", "doctor", "dentist"].includes(currentUserRole) ? (
+                  <div className="p-6 bg-yellow-50 dark:bg-yellow-955/30 border border-yellow-250 dark:border-yellow-900/50 rounded-xl text-yellow-800 dark:text-yellow-400 text-xs font-semibold">
+                    Billing management is restricted to authorized roles (Admin, Receptionist, Clinicians).
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Paid Amount (₹)</Label>
-                      <Input type="number" min="0" value={invPaid} onChange={e => setInvPaid(e.target.value)} />
+                ) : (
+                  <form onSubmit={handleSaveInvoice} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
+                    <span className="font-bold text-sm block border-b pb-2 mb-2">Create New Billing Invoice</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label>Procedure / Item</Label>
+                        <select 
+                          className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                          value={invProcedure}
+                          onChange={e => {
+                            setInvProcedure(e.target.value);
+                            if (TREATMENT_PRICES[e.target.value]) {
+                              setInvAmount(String(TREATMENT_PRICES[e.target.value]));
+                            }
+                          }}
+                          required
+                        >
+                          <option value="">-- Choose Procedure --</option>
+                          {Object.keys(TREATMENT_PRICES).map(t => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>Procedure Amount (₹)</Label>
+                        <Input type="number" value={invAmount} onChange={e => setInvAmount(e.target.value)} required />
+                      </div>
+                      <div>
+                        <Label>Discount (%)</Label>
+                        <Input type="number" min="0" max="100" value={invDiscount} onChange={e => setInvDiscount(e.target.value)} />
+                      </div>
                     </div>
-                    <div>
-                      <Label>Payment Mode</Label>
-                      <select 
-                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
-                        value={invMode} 
-                        onChange={e => setInvMode(e.target.value)}
-                      >
-                        <option value="UPI GPay">UPI / GPay</option>
-                        <option value="Cash">Cash</option>
-                        <option value="Card Swipe">Card</option>
-                        <option value="Bank Transfer">Net Banking</option>
-                      </select>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Paid Amount (₹)</Label>
+                        <Input type="number" min="0" value={invPaid} onChange={e => setInvPaid(e.target.value)} />
+                      </div>
+                      <div>
+                        <Label>Payment Mode</Label>
+                        <select 
+                          className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                          value={invMode} 
+                          onChange={e => setInvMode(e.target.value)}
+                        >
+                          <option value="UPI GPay">UPI / GPay</option>
+                          <option value="Cash">Cash</option>
+                          <option value="Card Swipe">Card</option>
+                          <option value="Bank Transfer">Net Banking</option>
+                        </select>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex justify-end gap-3 pt-2">
-                    <Button type="submit" className="h-9 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded">Save Invoice</Button>
-                  </div>
-                </form>
+                    <div className="flex justify-end gap-3 pt-2">
+                      <Button type="submit" className="h-9 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded">Save Invoice</Button>
+                    </div>
+                  </form>
+                )}
 
                 {/* Invoices List */}
                 <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs">
@@ -6495,7 +7179,7 @@ Apex Clinic`;
                               }`}>{inv.status}</span>
                             </td>
                             <td className="py-2.5 text-right space-x-2">
-                              {inv.status !== "Paid" && (
+                              {inv.status !== "Paid" && ["admin", "receptionist", "doctor", "dentist"].includes(currentUserRole) && (
                                 <button 
                                   onClick={async () => {
                                     const { error } = await supabase
@@ -6508,14 +7192,25 @@ Apex Clinic`;
                                       return;
                                     }
 
-                                    await supabase
-                                      .from("patients")
-                                      .update({ balance: "₹0" })
-                                      .eq("patient_id", inv.patientId);
+                                    const otherInvoicesOutstanding = invoices.reduce((sum, i) => {
+                                       if (i.patientId !== inv.patientId || i.id === inv.id) {
+                                         return sum;
+                                       }
+                                       if (i.status === "Paid") {
+                                         return sum;
+                                       }
+                                       return sum + Math.max(0, i.total - i.paidAmount);
+                                     }, 0);
+                                     const newBalanceStr = otherInvoicesOutstanding > 0 ? `₹${otherInvoicesOutstanding.toLocaleString()}` : "₹0";
 
-                                    setInvoices(prev => prev.map(i => i.id === inv.id ? { ...i, status: "Paid", paidAmount: i.total } : i));
-                                    setPatients(prev => prev.map(p => p.id === inv.patientId ? { ...p, balance: "₹0" } : p));
-                                    showToast("Invoice marked as Paid.", "success");
+                                     await supabase
+                                       .from("patients")
+                                       .update({ balance: newBalanceStr })
+                                       .eq("patient_id", inv.patientId);
+
+                                     setInvoices(prev => prev.map(i => i.id === inv.id ? { ...i, status: "Paid", paidAmount: i.total } : i));
+                                     setPatients(prev => prev.map(p => p.id === inv.patientId ? { ...p, balance: newBalanceStr } : p));
+                                     showToast("Invoice marked as Paid.", "success");
                                   }} 
                                   className="text-emerald-600 hover:underline font-bold"
                                 >
@@ -6547,224 +7242,263 @@ Apex Clinic`;
 
             {profileSubTab === "Prescriptions" && (
               <div className="space-y-6 animate-fadeIn">
-                {/* Prescription Builder */}
-                <form onSubmit={handleSavePrescription} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
-                  <span className="font-bold text-sm block border-b pb-2 mb-2">Prescription Builder</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <Label>Practitioner / Doctor</Label>
-                      <select 
-                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
-                        value={prescDoctor} 
-                        onChange={e => setPrescDoctor(e.target.value)}
-                      >
-                        {doctors.map(d => (
-                          <option key={d.name} value={d.name}>{d.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <Label>Prescription Date</Label>
-                      <Input type="date" value={prescDate} onChange={e => setPrescDate(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label>Diagnosis Notes</Label>
-                      <Input value={prescDiagnosis} onChange={e => setPrescDiagnosis(e.target.value)} placeholder="e.g. Acute apical periodontitis" />
-                    </div>
+                {!hasReportsAccess ? (
+                  <div className="p-6 bg-yellow-50 dark:bg-yellow-955/30 border border-yellow-200 dark:border-yellow-900/50 rounded-xl text-yellow-800 dark:text-yellow-400 text-xs font-semibold">
+                    The Prescription builder is restricted to clinical roles (Admin, Doctor, Dentist).
                   </div>
-
-                  <div className="space-y-3">
-                    <span className="font-bold text-[11px] text-blue-605 block">Medicines Directory</span>
-                    {prescMeds.map((med, idx) => (
-                      <div key={idx} className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-end border-b pb-2 sm:border-b-0 sm:pb-0">
-                        <div className="sm:col-span-2">
-                          <Label>Medicine Name</Label>
-                          <Input 
-                            value={med.name} 
-                            onChange={e => {
-                              const copy = [...prescMeds];
-                              copy[idx].name = e.target.value;
-                              setPrescMeds(copy);
-                            }} 
-                            placeholder="Amoxicillin 500mg, Ibuprofen 400mg..."
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label>Dosage / Freq</Label>
-                          <Input 
-                            value={med.dosage} 
-                            onChange={e => {
-                              const copy = [...prescMeds];
-                              copy[idx].dosage = e.target.value;
-                              setPrescMeds(copy);
-                            }} 
-                            placeholder="3x daily, after meals..."
-                          />
-                        </div>
-                        <div>
-                          <Label>Duration</Label>
-                          <Input 
-                            value={med.duration} 
-                            onChange={e => {
-                              const copy = [...prescMeds];
-                              copy[idx].duration = e.target.value;
-                              setPrescMeds(copy);
-                            }} 
-                            placeholder="5 days, 1 week..."
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <Input 
-                            value={med.instructions} 
-                            onChange={e => {
-                              const copy = [...prescMeds];
-                              copy[idx].instructions = e.target.value;
-                              setPrescMeds(copy);
-                            }} 
-                            placeholder="Special advice..." 
-                            className="flex-1"
-                          />
-                          {prescMeds.length > 1 && (
-                            <button 
-                              type="button" 
-                              onClick={() => setPrescMeds(prev => prev.filter((_, i) => i !== idx))} 
-                              className="h-9 px-2 text-red-500 hover:text-red-750 font-bold border border-slate-200 rounded"
-                            >
-                              Remove
-                            </button>
-                          )}
-                        </div>
+                ) : (
+                  <form onSubmit={handleSavePrescription} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
+                    <span className="font-bold text-sm block border-b pb-2 mb-2">Prescription Builder</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <Label>Practitioner / Doctor</Label>
+                        <select 
+                          className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                          value={prescDoctor} 
+                          onChange={e => setPrescDoctor(e.target.value)}
+                        >
+                          {doctors.map(d => (
+                            <option key={d.name} value={d.name}>{d.name}</option>
+                          ))}
+                        </select>
                       </div>
-                    ))}
-                    <button 
-                      type="button" 
-                      onClick={() => prescMeds.length < 10 && setPrescMeds(prev => [...prev, { name: "", dosage: "", freq: "", duration: "", instructions: "" }])} 
-                      className="text-xs text-blue-650 hover:underline font-bold mt-1 inline-block"
-                    >
-                      + Add Medicine Row
-                    </button>
-                  </div>
+                      <div>
+                        <Label>Prescription Date</Label>
+                        <Input type="date" value={prescDate} onChange={e => setPrescDate(e.target.value)} />
+                      </div>
+                      <div>
+                        <Label>Diagnosis Notes</Label>
+                        <Input value={prescDiagnosis} onChange={e => setPrescDiagnosis(e.target.value)} placeholder="e.g. Acute apical periodontitis" />
+                      </div>
+                    </div>
 
-                  <div>
-                    <Label>Doctor Advice / Instructions</Label>
-                    <Input value={prescAdvice} onChange={e => setPrescAdvice(e.target.value)} placeholder="Follow-up warnings..." />
-                  </div>
+                    <div className="space-y-2.5">
+                      <Label>Prescribed Medications</Label>
+                      {prescMeds.map((med, idx) => (
+                        <div key={idx} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end p-3 border border-slate-100 dark:border-slate-800 rounded-xl bg-slate-50/30 dark:bg-slate-900/10">
+                          <div>
+                            <Label>Medicine Name</Label>
+                            <Input 
+                              value={med.name} 
+                              onChange={e => {
+                                const copy = [...prescMeds];
+                                copy[idx].name = e.target.value;
+                                setPrescMeds(copy);
+                              }} 
+                              placeholder="Amoxicillin 500mg, Ibuprofen 400mg..."
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label>Dosage / Freq</Label>
+                            <Input 
+                              value={med.dosage} 
+                              onChange={e => {
+                                const copy = [...prescMeds];
+                                copy[idx].dosage = e.target.value;
+                                setPrescMeds(copy);
+                              }} 
+                              placeholder="3x daily, after meals..."
+                            />
+                          </div>
+                          <div>
+                            <Label>Duration</Label>
+                            <Input 
+                              value={med.duration} 
+                              onChange={e => {
+                                const copy = [...prescMeds];
+                                copy[idx].duration = e.target.value;
+                                setPrescMeds(copy);
+                              }} 
+                              placeholder="5 days, 1 week..."
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Input 
+                              value={med.instructions} 
+                              onChange={e => {
+                                const copy = [...prescMeds];
+                                copy[idx].instructions = e.target.value;
+                                setPrescMeds(copy);
+                              }} 
+                              placeholder="Special advice..." 
+                              className="flex-1"
+                            />
+                            {prescMeds.length > 1 && (
+                              <button 
+                                type="button" 
+                                onClick={() => setPrescMeds(prev => prev.filter((_, i) => i !== idx))} 
+                                className="h-9 px-2 text-red-500 hover:text-red-750 font-bold border border-slate-200 rounded"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      <button 
+                        type="button" 
+                        onClick={() => prescMeds.length < 10 && setPrescMeds(prev => [...prev, { name: "", dosage: "", freq: "", duration: "", instructions: "" }])} 
+                        className="text-xs text-blue-650 hover:underline font-bold mt-1 inline-block"
+                      >
+                        + Add Medicine Row
+                      </button>
+                    </div>
 
-                  <div className="flex gap-3 justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <Button 
-                      type="button" 
-                      onClick={() => {
-                        alert("PDF format initialized. Prescription downloaded successfully.");
-                      }} 
-                      className="h-9 px-4 rounded border font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
-                    >
-                      Generate PDF
-                    </Button>
-                    <Button type="submit" className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold">
-                      Save Prescription
-                    </Button>
-                  </div>
-                </form>
+                    <div>
+                      <Label>Doctor Advice / Instructions</Label>
+                      <Input value={prescAdvice} onChange={e => setPrescAdvice(e.target.value)} placeholder="Follow-up warnings..." />
+                    </div>
+
+                    <div className="flex gap-3 justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <Button 
+                        type="button" 
+                        onClick={() => {
+                          alert("PDF format initialized. Prescription downloaded successfully.");
+                        }} 
+                        className="h-9 px-4 rounded border font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
+                      >
+                        Generate PDF
+                      </Button>
+                      <Button type="submit" className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold">
+                        Save Prescription
+                      </Button>
+                    </div>
+                  </form>
+                )}
 
                 {/* Integrated Clinical Notes Section */}
-                <form onSubmit={handleSaveClinicalNote} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
-                  <span className="font-bold text-sm block border-b pb-2 mb-2 text-slate-800 dark:text-white">Clinical Notes</span>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <Label>Note Title</Label>
-                      <Input value={noteTitle} onChange={e => setNoteTitle(e.target.value)} placeholder="e.g. Follow-up observations" required />
-                    </div>
+                {hasReportsAccess && (
+                  <form onSubmit={handleSaveClinicalNote} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
+                    <span className="font-bold text-sm block border-b pb-2 mb-2 text-slate-800 dark:text-white">Clinical Notes</span>
                     
-                    <div>
-                      <Label>Note Category</Label>
-                      <select 
-                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-805 dark:bg-slate-900"
-                        value={noteCategory} 
-                        onChange={e => setNoteCategory(e.target.value)}
-                      >
-                        <option value="General">General</option>
-                        <option value="Clinical">Clinical</option>
-                        <option value="Treatment Progress">Treatment Progress</option>
-                        <option value="X-Ray Analysis">X-Ray Analysis</option>
-                        <option value="Intake Assessment">Intake Assessment</option>
-                      </select>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <Label>Note Title</Label>
+                        <Input value={noteTitle} onChange={e => setNoteTitle(e.target.value)} placeholder="e.g. Follow-up observations" required />
+                      </div>
+                      
+                      <div>
+                        <Label>Note Category</Label>
+                        <select 
+                          className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-805 dark:bg-slate-900"
+                          value={noteCategory} 
+                          onChange={e => setNoteCategory(e.target.value)}
+                        >
+                          <option value="General">General</option>
+                          <option value="Clinical">Clinical</option>
+                          <option value="Treatment Progress">Treatment Progress</option>
+                          <option value="X-Ray Analysis">X-Ray Analysis</option>
+                          <option value="Intake Assessment">Intake Assessment</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <Label>Author (Doctor/Staff)</Label>
+                        <select 
+                          className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-805 dark:bg-slate-900"
+                          value={noteAuthor} 
+                          onChange={e => setNoteAuthor(e.target.value)}
+                        >
+                          {doctors.map(d => (
+                            <option key={d.name} value={d.name}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
                     <div>
-                      <Label>Author (Doctor/Staff)</Label>
-                      <select 
-                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-805 dark:bg-slate-900"
-                        value={noteAuthor} 
-                        onChange={e => setNoteAuthor(e.target.value)}
-                      >
-                        {doctors.map(d => (
-                          <option key={d.name} value={d.name}>{d.name}</option>
-                        ))}
-                      </select>
+                      <Label>Rich Text / Multiline Notes field</Label>
+                      <textarea 
+                        rows={4}
+                        className="flex w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 text-xs focus:outline-none dark:border-slate-805 dark:bg-slate-900 text-slate-808 dark:text-slate-200"
+                        value={noteContent} 
+                        onChange={e => setNoteContent(e.target.value)} 
+                        placeholder="Write clinical practitioner observations, treatment logs, or notes here..." 
+                        required
+                      />
                     </div>
-                  </div>
 
-                  <div>
-                    <Label>Rich Text / Multiline Notes field</Label>
-                    <textarea 
-                      rows={4}
-                      className="flex w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-slate-200"
-                      value={noteContent} 
-                      onChange={e => setNoteContent(e.target.value)} 
-                      placeholder="Write clinical practitioner observations, treatment logs, or notes here..." 
-                      required
-                    />
-                  </div>
-
-                  <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <Button type="submit" className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold">
-                      Save Clinical Note
-                    </Button>
-                  </div>
-                </form>
+                    <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <Button type="submit" className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold">
+                        Save Clinical Note
+                      </Button>
+                    </div>
+                  </form>
+                )}
 
                 {/* Clinical Notes History list */}
                 <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold space-y-4">
                   <span className="font-bold text-sm block border-b pb-2 mb-2 text-slate-800 dark:text-white">Clinical Notes History</span>
-                  {patientItem.notes.length > 0 ? (
-                    <div className="space-y-3">
-                      {patientItem.notes.slice().reverse().map((noteStr, idx) => {
-                        const noteIndex = patientItem.notes.length - 1 - idx;
-                        const parsed = parseClinicalNote(noteStr);
-                        return (
-                          <div key={idx} className="p-4 bg-slate-50/50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 rounded-xl flex flex-col gap-2">
+                  {(() => {
+                    const patientNotes = [
+                      ...clinicalNotes.filter(n => n.patient_id === patientItem.uuid).map(n => ({
+                        id: n.id,
+                        isLegacy: false,
+                        index: undefined as number | undefined,
+                        title: n.title,
+                        category: n.category,
+                        author: n.author_name || "Unknown Author",
+                        content: n.content,
+                        date: new Date(n.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+                      })),
+                      ...(patientItem.notes || []).map((noteStr, idx) => ({
+                        id: `legacy-${idx}`,
+                        isLegacy: true,
+                        index: idx,
+                        ...parseClinicalNote(noteStr)
+                      }))
+                    ];
+
+                    return patientNotes.length > 0 ? (
+                      <div className="space-y-3">
+                        {patientNotes.slice().reverse().map((note, idx) => (
+                          <div key={note.id || idx} className="p-4 bg-slate-50/50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 rounded-xl flex flex-col gap-2">
                             <div className="flex justify-between items-start gap-4">
                               <div className="flex flex-col gap-0.5">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="font-bold text-slate-900 dark:text-white text-xs">{parsed.title}</span>
+                                  <span className="font-bold text-slate-900 dark:text-white text-xs">{note.title}</span>
                                   <span className="px-2 py-0.5 rounded-[4px] bg-slate-100 dark:bg-slate-800 text-slate-500 text-[9px] font-extrabold uppercase tracking-wide">
-                                    {parsed.category}
+                                    {note.category}
                                   </span>
                                 </div>
-                                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                                  Logged by <strong className="text-slate-600 dark:text-slate-400">{parsed.author}</strong> on {parsed.date}
+                                <span className="text-[10px] text-slate-400 dark:text-slate-550 font-medium">
+                                  Logged by <strong className="text-slate-600 dark:text-slate-400">{note.author}</strong> on {note.date}
                                 </span>
                               </div>
                               <button 
                                 type="button"
                                 onClick={async () => {
-                                  const pat = patients.find(p => p.id === selectedPatientId);
-                                  if (!pat) return;
-                                  const updatedNotes = pat.notes.filter((_, i) => i !== noteIndex);
-                                  const { error } = await supabase
-                                    .from("patients")
-                                    .update({ notes: updatedNotes })
-                                    .eq("patient_id", selectedPatientId);
+                                  if (note.isLegacy) {
+                                    const pat = patients.find(p => p.id === selectedPatientId);
+                                    if (!pat) return;
+                                    const updatedNotes = pat.notes.filter((_, i) => i !== note.index);
+                                    const { error } = await supabase
+                                      .from("patients")
+                                      .update({ notes: updatedNotes })
+                                      .eq("patient_id", selectedPatientId);
 
-                                  if (error) {
-                                    console.error("Failed to delete clinical note in database:", error.message);
-                                    showToast("Failed to delete clinical note.", "error");
-                                    return;
+                                    if (error) {
+                                      console.error("Failed to delete legacy clinical note:", error.message);
+                                      showToast("Failed to delete clinical note.", "error");
+                                      return;
+                                    }
+
+                                    setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, notes: updatedNotes } : p));
+                                  } else {
+                                    const { error } = await supabase
+                                      .from("clinical_notes")
+                                      .delete()
+                                      .eq("id", note.id);
+
+                                    if (error) {
+                                      console.error("Failed to delete clinical note:", error.message);
+                                      showToast("Failed to delete clinical note.", "error");
+                                      return;
+                                    }
+
+                                    setClinicalNotes(prev => prev.filter(n => n.id !== note.id));
                                   }
-
-                                  setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, notes: updatedNotes } : p));
                                   showToast("Clinical note deleted.", "success");
                                 }}
                                 className="text-red-500 hover:underline text-[11px]"
@@ -6774,64 +7508,125 @@ Apex Clinic`;
                             </div>
                             
                             <p className="text-slate-700 dark:text-slate-300 text-xs font-normal leading-relaxed whitespace-pre-wrap">
-                              {parsed.content}
+                              {note.content}
                             </p>
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-slate-405 text-center py-2">No clinical practitioner notes logged.</p>
-                  )}
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-slate-405 text-center py-2">No clinical practitioner notes logged.</p>
+                    );
+                  })()}
                 </div>
 
                 {/* Prescriptions History list */}
                 <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold space-y-4">
                   <span className="font-bold text-sm block border-b pb-2 mb-2 text-slate-800 dark:text-white">Prescriptions Issued</span>
-                  {patientItem.prescriptions.length > 0 ? (
-                    patientItem.prescriptions.map((pr, idx) => (
-                      <div key={idx} className="p-3 border border-slate-100 bg-slate-50/20 rounded-xl flex justify-between items-center">
-                        <span className="font-semibold">{pr}</span>
-                        <button 
-                          onClick={async () => {
-                            const pat = patients.find(p => p.id === selectedPatientId);
-                            if (!pat) return;
-                            const updatedPresc = pat.prescriptions.filter((_, i) => i !== idx);
-                            const { error } = await supabase
-                              .from("patients")
-                              .update({ prescriptions: updatedPresc })
-                              .eq("patient_id", selectedPatientId);
+                  {(() => {
+                    const patientPrescriptions = [
+                      ...prescriptionsList.filter(p => p.patient_id === patientItem.uuid).map(p => {
+                        const docObj = doctors.find(d => d.id === p.doctor_id);
+                        const docName = docObj?.name || "Unknown Doctor";
+                        const medStrings = (p.medicines || []).map((m: any) => 
+                          `${m.name} (${m.dosage || ''}) - ${m.freq || ''} for ${m.duration || ''} [${m.instructions || ''}]`
+                        ).join(", ");
+                        
+                        let text = medStrings;
+                        if (p.diagnosis) text += ` (Diagnosis: ${p.diagnosis})`;
+                        if (p.advice) text += ` [Advice: ${p.advice}]`;
+                        text += ` • Logged by ${docName} on ${new Date(p.prescription_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}`;
 
-                            if (error) {
-                              console.error("Failed to delete prescription in database:", error.message);
-                              showToast("Failed to delete prescription.", "error");
-                              return;
-                            }
+                        return {
+                          id: p.id,
+                          isLegacy: false,
+                          index: undefined as number | undefined,
+                          text
+                        };
+                      }),
+                      ...(patientItem.prescriptions || []).map((prStr, idx) => ({
+                        id: `legacy-${idx}`,
+                        isLegacy: true,
+                        index: idx,
+                        text: prStr
+                      }))
+                    ];
 
-                            setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, prescriptions: updatedPresc } : p));
-                            showToast("Prescription deleted.", "success");
-                          }}
-                          className="text-red-500 hover:underline"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-slate-400 py-2 text-center">No prescriptions logged.</p>
-                  )}
+                    return patientPrescriptions.length > 0 ? (
+                      patientPrescriptions.map((pr, idx) => (
+                        <div key={pr.id || idx} className="p-3 border border-slate-100 bg-slate-50/20 rounded-xl flex justify-between items-center">
+                          <span className="font-semibold">{pr.text}</span>
+                          <button 
+                            onClick={async () => {
+                              if (pr.isLegacy) {
+                                const pat = patients.find(p => p.id === selectedPatientId);
+                                if (!pat) return;
+                                const updatedPresc = pat.prescriptions.filter((_, i) => i !== pr.index);
+                                const { error } = await supabase
+                                  .from("patients")
+                                  .update({ prescriptions: updatedPresc })
+                                  .eq("patient_id", selectedPatientId);
+
+                                if (error) {
+                                  console.error("Failed to delete legacy prescription:", error.message);
+                                  showToast("Failed to delete prescription.", "error");
+                                  return;
+                                }
+
+                                setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, prescriptions: updatedPresc } : p));
+                              } else {
+                                const { error } = await supabase
+                                  .from("prescriptions")
+                                  .delete()
+                                  .eq("id", pr.id);
+
+                                if (error) {
+                                  console.error("Failed to delete prescription:", error.message);
+                                  showToast("Failed to delete prescription.", "error");
+                                  return;
+                                }
+
+                                setPrescriptionsList(prev => prev.filter(p => p.id !== pr.id));
+                              }
+                              showToast("Prescription deleted.", "success");
+                            }}
+                            className="text-red-500 hover:underline text-[11px]"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-slate-400 py-2 text-center">No prescriptions logged.</p>
+                    );
+                  })()}
                 </div>
               </div>
             )}
 
             {profileSubTab === "Files" && (
               <div className="space-y-6 animate-fadeIn">
-                {/* Mock Upload Form */}
+                {/* File Upload Form */}
                 <form onSubmit={handleUploadFile} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
                   <span className="font-bold text-sm block border-b pb-2 mb-2">Attach Patient Scanning File</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                     <div>
-                      <Label>File Name</Label>
+                      <Label>Select File</Label>
+                      <input 
+                        id="file-upload-input"
+                        type="file" 
+                        onChange={e => {
+                          const file = e.target.files?.[0] || null;
+                          setSelectedUploadFile(file);
+                          if (file && !newFileName) {
+                            setNewFileName(file.name);
+                          }
+                        }}
+                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900 mt-1 file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>File Display Name</Label>
                       <Input value={newFileName} onChange={e => setNewFileName(e.target.value)} placeholder="e.g. panorex_xray_final.png" required />
                     </div>
                     <div>
@@ -6859,47 +7654,111 @@ Apex Clinic`;
                 {/* Uploaded Files Table list */}
                 <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs font-semibold space-y-3">
                   <span className="font-bold text-sm block mb-2 border-b pb-2">Patient Files Uploads</span>
-                  {patientItem.files.length > 0 ? (
-                    patientItem.files.map((file, idx) => (
-                      <div key={idx} className="p-3 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-5 w-5 text-blue-500" />
-                          <div>
-                            <span className="font-bold block text-slate-850 dark:text-slate-100">{file.name}</span>
-                            <p className="text-[10px] text-slate-400">{file.size || "1.8 MB"} • {file.type || "PNG Scan File"}</p>
+                  {(() => {
+                    const combinedFilesList = [
+                      ...patientFiles.filter(f => f.patient_id === patientItem.uuid).map(f => ({
+                        id: f.id,
+                        isLegacy: false,
+                        index: undefined as number | undefined,
+                        name: f.name,
+                        type: f.file_type || "File scan",
+                        category: f.category || "General",
+                        size: f.file_size ? `${(f.file_size / (1024 * 1024)).toFixed(2)} MB` : "Unknown Size",
+                        url: f.storage_path
+                      })),
+                      ...(patientItem.files || []).map((file, idx) => ({
+                        id: `legacy-${idx}`,
+                        isLegacy: true,
+                        index: idx,
+                        name: file.name,
+                        type: file.type || "Scan file",
+                        category: "Legacy Scan",
+                        size: file.size || "1.8 MB",
+                        url: "#"
+                      }))
+                    ];
+
+                    return combinedFilesList.length > 0 ? (
+                      combinedFilesList.map((file, idx) => (
+                        <div key={file.id || idx} className="p-3 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-5 w-5 text-blue-500" />
+                            <div>
+                              <span className="font-bold block text-slate-850 dark:text-slate-100">{file.name}</span>
+                              <p className="text-[10px] text-slate-400">{file.size} • {file.type} ({file.category})</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {file.isLegacy ? (
+                              <button onClick={() => alert(`Downloading legacy file: ${file.name}`)} className="text-[10px] text-blue-650 hover:underline font-bold">Download</button>
+                            ) : (
+                              <a 
+                                href={file.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                download={file.name}
+                                className="text-[10px] text-blue-650 hover:underline font-bold"
+                              >
+                                Download
+                              </a>
+                            )}
+                            <button 
+                              onClick={async () => {
+                                if (file.isLegacy) {
+                                  const pat = patients.find(p => p.id === selectedPatientId);
+                                  if (!pat) return;
+                                  const updatedFiles = pat.files.filter((_, i) => i !== file.index);
+                                  const { error } = await supabase
+                                    .from("patients")
+                                    .update({ files: updatedFiles })
+                                    .eq("patient_id", selectedPatientId);
+
+                                  if (error) {
+                                    console.error("Failed to delete legacy file in database:", error.message);
+                                    showToast("Failed to delete file.", "error");
+                                    return;
+                                  }
+
+                                  setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, files: updatedFiles } : p));
+                                } else {
+                                  // Extract file name from URL for storage deletion
+                                  const urlParts = file.url.split("/patient-files/");
+                                  if (urlParts.length > 1) {
+                                    const fileName = urlParts[urlParts.length - 1];
+                                    const { error: storageErr } = await supabase.storage
+                                      .from("patient-files")
+                                      .remove([fileName]);
+                                    if (storageErr) {
+                                      console.warn("Storage deletion warning:", storageErr.message);
+                                    }
+                                  }
+
+                                  const { error: dbErr } = await supabase
+                                    .from("patient_files")
+                                    .delete()
+                                    .eq("id", file.id);
+
+                                  if (dbErr) {
+                                    console.error("Failed to delete file record:", dbErr.message);
+                                    showToast("Failed to delete file from database.", "error");
+                                    return;
+                                  }
+
+                                  setPatientFiles(prev => prev.filter(f => f.id !== file.id));
+                                }
+                                showToast("File deleted successfully.", "success");
+                              }}
+                              className="text-[10px] text-red-500 hover:underline font-bold"
+                            >
+                              Delete
+                            </button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <button onClick={() => alert(`Downloading file: ${file.name}`)} className="text-[10px] text-blue-650 hover:underline font-bold">Download</button>
-                          <button 
-                            onClick={async () => {
-                              const pat = patients.find(p => p.id === selectedPatientId);
-                              if (!pat) return;
-                              const updatedFiles = pat.files.filter((_, i) => i !== idx);
-                              const { error } = await supabase
-                                .from("patients")
-                                .update({ files: updatedFiles })
-                                .eq("patient_id", selectedPatientId);
-
-                              if (error) {
-                                console.error("Failed to delete file in database:", error.message);
-                                showToast("Failed to delete file.", "error");
-                                return;
-                              }
-
-                              setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, files: updatedFiles } : p));
-                              showToast("File deleted.", "success");
-                            }}
-                            className="text-[10px] text-red-500 hover:underline font-bold"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-slate-400 py-2 text-center">No attachments uploaded.</p>
-                  )}
+                      ))
+                    ) : (
+                      <p className="text-slate-400 py-2 text-center">No attachments uploaded.</p>
+                    );
+                  })()}
                 </div>
               </div>
             )}
@@ -7269,7 +8128,29 @@ Apex Clinic`;
                                 Rename
                               </button>
                               <button 
-                                onClick={() => {
+                                onClick={async () => {
+                                  const urlParts = media.url.split("/patient-media/");
+                                  if (urlParts.length > 1) {
+                                    const fileName = urlParts[urlParts.length - 1];
+                                    const { error: storageErr } = await supabase.storage
+                                      .from("patient-media")
+                                      .remove([fileName]);
+                                    if (storageErr) {
+                                      console.warn("Storage deletion warning:", storageErr.message);
+                                    }
+                                  }
+
+                                  const { error: dbErr } = await supabase
+                                    .from("patient_media")
+                                    .delete()
+                                    .eq("id", media.id);
+
+                                  if (dbErr) {
+                                    console.error("Failed to delete media record:", dbErr.message);
+                                    showToast("Failed to delete media from database.", "error");
+                                    return;
+                                  }
+
                                   setPatientMedia(prev => prev.filter(m => m.id !== media.id));
                                   showToast("Clinical media file deleted.", "success");
                                 }}
@@ -7491,7 +8372,7 @@ Apex Clinic`;
                       <td className="py-3.5 px-3 text-[13px] sm:text-[14px] font-normal text-slate-500 whitespace-nowrap">{pat.phone}</td>
                       <td className="py-3.5 px-3 text-[13px] sm:text-[14px] font-normal whitespace-nowrap">{pat.age} Years ({pat.gender[0]})</td>
                       <td className="py-3.5 px-3 text-[12px] font-normal text-slate-455 whitespace-nowrap">{pat.visit}</td>
-                      <td className="py-3.5 px-3 text-[13px] sm:text-[14px] font-semibold text-red-600 whitespace-nowrap">{pat.balance}</td>
+                      <td className="py-3.5 px-3 text-[13px] sm:text-[14px] font-semibold text-red-600 whitespace-nowrap">{getPatientBalance(pat.id)}</td>
                       <td className="py-3.5 px-3 whitespace-nowrap">
                         <span className={`px-2.5 py-0.5 rounded-full text-[11px] sm:text-[12px] font-normal inline-block ${
                           pat.status === "Active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
@@ -7634,9 +8515,51 @@ Apex Clinic`;
         {/* 1. Compact Patient Header Card */}
         <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-xs flex justify-between items-center">
           <div>
-            <h1 className="text-base font-semibold leading-6 text-slate-900 dark:text-white tracking-tight">
-              {tr.name}
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-base font-semibold leading-6 text-slate-900 dark:text-white tracking-tight">
+                {tr.name}
+              </h1>
+              <select
+                value={tr.stage}
+                onChange={async (e) => {
+                  const newStage = e.target.value as "Planned" | "In Progress" | "Completed";
+                  const { error } = await supabase
+                    .from("treatments")
+                    .update({ stage: newStage })
+                    .eq("id", tr.id);
+                  if (error) {
+                    showToast("Failed to update treatment status.", "error");
+                    return;
+                  }
+                  
+                  // Update state
+                  setTreatments(prev => prev.map(item => item.id === tr.id ? { ...item, stage: newStage } : item));
+                  setSelectedTreatmentDetail(prev => prev ? { ...prev, stage: newStage } : null);
+                  
+                  // Sync with dental chart if applicable
+                  if (tr.tooth && pat) {
+                    const updatedChart = { ...(pat.dentalChart || {}) };
+                    updatedChart[tr.tooth] = `${tr.name} (${newStage})`;
+                    
+                    const { error: chartErr } = await supabase
+                      .from("patients")
+                      .update({ dental_chart: updatedChart })
+                      .eq("patient_id", pat.id);
+                    
+                    if (!chartErr) {
+                      setPatients(prev => prev.map(p => p.id === pat.id ? { ...p, dentalChart: updatedChart } : p));
+                    }
+                  }
+                  
+                  showToast("Treatment status updated.", "success");
+                }}
+                className="text-[11px] font-bold uppercase rounded-md border border-slate-200 bg-transparent px-2 py-0.5 focus:outline-none dark:border-slate-800 dark:bg-slate-900 text-blue-600 dark:text-blue-400 cursor-pointer"
+              >
+                <option value="Planned">Planned</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
             <p className="text-[12px] font-normal text-slate-400 dark:text-slate-500 mt-1">
               Patient: <span className="text-[14px] font-medium text-slate-800 dark:text-slate-200">{patName}</span>
               <span className="mx-2 text-slate-300 dark:text-slate-700">•</span>
@@ -7831,24 +8754,44 @@ Apex Clinic`;
 
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80">
               <Button 
-                onClick={() => {
-                  const inv: InvoiceItem = {
-                    id: `INV-${Date.now().toString().slice(-4)}`,
-                    patientId: tr.patient,
-                    patientName: tr.patient,
-                    doctor: tr.doctor,
-                    treatment: tr.name,
-                    items: [{ description: tr.name, amount: cost }],
-                    discount: 0,
-                    tax: 0,
-                    subtotal: cost,
-                    total: cost,
-                    paidAmount: paid,
-                    status: remaining === 0 ? "Paid" : "Partially Paid",
-                    paymentDate: "12 Aug 2026",
-                    paymentLogs: []
-                  };
-                  setSelectedInvoiceForPayment(inv);
+                onClick={async () => {
+                  const existingInv = invoices.find(i => i.patientId === patId && i.treatment === tr.name && i.status === "Pending");
+                  if (existingInv) {
+                    setSelectedInvoiceForPayment(existingInv);
+                    setPayCash(0);
+                    setPayUpi(0);
+                    setPayCard(0);
+                    setPayDiscountPercent(existingInv.discount);
+                    setPayTaxPercent(0);
+                    setPayCustomItems([]);
+                  } else {
+                    const invoiceNum = `INV-${1000 + invoices.length + 1}`;
+                    const inv: InvoiceItem = {
+                      id: invoiceNum,
+                      patientId: patId,
+                      patientName: patName,
+                      doctor: tr.doctor,
+                      treatment: tr.name,
+                      items: [{ description: `${tr.name} Fee`, amount: cost }],
+                      discount: 0,
+                      tax: 0,
+                      subtotal: cost,
+                      total: cost,
+                      paidAmount: 0,
+                      status: "Pending",
+                      paymentDate: new Date().toISOString().split("T")[0],
+                      paymentLogs: []
+                    };
+                    setInvoices(prev => [inv, ...prev]);
+                    await insertBillingRecord(inv);
+                    setSelectedInvoiceForPayment(inv);
+                    setPayCash(0);
+                    setPayUpi(0);
+                    setPayCard(0);
+                    setPayDiscountPercent(0);
+                    setPayTaxPercent(0);
+                    setPayCustomItems([]);
+                  }
                 }}
                 className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-11 rounded-xl flex items-center justify-center gap-2 shadow-xs cursor-pointer"
               >
@@ -8038,58 +8981,130 @@ Apex Clinic`;
 
     // Helper calculation for Reports -> Patients Analytics
     const getPatientAnalyticsData = () => {
-      let newCount = 12;
-      let returningCount = 24;
-      let newRev = 46200;
-      let returningRev = 92400;
-      let newGrowth = "+14.2%";
-      let returningGrowth = "+18.6%";
+      const { start, end } = getReportDateRange();
 
-      if (reportsFilter === "Today") {
-        newCount = 3;
-        returningCount = 6;
-        newRev = 11500;
-        returningRev = 23000;
-        newGrowth = "+5.0%";
-        returningGrowth = "+12.0%";
-      } else if (reportsFilter === "Week") {
-        newCount = 8;
-        returningCount = 16;
-        newRev = 30800;
-        returningRev = 61600;
-        newGrowth = "+8.5%";
-        returningGrowth = "+15.2%";
-      } else if (reportsFilter === "Month") {
-        newCount = 22;
-        returningCount = 45;
-        newRev = 84700;
-        returningRev = 173250;
-        newGrowth = "+12.4%";
-        returningGrowth = "+21.0%";
-      } else if (reportsFilter === "Year" || reportsFilter === "Custom") {
-        newCount = 98;
-        returningCount = 184;
-        newRev = 377300;
-        returningRev = 708400;
-        newGrowth = "+22.1%";
-        returningGrowth = "+28.4%";
-      }
+      const filteredPats = patients.filter(p => {
+        const pDate = parseToDate(p.firstVisit || p.visit);
+        return pDate && pDate >= start && pDate <= end;
+      });
+
+      const totalPts = filteredPats.length;
+      
+      const newCount = filteredPats.filter(p => p.patientType === "New").length;
+      const returningCount = filteredPats.filter(p => p.patientType === "Returning").length;
+
+      // Calculate revenue collected in the timeframe from new vs returning patients
+      let newRev = 0;
+      let returningRev = 0;
+
+      filteredPats.forEach(pat => {
+        const patInvs = invoices.filter(inv => inv.patientId === pat.id);
+        const tfPaid = patInvs.reduce((sum, inv) => {
+          const logs = inv.paymentLogs || [];
+          return sum + logs.reduce((logAcc, log) => {
+            const logDate = parseToDate(log.date);
+            if (logDate && logDate >= start && logDate <= end) {
+              return logAcc + log.amount;
+            }
+            return logAcc;
+          }, 0);
+        }, 0);
+
+        if (pat.patientType === "New") {
+          newRev += tfPaid;
+        } else {
+          returningRev += tfPaid;
+        }
+      });
 
       const totalRev = newRev + returningRev;
-      const totalPts = newCount + returningCount;
       const avgRevPerPt = totalPts > 0 ? Math.round(totalRev / totalPts) : 0;
       const returningRate = totalPts > 0 ? ((returningCount / totalPts) * 100).toFixed(1) + "%" : "0%";
       const avgRevPerNew = newCount > 0 ? Math.round(newRev / newCount) : 0;
       const avgRevPerReturning = returningCount > 0 ? Math.round(returningRev / returningCount) : 0;
 
-      const monthlyPatientTrends = [
-        { month: "Jan", newPts: 12, returningPts: 18, newRev: 46200, returningRev: 69300 },
-        { month: "Feb", newPts: 15, returningPts: 21, newRev: 57750, returningRev: 80850 },
-        { month: "Mar", newPts: 19, returningPts: 25, newRev: 73150, returningRev: 96250 },
-        { month: "Apr", newPts: 14, returningPts: 22, newRev: 53900, returningRev: 84700 },
-        { month: "May", newPts: 16, returningPts: 24, newRev: 61600, returningRev: 92400 },
-        { month: "Jun", newPts: 18, returningPts: 28, newRev: 69300, returningRev: 107800 }
-      ];
+      // Calculate growth rates relative to previous equivalent period
+      const durationMs = end.getTime() - start.getTime();
+      const prevStart = new Date(start.getTime() - durationMs - 1000);
+      const prevEnd = new Date(start.getTime() - 1000);
+
+      const prevPats = patients.filter(p => {
+        const pDate = parseToDate(p.firstVisit || p.visit);
+        return pDate && pDate >= prevStart && pDate <= prevEnd;
+      });
+
+      const prevNew = prevPats.filter(p => p.patientType === "New").length;
+      const prevReturning = prevPats.filter(p => p.patientType === "Returning").length;
+
+      const newGrowthPct = prevNew > 0 ? ((newCount - prevNew) / prevNew * 100) : newCount > 0 ? 100 : 0;
+      const returningGrowthPct = prevReturning > 0 ? ((returningCount - prevReturning) / prevReturning * 100) : returningCount > 0 ? 100 : 0;
+
+      const newGrowth = (newGrowthPct >= 0 ? "+" : "") + newGrowthPct.toFixed(1) + "%";
+      const returningGrowth = (returningGrowthPct >= 0 ? "+" : "") + returningGrowthPct.toFixed(1) + "%";
+
+      // Group patient trends over last 6 months
+      const monthlyPatientTrends = [];
+      const baseToday = new Date(2026, 7, 12);
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(baseToday.getFullYear(), baseToday.getMonth() - i, 1);
+        const mLabel = months[d.getMonth()];
+        
+        const monthPats = patients.filter(p => {
+          const pDate = parseToDate(p.firstVisit || p.visit);
+          return pDate && pDate.getFullYear() === d.getFullYear() && pDate.getMonth() === d.getMonth();
+        });
+        
+        const mNew = monthPats.filter(p => p.patientType === "New").length;
+        const mReturning = monthPats.filter(p => p.patientType === "Returning").length;
+
+        let mNewRev = 0;
+        let mRetRev = 0;
+
+        monthPats.forEach(pat => {
+          const patInvs = invoices.filter(inv => inv.patientId === pat.id);
+          patInvs.forEach(inv => {
+            const logs = inv.paymentLogs || [];
+            logs.forEach(log => {
+              const logDate = parseToDate(log.date);
+              if (logDate && logDate.getFullYear() === d.getFullYear() && logDate.getMonth() === d.getMonth()) {
+                if (pat.patientType === "New") {
+                  mNewRev += log.amount;
+                } else {
+                  mRetRev += log.amount;
+                }
+              }
+            });
+          });
+        });
+
+        monthlyPatientTrends.push({
+          month: mLabel,
+          newPts: mNew,
+          returningPts: mReturning,
+          newRev: mNewRev,
+          returningRev: mRetRev
+        });
+      }
+
+      let highestRevMonth = "N/A";
+      let highestAcquisitionMonth = "N/A";
+      let maxMonthRev = -1;
+      let maxMonthAcq = -1;
+
+      monthlyPatientTrends.forEach(trend => {
+        const mTotalRev = trend.newRev + trend.returningRev;
+        if (mTotalRev > maxMonthRev) {
+          maxMonthRev = mTotalRev;
+          highestRevMonth = `${trend.month} (₹${mTotalRev.toLocaleString()})`;
+        }
+        const mTotalAcq = trend.newPts;
+        if (mTotalAcq > maxMonthAcq) {
+          maxMonthAcq = mTotalAcq;
+          highestAcquisitionMonth = `${trend.month} (${mTotalAcq} New Patients)`;
+        }
+      });
 
       return {
         newCount,
@@ -8104,76 +9119,72 @@ Apex Clinic`;
         avgRevPerReturning,
         newGrowth,
         returningGrowth,
-        highestRevMonth: "March (₹1,69,400)",
-        highestAcquisitionMonth: "March (19 New Patients)",
+        highestRevMonth,
+        highestAcquisitionMonth,
         monthlyPatientTrends
       };
     };
 
     // Helper calculation for Reports -> Treatments Analytics
     const getTreatmentAnalyticsData = () => {
-      let totalTr = 42;
-      let activeTr = 12;
-      let completedTr = 30;
-      let totalRev = 285000;
+      const { start, end } = getReportDateRange();
+      const filteredTrs = treatments.filter(t => {
+        const tDate = parseToDate(t.date);
+        return tDate && tDate >= start && tDate <= end;
+      });
 
-      if (reportsFilter === "Today") {
-        totalTr = 5;
-        activeTr = 2;
-        completedTr = 3;
-        totalRev = 18500;
-      } else if (reportsFilter === "Week") {
-        totalTr = 18;
-        activeTr = 5;
-        completedTr = 13;
-        totalRev = 95000;
-      } else if (reportsFilter === "Month") {
-        totalTr = 42;
-        activeTr = 12;
-        completedTr = 30;
-        totalRev = 285000;
-      } else if (reportsFilter === "Year") {
-        totalTr = 184;
-        activeTr = 28;
-        completedTr = 156;
-        totalRev = 1240000;
-      } else if (reportsFilter === "Custom") {
-        const startMs = new Date(customStartDate).getTime();
-        const endMs = new Date(customEndDate).getTime();
-        const days = Math.max(1, Math.round(Math.abs((endMs - startMs) / (1000 * 60 * 60 * 24))));
-        
-        totalTr = Math.max(3, Math.round(days * 1.8));
-        activeTr = Math.max(1, Math.round(totalTr * 0.3));
-        completedTr = Math.max(1, totalTr - activeTr);
-        totalRev = totalTr * 6200;
-      }
-
+      const totalTr = filteredTrs.length;
+      const activeTr = filteredTrs.filter(t => t.stage === "Planned" || t.stage === "In Progress").length;
+      const completedTr = filteredTrs.filter(t => t.stage === "Completed").length;
       const completionRate = totalTr > 0 ? ((completedTr / totalTr) * 100).toFixed(1) + "%" : "0%";
+      const totalRev = filteredTrs.reduce((sum, t) => sum + (t.cost || 0), 0);
 
-      const monthlyPerformance = [
-        { month: "Jan", started: Math.round(totalTr * 0.33), completed: Math.round(completedTr * 0.33) },
-        { month: "Feb", started: Math.round(totalTr * 0.42), completed: Math.round(completedTr * 0.45) },
-        { month: "Mar", started: Math.round(totalTr * 0.52), completed: Math.round(completedTr * 0.55) },
-        { month: "Apr", started: Math.round(totalTr * 0.38), completed: Math.round(completedTr * 0.40) },
-        { month: "May", started: Math.round(totalTr * 0.45), completed: Math.round(completedTr * 0.48) },
-        { month: "Jun", started: Math.round(totalTr * 0.50), completed: Math.round(completedTr * 0.52) }
-      ];
+      const trCountsMap: Record<string, number> = {};
+      const trRevMap: Record<string, number> = {};
+      filteredTrs.forEach(t => {
+        trCountsMap[t.name] = (trCountsMap[t.name] || 0) + 1;
+        trRevMap[t.name] = (trRevMap[t.name] || 0) + (t.cost || 0);
+      });
 
-      const mostPerformed = [
-        { name: "Root Canal Therapy", count: Math.round(totalTr * 0.35), pct: 90 },
-        { name: "Scaling & Polishing", count: Math.round(totalTr * 0.28), pct: 75 },
-        { name: "Dental Implant", count: Math.round(totalTr * 0.20), pct: 58 },
-        { name: "Orthodontic Aligners", count: Math.round(totalTr * 0.12), pct: 42 },
-        { name: "Surgical Extraction", count: Math.round(totalTr * 0.08), pct: 32 }
-      ];
+      const mostPerformed = Object.entries(trCountsMap)
+        .map(([name, count]) => ({
+          name,
+          count,
+          pct: totalTr > 0 ? Math.round(count / totalTr * 100) : 0
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
 
-      const revenueByTreatment = [
-        { name: "Dental Implant", rev: Math.round(totalRev * 0.38) },
-        { name: "Orthodontic Aligners", rev: Math.round(totalRev * 0.28) },
-        { name: "Root Canal Therapy", rev: Math.round(totalRev * 0.22) },
-        { name: "Scaling & Polishing", rev: Math.round(totalRev * 0.08) },
-        { name: "Surgical Extraction", rev: Math.round(totalRev * 0.04) }
-      ];
+      const revenueByTreatment = Object.entries(trRevMap)
+        .map(([name, rev]) => ({
+          name,
+          rev
+        }))
+        .sort((a, b) => b.rev - a.rev)
+        .slice(0, 5);
+
+      const monthlyPerformance = [];
+      const baseToday = new Date(2026, 7, 12);
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(baseToday.getFullYear(), baseToday.getMonth() - i, 1);
+        const mLabel = months[d.getMonth()];
+
+        const mTrs = treatments.filter(t => {
+          const tDate = parseToDate(t.date);
+          return tDate && tDate.getFullYear() === d.getFullYear() && tDate.getMonth() === d.getMonth();
+        });
+
+        const started = mTrs.filter(t => t.stage === "Planned" || t.stage === "In Progress").length;
+        const completed = mTrs.filter(t => t.stage === "Completed").length;
+
+        monthlyPerformance.push({
+          month: mLabel,
+          started,
+          completed
+        });
+      }
 
       return {
         totalTr,
@@ -8189,123 +9200,159 @@ Apex Clinic`;
 
     // Helper calculation for Reports -> Appointments Analytics
     const getAppointmentAnalyticsData = () => {
-      let totalAppts = 56;
-      let completedAppts = 38;
-      let upcomingAppts = 12;
-      let cancelledAppts = 4;
-      let noshowAppts = 2;
+      const { start, end } = getReportDateRange();
+      const filteredAppts = appointments.filter(a => {
+        const aDate = parseToDate(a.date);
+        return aDate && aDate >= start && aDate <= end;
+      });
 
-      if (reportsFilter === "Today") {
-        totalAppts = 8;
-        completedAppts = 5;
-        upcomingAppts = 2;
-        cancelledAppts = 1;
-        noshowAppts = 0;
-      } else if (reportsFilter === "Week") {
-        totalAppts = 26;
-        completedAppts = 18;
-        upcomingAppts = 5;
-        cancelledAppts = 2;
-        noshowAppts = 1;
-      } else if (reportsFilter === "Month") {
-        totalAppts = 56;
-        completedAppts = 38;
-        upcomingAppts = 12;
-        cancelledAppts = 4;
-        noshowAppts = 2;
-      } else if (reportsFilter === "Year") {
-        totalAppts = 240;
-        completedAppts = 182;
-        upcomingAppts = 32;
-        cancelledAppts = 18;
-        noshowAppts = 8;
-      } else if (reportsFilter === "Custom") {
-        const startMs = new Date(customStartDate).getTime();
-        const endMs = new Date(customEndDate).getTime();
-        const days = Math.max(1, Math.round(Math.abs((endMs - startMs) / (1000 * 60 * 60 * 24))));
-
-        totalAppts = Math.max(3, Math.round(days * 2.5));
-        completedAppts = Math.max(1, Math.round(totalAppts * 0.65));
-        upcomingAppts = Math.max(1, Math.round(totalAppts * 0.20));
-        cancelledAppts = Math.max(0, Math.round(totalAppts * 0.10));
-        noshowAppts = Math.max(0, totalAppts - completedAppts - upcomingAppts - cancelledAppts);
-      }
+      const totalAppts = filteredAppts.length;
+      const completedAppts = filteredAppts.filter(a => a.status === "Completed").length;
+      const upcomingAppts = filteredAppts.filter(a => a.status === "Scheduled" || a.status === "Checked In" || a.status === "Waiting" || a.status === "In Consultation" || a.status === "In Procedure").length;
+      const cancelledAppts = filteredAppts.filter(a => a.status === "Cancelled").length;
+      const noshowAppts = filteredAppts.filter(a => a.status === "No Show").length;
 
       const cancellationRate = totalAppts > 0 ? ((cancelledAppts / totalAppts) * 100).toFixed(1) + "%" : "0%";
 
-      // Appointment Performance over time
-      let performanceBars = [
-        { label: "Jan", scheduled: 38, completed: 28, cancelled: 4 },
-        { label: "Feb", scheduled: 44, completed: 32, cancelled: 5 },
-        { label: "Mar", scheduled: 52, completed: 40, cancelled: 6 },
-        { label: "Apr", scheduled: 41, completed: 30, cancelled: 3 },
-        { label: "May", scheduled: 46, completed: 35, cancelled: 4 },
-        { label: "Jun", scheduled: 50, completed: 38, cancelled: 4 }
-      ];
-
-      if (reportsFilter === "Today") {
-        performanceBars = [
-          { label: "09:00 AM", scheduled: 2, completed: 2, cancelled: 0 },
-          { label: "11:00 AM", scheduled: 3, completed: 2, cancelled: 1 },
-          { label: "02:00 PM", scheduled: 2, completed: 1, cancelled: 0 },
-          { label: "04:00 PM", scheduled: 2, completed: 0, cancelled: 0 },
-          { label: "06:00 PM", scheduled: 1, completed: 0, cancelled: 0 }
-        ];
-      } else if (reportsFilter === "Week") {
-        performanceBars = [
-          { label: "Mon", scheduled: 5, completed: 4, cancelled: 1 },
-          { label: "Tue", scheduled: 6, completed: 5, cancelled: 0 },
-          { label: "Wed", scheduled: 8, completed: 6, cancelled: 1 },
-          { label: "Thu", scheduled: 5, completed: 4, cancelled: 0 },
-          { label: "Fri", scheduled: 7, completed: 5, cancelled: 1 },
-          { label: "Sat", scheduled: 4, completed: 3, cancelled: 0 }
-        ];
-      } else if (reportsFilter === "Custom") {
-        performanceBars = [
-          { label: "P1", scheduled: Math.round(totalAppts * 0.2), completed: Math.round(completedAppts * 0.2), cancelled: 1 },
-          { label: "P2", scheduled: Math.round(totalAppts * 0.3), completed: Math.round(completedAppts * 0.3), cancelled: 1 },
-          { label: "P3", scheduled: Math.round(totalAppts * 0.3), completed: Math.round(completedAppts * 0.3), cancelled: 1 },
-          { label: "P4", scheduled: Math.round(totalAppts * 0.2), completed: Math.round(completedAppts * 0.2), cancelled: 0 }
-        ];
-      }
-
-      // Appointment Status Distribution
       const statusDistribution = [
-        { name: "Completed", count: completedAppts, pct: Math.round((completedAppts / Math.max(1, totalAppts)) * 100), color: "bg-emerald-500", text: "text-emerald-600" },
-        { name: "Scheduled / Upcoming", count: upcomingAppts, pct: Math.round((upcomingAppts / Math.max(1, totalAppts)) * 100), color: "bg-blue-600", text: "text-blue-600" },
-        { name: "Cancelled", count: cancelledAppts, pct: Math.round((cancelledAppts / Math.max(1, totalAppts)) * 100), color: "bg-rose-500", text: "text-rose-600" },
-        { name: "No-show", count: noshowAppts, pct: Math.round((noshowAppts / Math.max(1, totalAppts)) * 100), color: "bg-amber-500", text: "text-amber-600" }
+        { name: "Completed", count: completedAppts, pct: totalAppts > 0 ? Math.round(completedAppts / totalAppts * 100) : 0, color: "bg-emerald-500", text: "text-emerald-600" },
+        { name: "Scheduled / Upcoming", count: upcomingAppts, pct: totalAppts > 0 ? Math.round(upcomingAppts / totalAppts * 100) : 0, color: "bg-blue-600", text: "text-blue-600" },
+        { name: "Cancelled", count: cancelledAppts, pct: totalAppts > 0 ? Math.round(cancelledAppts / totalAppts * 100) : 0, color: "bg-rose-500", text: "text-rose-600" },
+        { name: "No-show", count: noshowAppts, pct: totalAppts > 0 ? Math.round(noshowAppts / totalAppts * 100) : 0, color: "bg-amber-500", text: "text-amber-600" }
       ];
 
-      // Schedule Utilization
-      const totalSlots = Math.round(totalAppts * 1.35);
+      const dayCounts: Record<number, number> = {};
+      const slotCounts: Record<string, number> = {};
+      
+      filteredAppts.forEach(a => {
+        const aDate = parseToDate(a.date);
+        if (aDate) {
+          const day = aDate.getDay();
+          dayCounts[day] = (dayCounts[day] || 0) + 1;
+        }
+        if (a.time) {
+          slotCounts[a.time] = (slotCounts[a.time] || 0) + 1;
+        }
+      });
+
+      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      let busiestDayNum = 3;
+      let maxDayCount = -1;
+      Object.entries(dayCounts).forEach(([day, count]) => {
+        if (count > maxDayCount) {
+          maxDayCount = count;
+          busiestDayNum = Number(day);
+        }
+      });
+      const busiestDay = filteredAppts.length > 0 ? `${dayNames[busiestDayNum]} (${maxDayCount} Booked Slots)` : "N/A";
+
+      let busiestSlotStr = "11:00 AM";
+      let maxSlotCount = -1;
+      Object.entries(slotCounts).forEach(([slot, count]) => {
+        if (count > maxSlotCount) {
+          maxSlotCount = count;
+          busiestSlotStr = slot;
+        }
+      });
+      const busiestSlot = filteredAppts.length > 0 ? `${busiestSlotStr} (${maxSlotCount} Booked)` : "N/A";
+
+      const totalSlots = Math.round(totalAppts * 1.35) || 10;
       const bookedSlots = totalAppts;
-      const availableSlots = totalSlots - bookedSlots;
+      const availableSlots = Math.max(0, totalSlots - bookedSlots);
       const utilizationRate = totalSlots > 0 ? ((bookedSlots / totalSlots) * 100).toFixed(1) + "%" : "0%";
 
       const scheduleUtilization = {
-        busiestDay: "Wednesday (8 Booked Slots)",
-        busiestSlot: "11:00 AM – 12:00 PM (100% Booked)",
+        busiestDay,
+        busiestSlot,
         totalSlots,
         availableSlots,
         utilizationRate
       };
 
-      // Doctor Appointment Performance
-      const doctorPerformance = [
-        { doctor: "Dr. Deepa Kodali", total: Math.round(totalAppts * 0.45), completed: Math.round(completedAppts * 0.45), cancelled: 2, noshow: 1 },
-        { doctor: "Dr. Sharma", total: Math.round(totalAppts * 0.35), completed: Math.round(completedAppts * 0.35), cancelled: 1, noshow: 1 },
-        { doctor: "Dr. Raghuram", total: Math.round(totalAppts * 0.20), completed: Math.round(completedAppts * 0.20), cancelled: 1, noshow: 0 }
-      ];
+      let performanceBars: { label: string; scheduled: number; completed: number; cancelled: number }[] = [];
 
-      // Appointments by Type
-      const appointmentsByType = [
-        { type: "Consultation", count: Math.round(totalAppts * 0.38), pct: 90 },
-        { type: "Treatment", count: Math.round(totalAppts * 0.32), pct: 75 },
-        { type: "Follow-up", count: Math.round(totalAppts * 0.18), pct: 45 },
-        { type: "Review", count: Math.round(totalAppts * 0.08), pct: 25 },
-        { type: "Emergency", count: Math.round(totalAppts * 0.04), pct: 12 }
-      ];
+      if (reportsFilter === "Today") {
+        const slots = ["09:00 AM", "11:00 AM", "02:00 PM", "04:00 PM", "06:00 PM"];
+        performanceBars = slots.map(slot => {
+          const slotAppts = filteredAppts.filter(a => a.time === slot);
+          return {
+            label: slot,
+            scheduled: slotAppts.length,
+            completed: slotAppts.filter(a => a.status === "Completed").length,
+            cancelled: slotAppts.filter(a => a.status === "Cancelled").length
+          };
+        });
+      } else if (reportsFilter === "Week") {
+        const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const dayIdxs = [1, 2, 3, 4, 5, 6];
+        performanceBars = days.map((day, idx) => {
+          const targetDay = dayIdxs[idx];
+          const dayAppts = filteredAppts.filter(a => {
+            const aDate = parseToDate(a.date);
+            return aDate && aDate.getDay() === targetDay;
+          });
+          return {
+            label: day,
+            scheduled: dayAppts.length,
+            completed: dayAppts.filter(a => a.status === "Completed").length,
+            cancelled: dayAppts.filter(a => a.status === "Cancelled").length
+          };
+        });
+      } else {
+        const baseToday = new Date(2026, 7, 12);
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(baseToday.getFullYear(), baseToday.getMonth() - i, 1);
+          const mLabel = months[d.getMonth()];
+
+          const monthAppts = appointments.filter(a => {
+            const aDate = parseToDate(a.date);
+            return aDate && aDate.getFullYear() === d.getFullYear() && aDate.getMonth() === d.getMonth();
+          });
+
+          performanceBars.push({
+            label: mLabel,
+            scheduled: monthAppts.length,
+            completed: monthAppts.filter(a => a.status === "Completed").length,
+            cancelled: monthAppts.filter(a => a.status === "Cancelled").length
+          });
+        }
+      }
+
+      const docPerformanceMap: Record<string, { total: number; completed: number; cancelled: number; noshow: number }> = {};
+      
+      filteredAppts.forEach(a => {
+        if (!a.doctor) return;
+        if (!docPerformanceMap[a.doctor]) {
+          docPerformanceMap[a.doctor] = { total: 0, completed: 0, cancelled: 0, noshow: 0 };
+        }
+        const stats = docPerformanceMap[a.doctor];
+        stats.total += 1;
+        if (a.status === "Completed") stats.completed += 1;
+        else if (a.status === "Cancelled") stats.cancelled += 1;
+        else if (a.status === "No Show") stats.noshow += 1;
+      });
+
+      const doctorPerformance = Object.entries(docPerformanceMap).map(([doctor, stats]) => ({
+        doctor,
+        ...stats
+      }));
+
+      const typeCounts: Record<string, number> = {};
+      filteredAppts.forEach(a => {
+        const type = a.treatment || "Consultation";
+        typeCounts[type] = (typeCounts[type] || 0) + 1;
+      });
+
+      const appointmentsByType = Object.entries(typeCounts)
+        .map(([type, count]) => ({
+          type,
+          count,
+          pct: totalAppts > 0 ? Math.round(count / totalAppts * 100) : 0
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
 
       return {
         totalAppts,
@@ -8320,9 +9367,38 @@ Apex Clinic`;
       };
     };
 
+    const getRevenueChartData = () => {
+      const { start, end } = getReportDateRange();
+      const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const dayIdxs = [1, 2, 3, 4, 5, 6];
+      
+      const dailyRevenues = dayLabels.map((label, idx) => {
+        const targetDay = dayIdxs[idx];
+        const tfRev = invoices.reduce((sum, inv) => {
+          const logs = inv.paymentLogs || [];
+          return sum + logs.reduce((logAcc, log) => {
+            const logDate = parseToDate(log.date);
+            if (logDate && logDate >= start && logDate <= end && logDate.getDay() === targetDay) {
+              return logAcc + log.amount;
+            }
+            return logAcc;
+          }, 0);
+        }, 0);
+        return { label, amount: tfRev };
+      });
+
+      const maxRev = Math.max(...dailyRevenues.map(r => r.amount), 1);
+      return dailyRevenues.map(r => ({
+        label: r.label,
+        heightPct: Math.max(10, Math.round(r.amount / maxRev * 100)),
+        amount: r.amount
+      }));
+    };
+
     const patientStats = getPatientAnalyticsData();
     const trStats = getTreatmentAnalyticsData();
     const apptStats = getAppointmentAnalyticsData();
+    const revChartData = getRevenueChartData();
 
     return (
       <div className="space-y-6 animate-fadeIn">
@@ -8459,16 +9535,13 @@ Apex Clinic`;
             <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
               <span className="font-bold text-sm block text-slate-900 dark:text-white">Revenue Performance Chart</span>
               <div className="h-48 w-full flex items-end justify-between gap-4 pt-8">
-                {[
-                  { label: "Mon", val: "h-20" },
-                  { label: "Tue", val: "h-36" },
-                  { label: "Wed", val: "h-28" },
-                  { label: "Thu", val: "h-40" },
-                  { label: "Fri", val: "h-16" },
-                  { label: "Sat", val: "h-32" },
-                ].map((bar, i) => (
+                {revChartData.map((bar, i) => (
                   <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                    <div className={`w-full rounded-t-lg bg-blue-600/80 hover:bg-blue-650 transition-all ${bar.val}`} />
+                    <div 
+                      style={{ height: `${bar.heightPct}%` }}
+                      className="w-full rounded-t-lg bg-blue-600/80 hover:bg-blue-650 transition-all"
+                      title={`₹${bar.amount.toLocaleString()}`}
+                    />
                     <span className="text-[10px] text-slate-400 font-bold">{bar.label}</span>
                   </div>
                 ))}
@@ -8949,7 +10022,9 @@ Apex Clinic`;
   };
 
   const renderSettingsModule = () => {
-    const settingsTabs = ["Clinic", "Doctors", "Staff", "Integrations", "Backup"];
+    const settingsTabs = currentUserRole === "admin"
+      ? ["Clinic", "Doctors", "Staff", "Integrations", "Backup"]
+      : ["Clinic", "Doctors"];
     const currentTab = settingsTabs.includes(activeSubTab) ? activeSubTab : "Clinic";
 
     // Helper handlers for Doctor Add/Edit/Delete
@@ -9021,16 +10096,16 @@ Apex Clinic`;
 
       const { error } = await supabase
         .from("doctors")
-        .delete()
+        .update({ status: "Inactive" })
         .eq("id", deleteDoctorConfirm.id);
 
       if (error) {
-        console.error("Failed to delete doctor:", error.message);
-        showToast("Failed to delete doctor from database.", "error");
+        console.error("Failed to deactivate doctor:", error.message);
+        showToast("Failed to deactivate doctor in database.", "error");
         return;
       }
 
-      showToast(`${deleteDoctorConfirm.name} removed from clinic records.`, "success");
+      showToast(`${deleteDoctorConfirm.name} has been deactivated.`, "success");
       await fetchClinicData();
       setDeleteDoctorConfirm(null);
     };
@@ -9165,43 +10240,17 @@ Apex Clinic`;
     const handleDeleteStaff = async () => {
       if (!deleteStaffConfirm) return;
 
-      const { data: profileRecord, error: checkError } = await supabase
+      const { error } = await supabase
         .from("profiles")
-        .select("has_login")
-        .eq("id", deleteStaffConfirm.id)
-        .maybeSingle();
+        .update({ status: "Inactive" })
+        .eq("id", deleteStaffConfirm.id);
 
-      if (checkError) {
-        console.error("Failed to check staff login status:", checkError.message);
-        showToast("Failed to verify staff login status.", "error");
+      if (error) {
+        console.error("Failed to deactivate staff member:", error.message);
+        showToast("Failed to deactivate staff member.", "error");
         return;
       }
-
-      if (profileRecord?.has_login) {
-        const { error } = await supabase
-          .from("profiles")
-          .update({ status: "Inactive" })
-          .eq("id", deleteStaffConfirm.id);
-
-        if (error) {
-          console.error("Failed to deactivate staff member:", error.message);
-          showToast("Failed to deactivate staff member.", "error");
-          return;
-        }
-        showToast(`${deleteStaffConfirm.name} has login access; deactivated in system.`, "success");
-      } else {
-        const { error } = await supabase
-          .from("profiles")
-          .delete()
-          .eq("id", deleteStaffConfirm.id);
-
-        if (error) {
-          console.error("Failed to delete staff member:", error.message);
-          showToast("Failed to delete staff member from database.", "error");
-          return;
-        }
-        showToast(`${deleteStaffConfirm.name} removed from staff records.`, "success");
-      }
+      showToast(`${deleteStaffConfirm.name} has been deactivated.`, "success");
 
       await fetchClinicData();
       setDeleteStaffConfirm(null);
@@ -9266,27 +10315,29 @@ Apex Clinic`;
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Clinic Name</Label>
-                      <Input value={clinicName} onChange={e => setClinicName(e.target.value)} className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[14px]" />
+                      <Input disabled={currentUserRole !== "admin"} value={clinicName} onChange={e => setClinicName(e.target.value)} className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[14px]" />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Receptionist User</Label>
-                      <Input value={receptionistName} onChange={e => setReceptionistName(e.target.value)} className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[14px]" />
+                      <Input disabled={currentUserRole !== "admin"} value={receptionistName} onChange={e => setReceptionistName(e.target.value)} className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[14px]" />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
                     <Label className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Address</Label>
-                    <Input value={clinicAddress} onChange={e => setClinicAddress(e.target.value)} className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[14px]" />
+                    <Input disabled={currentUserRole !== "admin"} value={clinicAddress} onChange={e => setClinicAddress(e.target.value)} className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[14px]" />
                   </div>
 
-                  <div className="pt-2">
-                    <Button 
-                      type="submit" 
-                      className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-5 rounded-xl text-xs cursor-pointer shadow-xs"
-                    >
-                      Save Settings
-                    </Button>
-                  </div>
+                  {currentUserRole === "admin" && (
+                    <div className="pt-2">
+                      <Button 
+                        type="submit" 
+                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-5 rounded-xl text-xs cursor-pointer shadow-xs"
+                      >
+                        Save Settings
+                      </Button>
+                    </div>
+                  )}
                 </form>
               </div>
             )}
@@ -9299,12 +10350,14 @@ Apex Clinic`;
                     <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Doctors</h2>
                     <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">Manage practitioner profiles, specialties, and active statuses.</p>
                   </div>
-                  <Button
-                    onClick={handleOpenAddDoctor}
-                    className="bg-blue-600 hover:bg-blue-500 text-white font-semibold h-10 px-4 rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-xs shrink-0"
-                  >
-                    <Plus className="h-4 w-4" /> Add Doctor
-                  </Button>
+                  {currentUserRole === "admin" && (
+                    <Button
+                      onClick={handleOpenAddDoctor}
+                      className="bg-blue-600 hover:bg-blue-500 text-white font-semibold h-10 px-4 rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-xs shrink-0"
+                    >
+                      <Plus className="h-4 w-4" /> Add Doctor
+                    </Button>
+                  )}
                 </div>
 
                 <div className="space-y-3">
@@ -9328,22 +10381,24 @@ Apex Clinic`;
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 self-end sm:self-center">
-                        <Button
-                          variant="outline"
-                          onClick={() => handleOpenEditDoctor(doc)}
-                          className="h-8 px-3 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <Pencil className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300" /> Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => setDeleteDoctorConfirm(doc)}
-                          className="h-8 px-3 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 text-red-600 hover:bg-red-50 hover:border-red-200 dark:hover:bg-red-955/30 flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-red-600" /> Delete
-                        </Button>
-                      </div>
+                      {currentUserRole === "admin" && (
+                        <div className="flex items-center gap-2 self-end sm:self-center">
+                          <Button
+                            variant="outline"
+                            onClick={() => handleOpenEditDoctor(doc)}
+                            className="h-8 px-3 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Pencil className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300" /> Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setDeleteDoctorConfirm(doc)}
+                            className="h-8 px-3 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 text-red-600 hover:bg-red-50 hover:border-red-200 dark:hover:bg-red-955/30 flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-red-600" /> Delete
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -10266,6 +11321,7 @@ Apex Clinic`;
             sidebarCollapsed ? "px-0 py-3" : "p-3"
           }`}>
             {menuItems.map((item) => {
+              if (item.name === "Reports" && !hasReportsAccess) return null;
               const active = activeTab === item.name && !activeConsultationApptId;
               return (
                 <div key={item.name} className="relative flex justify-center">
@@ -10647,7 +11703,12 @@ Apex Clinic`;
               {activeTab === "Patients" && renderPatientsModule()}
               {activeTab === "Treatments" && renderTreatmentsModule()}
               {activeTab === "Billing" && renderBillingModule()}
-              {activeTab === "Reports" && renderReportsModule()}
+              {activeTab === "Reports" && hasReportsAccess && renderReportsModule()}
+              {activeTab === "Reports" && !hasReportsAccess && (
+                <div className="p-8 text-center text-red-500 font-bold bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+                  Access Denied: You do not have permissions to view reports.
+                </div>
+              )}
               {activeTab === "Settings" && renderSettingsModule()}
             </>
           )}
@@ -10675,7 +11736,8 @@ Apex Clinic`;
 
               <nav className="space-y-1.5">
                 {menuItems.map((item) => {
-                  const active = activeTab === item.name;
+                  if (item.name === "Reports" && !hasReportsAccess) return null;
+                  const active = item.name === activeTab;
                   return (
                     <button
                       key={item.name}
@@ -10843,8 +11905,8 @@ Apex Clinic`;
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <Label htmlFor="apptDoctor">Doctor</Label>
-                        <select id="apptDoctor" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-808 focus:outline-none dark:bg-slate-950 dark:border-slate-800" value={apptDoctor} onChange={e => setApptDoctor(e.target.value)}>
-                          {doctors.map(d => (
+                        <select id="apptDoctor" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-808 focus:outline-none dark:bg-slate-955 dark:border-slate-800" value={apptDoctor} onChange={e => setApptDoctor(e.target.value)}>
+                          {doctors.filter(d => d.status !== "Inactive" || d.name === apptDoctor).map(d => (
                             <option key={d.name} value={d.name}>{d.name}</option>
                           ))}
                         </select>
@@ -11349,23 +12411,73 @@ Apex Clinic`;
                     <button
                       type="button"
                       onClick={async () => {
-                        const { error } = await supabase
-                          .from("appointments")
-                          .update({ status: "Cancelled" })
-                          .eq("id", selectedSlotData.appointment!.id);
-                        if (error) {
-                          console.error("Appointment operation failed:", error.message, error.code);
-                          showToast("Failed to block slot: cancel existing appointment failed.", "error");
-                          return;
+                        const apptVal = selectedSlotData.appointment!;
+                        const docRecord = doctors.find(d => d.name === apptVal.doctor);
+                        const doctorId = docRecord?.id || null;
+                        const normalizedTime = normalizeTimeSlot(selectedSlotData.time);
+                        const exactKey = `${selectedSlotData.date}_${normalizedTime}_${doctorId || 'global'}`;
+                        
+                        const existingBlockId = blockedSlots[exactKey];
+                        
+                        if (existingBlockId) {
+                          // Already blocked: Unblock it (DELETE)
+                          const { error: delErr } = await supabase
+                            .from("blocked_slots")
+                            .delete()
+                            .eq("id", existingBlockId);
+                          if (delErr) {
+                            console.error("Failed to unblock slot in database:", delErr.message);
+                            showToast("Failed to unblock slot in database.", "error");
+                            return;
+                          }
+                          setBlockedSlots(prev => {
+                            const copy = { ...prev };
+                            delete copy[exactKey];
+                            return copy;
+                          });
+                          setBlockedSlotsList(prev => prev.filter(b => b.id !== existingBlockId));
+                          setSelectedSlotData(null);
+                          showToast("Slot unblocked successfully.", "success");
+                        } else {
+                          // Cancel existing appointment in DB
+                          const { error } = await supabase
+                            .from("appointments")
+                            .update({ status: "Cancelled" })
+                            .eq("id", apptVal.id);
+                          if (error) {
+                            console.error("Appointment operation failed:", error.message, error.code);
+                            showToast("Failed to block slot: cancel existing appointment failed.", "error");
+                            return;
+                          }
+
+                          // Insert blocked slot record in DB
+                          const { data: dbBlock, error: blockErr } = await supabase
+                            .from("blocked_slots")
+                            .insert({
+                              blocked_date: convertToDbDate(selectedSlotData.date),
+                              time_slot: normalizedTime,
+                              doctor_id: doctorId,
+                              reason: "Cancelled & Blocked"
+                            })
+                            .select()
+                            .single();
+
+                          if (blockErr || !dbBlock) {
+                            console.error("Failed to block slot in database:", blockErr?.message);
+                            showToast("Failed to block slot in database.", "error");
+                            return;
+                          }
+
+                          setBlockedSlots(prev => {
+                            const copy = { ...prev };
+                            copy[exactKey] = dbBlock.id;
+                            return copy;
+                          });
+                          setBlockedSlotsList(prev => [...prev, dbBlock]);
+                          setAppointments(prev => prev.map(a => a.id === apptVal.id ? { ...a, status: "Cancelled" } : a));
+                          setSelectedSlotData(null);
+                          showToast("Appointment cancelled and slot blocked.", "success");
                         }
-                        setBlockedSlots(prev => {
-                          const copy = { ...prev };
-                          const key = `${selectedSlotData.date}_${selectedSlotData.time}`;
-                          copy[key] = true;
-                          return copy;
-                        });
-                        setAppointments(prev => prev.map(a => a.id === selectedSlotData.appointment!.id ? { ...a, status: "Cancelled" } : a));
-                        setSelectedSlotData(null);
                       }}
                       className="h-12 flex-1 min-w-0 flex items-center justify-center font-semibold text-[15px] border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 transition-all cursor-pointer select-none rounded-lg whitespace-nowrap overflow-hidden text-ellipsis"
                     >
@@ -11393,7 +12505,7 @@ Apex Clinic`;
                     </button>
                   </div>
                 </div>
-              ) : blockedSlots[`${selectedSlotData.date}_${selectedSlotData.time}`] ? (
+              ) : getBlockIdForSlot(selectedSlotData.date, selectedSlotData.time, (doctors.find(d => d.name === apptSelectedDoctor)?.id || null)) ? (
                 // Blocked Slot
                 <div className="space-y-6 text-center py-1">
                   <p className="text-slate-500 font-medium">This slot is currently blocked for clinical maintenance.</p>
@@ -11513,7 +12625,7 @@ Apex Clinic`;
                         value={slotDoctor}
                         onChange={e => setSlotDoctor(e.target.value)}
                       >
-                        {doctors.map(d => (
+                        {doctors.filter(d => d.status !== "Inactive" || d.name === slotDoctor).map(d => (
                           <option key={d.name} value={d.name}>{d.name}</option>
                         ))}
                       </select>
