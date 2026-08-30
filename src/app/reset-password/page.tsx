@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, Eye, EyeOff, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
 
 const resetPasswordSchema = z
   .object({
@@ -38,6 +39,8 @@ export default function ResetPasswordPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [sessionChecking, setSessionChecking] = useState(true);
   
   // Password strength calculation
   const [passwordStrength, setPasswordStrength] = useState(0);
@@ -90,19 +93,61 @@ export default function ResetPasswordPage() {
     }
   }, [passwordVal]);
 
+  const supabase = createClient();
+
+  useEffect(() => {
+    const verifySession = async () => {
+      // Parse any query error params first (e.g. ?error=access_denied&error_description=...)
+      const queryParams = new URLSearchParams(window.location.search);
+      const err = queryParams.get("error_description") || queryParams.get("error");
+      if (err) {
+        setApiError(decodeURIComponent(err).replace(/\+/g, " "));
+        setSessionChecking(false);
+        setTimeout(() => {
+          router.push("/forgot-password");
+        }, 3000);
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setApiError("No active recovery session found. You must use the link sent to your email.");
+        setSessionChecking(false);
+        setTimeout(() => {
+          router.push("/forgot-password");
+        }, 3000);
+        return;
+      }
+      setSessionChecking(false);
+    };
+
+    verifySession();
+  }, [router, supabase]);
+
   const onSubmit = async (data: ResetPasswordSchemaType) => {
     setIsLoading(true);
+    setApiError(null);
     
-    // Simulate API Request
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    setIsLoading(false);
-    setIsSuccess(true);
-    
-    // Auto redirect after 2s
-    setTimeout(() => {
-      router.push("/login");
-    }, 2000);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: data.password
+      });
+
+      if (error) {
+        setApiError(error.message || "Failed to update password. The link may have expired.");
+        setIsLoading(false);
+      } else {
+        setIsLoading(false);
+        setIsSuccess(true);
+        // Auto redirect after 2s
+        setTimeout(() => {
+          router.push("/login");
+        }, 2000);
+      }
+    } catch {
+      setApiError("A network error occurred. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -111,7 +156,18 @@ export default function ResetPasswordPage() {
       subtitle={!isSuccess ? "Please enter a new password for your clinic account." : ""}
     >
       <AnimatePresence mode="wait">
-        {!isSuccess ? (
+        {sessionChecking ? (
+          <motion.div
+            key="checking"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center justify-center py-12 space-y-4"
+          >
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600 animate-duration-1000" />
+            <p className="text-[14px] text-slate-500 font-medium">Verifying reset session...</p>
+          </motion.div>
+        ) : !isSuccess ? (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -130,6 +186,12 @@ export default function ResetPasswordPage() {
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {apiError && (
+                <div className="flex items-center gap-3 rounded-xl bg-red-50 p-4 text-[14px] text-red-750 border border-red-100">
+                  <AlertCircle className="h-5 w-5 shrink-0" />
+                  <span>{apiError}</span>
+                </div>
+              )}
               {/* New Password */}
               <div className="space-y-4">
                 <Label htmlFor="password" className="text-[#334155] dark:text-slate-300 font-medium text-[16px] block">
@@ -146,14 +208,14 @@ export default function ResetPasswordPage() {
                         ? "border-red-400 focus-visible:ring-4 focus-visible:ring-red-455/10 focus-visible:border-red-400"
                         : "border-white/28 focus-visible:ring-4 focus-visible:ring-blue-500/10 focus-visible:border-blue-500"
                     }`}
-                    disabled={isLoading}
+                    disabled={isLoading || !!apiError}
                     {...register("password")}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-[18px] top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-650 focus:outline-none"
-                    disabled={isLoading}
+                    disabled={isLoading || !!apiError}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -202,14 +264,14 @@ export default function ResetPasswordPage() {
                         ? "border-red-400 focus-visible:ring-4 focus-visible:ring-red-455/10 focus-visible:border-red-400"
                         : "border-white/28 focus-visible:ring-4 focus-visible:ring-blue-500/10 focus-visible:border-blue-500"
                     }`}
-                    disabled={isLoading}
+                    disabled={isLoading || !!apiError}
                     {...register("confirmPassword")}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-[18px] top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-650 focus:outline-none"
-                    disabled={isLoading}
+                    disabled={isLoading || !!apiError}
                   >
                     {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -225,7 +287,7 @@ export default function ResetPasswordPage() {
               <Button
                 type="submit"
                 className="w-full h-[56px] mt-8 bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-600 shadow-md shadow-blue-500/10 font-semibold text-[17px] rounded-[14px] flex items-center justify-center"
-                disabled={isLoading}
+                disabled={isLoading || !!apiError}
               >
                 {isLoading ? (
                   <>

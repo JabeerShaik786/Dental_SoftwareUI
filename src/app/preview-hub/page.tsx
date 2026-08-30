@@ -10,21 +10,14 @@ export default function PreviewHub() {
       description: "Sign in to access your clinic workspace. Features validation, loading states, and customizable password reveal.",
       href: "/login",
       icon: <LogIn className="h-6 w-6 text-blue-600" />,
-      features: ["Client-side Zod validation", "Simulated API delay (1.5s)", "Test error credentials with error@dental.com", "Secure remember browser checkbox"],
-    },
-    {
-      title: "Clinic Registration",
-      description: "A 3-step setup wizard for registering a new clinic, including practice details, owner credentials, and operational preferences.",
-      href: "/register",
-      icon: <UserPlus className="h-6 w-6 text-cyan-600" />,
-      features: ["Step 1: Complete Clinic Profile", "Step 2: Account Owner Setup", "Step 3: Operational Preferences", "Welcome screen & direct auto-auth"],
+      features: ["Client-side Zod validation", "Real Supabase authentication", "User account status access checks", "Secure remember browser checkbox"],
     },
     {
       title: "Forgot Password",
       description: "Send recovery link instructions to a registered email address. Features full success confirmation.",
       href: "/forgot-password",
       icon: <KeyRound className="h-6 w-6 text-emerald-600" />,
-      features: ["Email format validations", "Simulated email dispatching delay", "Checking-inbox visual confirmation screen"],
+      features: ["Email format validations", "Real Supabase email dispatch", "Checking-inbox visual confirmation screen"],
     },
     {
       title: "Reset Password",
