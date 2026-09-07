@@ -14,6 +14,8 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, Eye, EyeOff, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { createClient } from "@/lib/supabase/client";
+
 const resetPasswordSchema = z
   .object({
     password: z
@@ -38,11 +40,113 @@ export default function ResetPasswordPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [sessionChecking, setSessionChecking] = useState(true);
   
   // Password strength calculation
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [strengthLabel, setStrengthLabel] = useState("Weak");
   const [strengthColor, setStrengthColor] = useState("bg-red-500");
+
+  const supabase = createClient();
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const verifySession = async () => {
+      const queryParams = new URLSearchParams(window.location.search);
+      const err = queryParams.get("error_description") || queryParams.get("error");
+      if (err) {
+        if (!isMounted) return;
+        setApiError(decodeURIComponent(err).replace(/\+/g, " "));
+        setSessionChecking(false);
+        setTimeout(() => {
+          if (isMounted) router.push("/forgot-password");
+        }, 3000);
+        return;
+      }
+
+      // 1. Check if session already exists
+      const { data: { session: existingSession } } = await supabase.auth.getSession();
+      if (existingSession) {
+        if (!isMounted) return;
+        setSessionChecking(false);
+        return;
+      }
+
+      // 2. Check for PKCE authorization code in URL (?code=...)
+      const code = queryParams.get("code");
+      if (code) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          if (!isMounted) return;
+          setApiError(error.message || "Email link is invalid or has expired.");
+          setSessionChecking(false);
+          setTimeout(() => {
+            if (isMounted) router.push("/forgot-password");
+          }, 3000);
+          return;
+        }
+
+        if (!isMounted) return;
+        if (data.session) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setSessionChecking(false);
+          return;
+        }
+      }
+
+      // 3. Check for token_hash in URL (?token_hash=...&type=recovery)
+      const tokenHash = queryParams.get("token_hash");
+      const type = queryParams.get("type");
+      if (tokenHash) {
+        const { data, error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: (type as any) || "recovery",
+        });
+        if (error) {
+          if (!isMounted) return;
+          setApiError(error.message || "Email link is invalid or has expired.");
+          setSessionChecking(false);
+          setTimeout(() => {
+            if (isMounted) router.push("/forgot-password");
+          }, 3000);
+          return;
+        }
+
+        if (!isMounted) return;
+        if (data.session) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setSessionChecking(false);
+          return;
+        }
+      }
+
+      // 4. Fallback: No session found after checking URL parameters
+      if (!isMounted) return;
+      setApiError("No active recovery session found. You must use the link sent to your email.");
+      setSessionChecking(false);
+      setTimeout(() => {
+        if (isMounted) router.push("/forgot-password");
+      }, 3000);
+    };
+
+    verifySession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || (session && event === "SIGNED_IN")) {
+        if (isMounted) {
+          setSessionChecking(false);
+          setApiError(null);
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [router, supabase]);
 
   const {
     register,
@@ -92,17 +196,27 @@ export default function ResetPasswordPage() {
 
   const onSubmit = async (data: ResetPasswordSchemaType) => {
     setIsLoading(true);
+    setApiError(null);
     
-    // Simulate API Request
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    setIsLoading(false);
-    setIsSuccess(true);
-    
-    // Auto redirect after 2s
-    setTimeout(() => {
-      router.push("/login");
-    }, 2000);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: data.password
+      });
+
+      if (error) {
+        setApiError(error.message || "Failed to update password. The link may have expired.");
+        setIsLoading(false);
+      } else {
+        setIsLoading(false);
+        setIsSuccess(true);
+        setTimeout(() => {
+          router.push("/login");
+        }, 2000);
+      }
+    } catch {
+      setApiError("A network error occurred. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -111,7 +225,18 @@ export default function ResetPasswordPage() {
       subtitle={!isSuccess ? "Please enter a new password for your clinic account." : ""}
     >
       <AnimatePresence mode="wait">
-        {!isSuccess ? (
+        {sessionChecking ? (
+          <motion.div
+            key="checking"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center justify-center py-12 space-y-4"
+          >
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600 animate-duration-1000" />
+            <p className="text-[14px] text-slate-500 font-medium">Verifying reset session...</p>
+          </motion.div>
+        ) : !isSuccess ? (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -130,6 +255,12 @@ export default function ResetPasswordPage() {
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {apiError && (
+                <div className="flex items-center gap-3 rounded-xl bg-red-50 p-4 text-[14px] text-red-750 border border-red-100">
+                  <AlertCircle className="h-5 w-5 shrink-0" />
+                  <span>{apiError}</span>
+                </div>
+              )}
               {/* New Password */}
               <div className="space-y-4">
                 <Label htmlFor="password" className="text-[#334155] dark:text-slate-300 font-medium text-[16px] block">
