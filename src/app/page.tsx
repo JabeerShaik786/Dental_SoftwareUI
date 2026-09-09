@@ -462,7 +462,7 @@ const convertToUiDate = (dbDate: string): string => {
   if (parts.length === 3) {
     const year = parts[0];
     const monthNum = parts[1];
-    const day = parseInt(parts[2], 10).toString();
+    const day = parts[2].padStart(2, "0");
     
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const monthIndex = parseInt(monthNum, 10) - 1;
@@ -969,8 +969,16 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [patientsPeriod, setPatientsPeriod] = useState<"Today" | "This Week" | "This Month" | "Last Month" | "This Year" | "Custom Range">("This Month");
 
   // Redesigned dashboard state variables
-  const [selectedCalendarDay, setSelectedCalendarDay] = useState("12 Aug 2026");
-  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date(2026, 7, 10)); // Mon Aug 10, 2026
+  const getMondayOfCurrentWeek = (d: Date = new Date()) => {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(date.setDate(diff));
+  };
+
+  const dynamicTodayUiDate = convertToUiDate(new Date().toISOString().split("T")[0]);
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState(dynamicTodayUiDate);
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(getMondayOfCurrentWeek());
   const [blockedSlots, setBlockedSlots] = useState<Record<string, boolean>>({});
   
   // Add Patient quick panel inputs
@@ -1002,7 +1010,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [apptSelectedStatus, setApptSelectedStatus] = useState("All");
   const [apptSelectedTreatment, setApptSelectedTreatment] = useState("All");
   const [apptSelectedType, setApptSelectedType] = useState("All");
-  const [apptCalendarDate, setApptCalendarDate] = useState<Date>(new Date(2026, 7, 12)); // default Aug 12, 2026
+  const [apptCalendarDate, setApptCalendarDate] = useState<Date>(new Date());
 
   // Calendar slot selection for detail modal
   const [selectedApptDetail, setSelectedApptDetail] = useState<Appointment | null>(null);
@@ -1229,7 +1237,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     startWebcam(selectedCameraId);
   };
 
-  const handleSaveConsentRecording = () => {
+  const handleSaveConsentRecording = async () => {
     if (recordingSeconds < 20) {
       showToast("Please record at least 20 seconds of patient consent.", "error");
       return;
@@ -1249,6 +1257,20 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       uploadedBy: docName,
       prescription: `Duration: ${durationStr}`
     };
+
+    if (currentPat && selectedPatientId) {
+      const updatedFiles = [...(currentPat.files || []), { name: newMedia.name, size: `${durationStr}`, type: newMedia.type }];
+      const { error: fileErr } = await supabase
+        .from("patients")
+        .update({ files: updatedFiles })
+        .eq("patient_id", selectedPatientId);
+
+      if (fileErr) {
+        showToast("Failed to save consent recording metadata to database.", "error");
+        return;
+      }
+      setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, files: updatedFiles } : p));
+    }
 
     setPatientMedia(prev => [newMedia, ...prev]);
     showToast(`Patient consent video (${durationStr}) saved to clinical records.`, "success");
@@ -1314,9 +1336,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     showToast("Clinical media file updated.", "success");
   };
 
-  const handleMockMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMockMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const filesArray = Array.from(e.target.files);
+    const currentPat = patients.find(p => p.id === selectedPatientId);
     
     const newMediaItems: ClinicalMedia[] = filesArray.map((file, idx) => {
       const isVideo = file.type.startsWith("video/") || file.name.endsWith(".mp4") || file.name.endsWith(".mov") || file.name.endsWith(".avi");
@@ -1335,6 +1358,21 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         uploadedBy: prescDoctor || (doctors[0]?.name || "Dr. Deepa Kodali")
       };
     });
+
+    if (currentPat && selectedPatientId) {
+      const newFiles = filesArray.map(f => ({ name: f.name, size: `${(f.size / (1024 * 1024)).toFixed(1)} MB`, type: f.type }));
+      const updatedFiles = [...(currentPat.files || []), ...newFiles];
+      const { error: fileErr } = await supabase
+        .from("patients")
+        .update({ files: updatedFiles })
+        .eq("patient_id", selectedPatientId);
+
+      if (fileErr) {
+        showToast("Failed to save uploaded files metadata to database.", "error");
+        return;
+      }
+      setPatients(prev => prev.map(p => p.id === selectedPatientId ? { ...p, files: updatedFiles } : p));
+    }
     
     setPatientMedia(prev => [...newMediaItems, ...prev]);
     showToast(`${filesArray.length} clinical media files uploaded.`, "success");
@@ -1643,10 +1681,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [blockedSlotsList, setBlockedSlotsList] = useState<any[]>([]);
 
-  const [invoices, setInvoices] = useState<InvoiceItem[]>([
-    { id: "INV-1001", patientId: "DS-1011", patientName: "Vikram Malhotra", doctor: "Dr. Deepa Kodali", treatment: "Consultation", items: [{ description: "Consultation Fee", amount: 500 }, { description: "Pain Reliever pills", amount: 300 }], discount: 10, tax: 0, subtotal: 800, total: 720, paidAmount: 720, status: "Paid", paymentDate: "10 Aug 2026", paymentLogs: [{ method: "UPI GPay", amount: 720, date: "10 Aug 2026" }] },
-    { id: "INV-1002", patientId: "DS-1012", patientName: "Meera Nair", doctor: "Dr. Raghuram", treatment: "Scaling", items: [{ description: "Scaling and Polishing", amount: 1500 }], discount: 0, tax: 0, subtotal: 1500, total: 1500, paidAmount: 1000, status: "Partially Paid", paymentDate: "05 Aug 2026", paymentLogs: [{ method: "Cash", amount: 1000, date: "05 Aug 2026" }] }
-  ]);
+  const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
 
   const [doctors, setDoctors] = useState<Doctor[]>([]);
 
@@ -1730,92 +1765,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     { id: 2, msg: "Stock Alert: Lidocaine cartridge stock is below 15%.", unread: false }
   ]);
 
-  const [treatments, setTreatments] = useState<TreatmentItem[]>([
-    {
-      id: "tr-1",
-      name: "Root Canal Therapy",
-      patient: "Aarav Mehta",
-      doctor: "Dr. Deepa Kodali",
-      treatmentPlan: "Root Canal Treatment",
-      stage: "In Progress",
-      completedVisits: 2,
-      totalVisits: 3,
-      cost: 8500,
-      prescription: "Amoxicillin 500mg, Ibuprofen 400mg",
-      notes: "Canal obturated, temp crown placed.",
-      nextVisit: "10 Aug 2026"
-    },
-    {
-      id: "tr-2",
-      name: "Orthodontic Aligners",
-      patient: "Meera Nair",
-      doctor: "Dr. Raghuram",
-      treatmentPlan: "Orthodontic Treatment",
-      stage: "In Progress",
-      completedVisits: 4,
-      totalVisits: 12,
-      cost: 45000,
-      prescription: "Orthodontic Wax",
-      notes: "Tray 4 delivered, tracking well.",
-      nextVisit: "25 Aug 2026"
-    },
-    {
-      id: "tr-3",
-      name: "Dental Implant #16",
-      patient: "Siddharth Rao",
-      doctor: "Dr. Srinivasa",
-      treatmentPlan: "Dental Implant",
-      stage: "In Progress",
-      completedVisits: 1,
-      totalVisits: 4,
-      cost: 35000,
-      prescription: "Augmentin 625mg, Chlorhexidine Mouthwash",
-      notes: "Fixture placed, osseointegration period.",
-      nextVisit: "15 Sep 2026"
-    },
-    {
-      id: "tr-4",
-      name: "Full Mouth Scaling",
-      patient: "Priya Patel",
-      doctor: "Dr. Deepa Kodali",
-      treatmentPlan: "Scaling & Polishing",
-      stage: "Completed",
-      completedVisits: 2,
-      totalVisits: 2,
-      cost: 2500,
-      prescription: "Metrogyl Denta Gel",
-      notes: "Deep scaling & polishing completed.",
-      nextVisit: "Finished"
-    },
-    {
-      id: "tr-5",
-      name: "Zirconia Crown #24",
-      patient: "Vikram Malhotra",
-      doctor: "Dr. Priyanka Mane Pado",
-      treatmentPlan: "Crown Placement",
-      stage: "Planned",
-      completedVisits: 0,
-      totalVisits: 2,
-      cost: 12000,
-      prescription: "None",
-      notes: "Impression scheduled for next visit.",
-      nextVisit: "12 Aug 2026"
-    },
-    {
-      id: "tr-6",
-      name: "Molar Extraction #38",
-      patient: "Kavita Sharma",
-      doctor: "Dr. Krishna Teja",
-      treatmentPlan: "Extraction",
-      stage: "Completed",
-      completedVisits: 1,
-      totalVisits: 1,
-      cost: 3500,
-      prescription: "Ketorol DT",
-      notes: "Impacted third molar extraction.",
-      nextVisit: "Finished"
-    }
-  ]);
+  const [treatments, setTreatments] = useState<TreatmentItem[]>([]);
 
   // --- PATIENT PROFILE FORM SYNC & HANDLERS ---
   useEffect(() => {
@@ -2259,7 +2209,24 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       return;
     }
     const patientItem = patients.find(p => p.id === selectedPatientId);
-    if (!patientItem || !patientItem.uuid) {
+    if (!patientItem) {
+      showToast("Selected patient record not found.", "error");
+      return;
+    }
+
+    let patientUuid = patientItem.uuid;
+    if (!patientUuid) {
+      const { data: dbPat } = await supabase
+        .from("patients")
+        .select("id")
+        .eq("patient_id", selectedPatientId)
+        .maybeSingle();
+      if (dbPat) {
+        patientUuid = dbPat.id;
+      }
+    }
+
+    if (!patientUuid) {
       showToast("Selected patient record has no database UUID associated.", "error");
       return;
     }
@@ -2271,7 +2238,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const { data: dbAppt, error: apptErr } = await supabase
       .from("appointments")
       .insert({
-        patient_id: patientItem.uuid,
+        patient_id: patientUuid,
         doctor_id: doctorId,
         appointment_date: convertToDbDate(patApptDate),
         time_slot: patApptTime,
@@ -2599,14 +2566,16 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
   const reportStats = getFilteredReportStats();
 
+  const activeDashboardDate = selectedCalendarDay || dynamicTodayUiDate;
+
   const kpiCounts = {
-    todayAppointments: appointments.filter(a => a.date === "12 Aug 2026" && a.status !== "Cancelled").length,
-    walkins: appointments.filter(a => a.date === "12 Aug 2026" && (a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in"))).length,
-    waiting: appointments.filter(a => a.date === "12 Aug 2026" && (a.status === "Waiting" || a.status === "Checked In")).length,
-    inTreatment: appointments.filter(a => a.date === "12 Aug 2026" && (a.status === "In Procedure" || a.status === "In Consultation")).length,
-    completedToday: appointments.filter(a => a.date === "12 Aug 2026" && a.status === "Completed").length,
+    todayAppointments: appointments.filter(a => (a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026") && a.status !== "Cancelled").length,
+    walkins: appointments.filter(a => (a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026") && (a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in"))).length,
+    waiting: appointments.filter(a => (a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026") && (a.status === "Waiting" || a.status === "Checked In")).length,
+    inTreatment: appointments.filter(a => (a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026") && (a.status === "In Procedure" || a.status === "In Consultation")).length,
+    completedToday: appointments.filter(a => (a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026") && a.status === "Completed").length,
     pendingBills: invoices.filter(i => i.status !== "Paid").length,
-    revenueToday: invoices.reduce((sum, inv) => sum + inv.paymentLogs.filter(log => log.date === "12 Aug 2026").reduce((s, l) => s + l.amount, 0), 0)
+    revenueToday: invoices.reduce((sum, inv) => sum + (inv.paymentLogs || []).filter(log => log.date === activeDashboardDate || log.date === dynamicTodayUiDate || log.date === "12 Aug 2026").reduce((s, l) => s + (l.amount || 0), 0), 0)
   };
 
   const pushActivity = async (type: ActivityItem["type"], msg: string) => {
@@ -3172,7 +3141,24 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const handleGlobalBookAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
     const pat = patients.find(p => p.id === apptPatientId);
-    if (!pat || !pat.uuid) {
+    if (!pat) {
+      showToast("Selected patient not found.", "error");
+      return;
+    }
+
+    let patUuid = pat.uuid;
+    if (!patUuid) {
+      const { data: dbPat } = await supabase
+        .from("patients")
+        .select("id")
+        .eq("patient_id", apptPatientId)
+        .maybeSingle();
+      if (dbPat) {
+        patUuid = dbPat.id;
+      }
+    }
+
+    if (!patUuid) {
       showToast("Selected patient has no database UUID associated.", "error");
       return;
     }
@@ -3183,7 +3169,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const { data: dbAppt, error: apptErr } = await supabase
       .from("appointments")
       .insert({
-        patient_id: pat.uuid,
+        patient_id: patUuid,
         doctor_id: doctorId,
         appointment_date: convertToDbDate(apptDate),
         time_slot: apptTime,
@@ -3392,7 +3378,24 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     if (!selectedSlotData || !slotPatientId) return;
 
     const pat = patients.find(p => p.id === slotPatientId);
-    if (!pat || !pat.uuid) {
+    if (!pat) {
+      showToast("Selected patient record not found.", "error");
+      return;
+    }
+
+    let patUuid = pat.uuid;
+    if (!patUuid) {
+      const { data: dbPat } = await supabase
+        .from("patients")
+        .select("id")
+        .eq("patient_id", slotPatientId)
+        .maybeSingle();
+      if (dbPat) {
+        patUuid = dbPat.id;
+      }
+    }
+
+    if (!patUuid) {
       showToast("Selected patient record has no database UUID associated.", "error");
       return;
     }
@@ -3403,7 +3406,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const { data: dbAppt, error: apptErr } = await supabase
       .from("appointments")
       .insert({
-        patient_id: pat.uuid,
+        patient_id: patUuid,
         doctor_id: doctorId,
         appointment_date: convertToDbDate(selectedSlotData.date),
         time_slot: selectedSlotData.time,
@@ -3651,11 +3654,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
       <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
         <span className="font-semibold text-[18px] text-slate-800 dark:text-white">Today's Schedule</span>
-        <span className="text-[12px] bg-slate-100 text-slate-655 px-2 py-0.5 rounded-full font-normal">12 Aug 2026</span>
+        <span className="text-[12px] bg-slate-100 text-slate-655 px-2 py-0.5 rounded-full font-normal">{activeDashboardDate}</span>
       </div>
 
       <div className="space-y-4 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
-        {appointments.filter(a => a.date === "12 Aug 2026").map((app) => (
+        {appointments.filter(a => a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026").map((app) => (
           <div key={app.id} className="flex gap-4 relative items-start group">
             <div className={`h-9 w-9 rounded-full shrink-0 flex items-center justify-center font-bold text-xs border-2 border-white dark:border-slate-955 shadow-xs z-10 ${
               app.status === "Completed" ? "bg-emerald-500 text-white" :
@@ -3767,7 +3770,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         name,
         fullName,
         date: dateString,
-        isToday: dateString === "12 Aug 2026"
+        isToday: dateString === dynamicTodayUiDate || dateString === "12 Aug 2026"
       };
     });
 
@@ -3867,11 +3870,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     // Get next scheduled appointment for alert strip
     const nextScheduled = appointments
-      .filter(a => a.date === "12 Aug 2026" && a.status === "Scheduled")
+      .filter(a => (a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026") && a.status === "Scheduled")
       .sort((a, b) => a.time.localeCompare(b.time))[0];
 
     // Today's appointments filtered list
-    const todayApptsList = appointments.filter(a => a.date === "12 Aug 2026" && a.status !== "Cancelled");
+    const todayApptsList = appointments.filter(a => (a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026") && a.status !== "Cancelled");
 
     // 15-Day Performance Tracker Data
     const performanceData = [
@@ -3916,7 +3919,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const bezierNewPatients = getBezierPath(newPatientsPoints);
 
     // Dynamic Chair Status Helper
-    const activeProcedures = appointments.filter(a => a.date === "12 Aug 2026" && a.status === "In Procedure");
+    const activeProcedures = appointments.filter(a => (a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026") && a.status === "In Procedure");
     const chairMap = [
       { id: "Chair 1", doc: "Dr. Sharma", status: activeProcedures[0] ? `Occupied by ${activeProcedures[0].patientName}` : "Available", color: activeProcedures[0] ? "bg-orange-100 text-orange-700" : "bg-emerald-50 text-emerald-700" },
       { id: "Chair 2", doc: "Dr. Priya", status: activeProcedures[1] ? `Occupied by ${activeProcedures[1].patientName}` : "Available", color: activeProcedures[1] ? "bg-orange-100 text-orange-700" : "bg-emerald-50 text-emerald-700" },
@@ -3925,8 +3928,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     // Collections by method today
     const collectionsToday = invoices
-      .flatMap(inv => inv.paymentLogs)
-      .filter(log => log.date === "12 Aug 2026");
+      .flatMap(inv => inv.paymentLogs || [])
+      .filter(log => log.date === activeDashboardDate || log.date === dynamicTodayUiDate || log.date === "12 Aug 2026");
     const cashTotal = collectionsToday.filter(l => l.method === "Cash").reduce((s, l) => s + l.amount, 0);
     const upiTotal = collectionsToday.filter(l => l.method.includes("UPI") || l.method.includes("GPay")).reduce((s, l) => s + l.amount, 0);
     const cardTotal = collectionsToday.filter(l => l.method === "Card").reduce((s, l) => s + l.amount, 0);
@@ -4989,8 +4992,9 @@ Apex Clinic`;
 
     // History Filtered List (by selected month/year of apptCalendarDate)
     const historyAppts = filteredAppts.filter(a => {
-      const apptDateObj = new Date(a.date);
-      return apptDateObj.getMonth() === apptCalendarDate.getMonth() && 
+      const apptDateObj = parseToDate(a.date);
+      return apptDateObj && 
+             apptDateObj.getMonth() === apptCalendarDate.getMonth() && 
              apptDateObj.getFullYear() === apptCalendarDate.getFullYear() &&
              (a.status === "Completed" || a.status === "Cancelled");
     });
