@@ -1210,6 +1210,122 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [activeConsultationApptId, setActiveConsultationApptId] = useState<string | null>(null);
   const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<InvoiceItem | null>(null);
   const [lastGeneratedReceipt, setLastGeneratedReceipt] = useState<InvoiceItem | null>(null);
+
+  // Billing Edit Modal states & handlers
+  const [editingInvoice, setEditingInvoice] = useState<InvoiceItem | null>(null);
+  const [editInvoicePatientName, setEditInvoicePatientName] = useState("");
+  const [editInvoiceDoctor, setEditInvoiceDoctor] = useState("");
+  const [editInvoiceTreatment, setEditInvoiceTreatment] = useState("");
+  const [editInvoiceSubtotal, setEditInvoiceSubtotal] = useState<number>(0);
+  const [editInvoiceDiscount, setEditInvoiceDiscount] = useState<number>(0);
+  const [editInvoiceTax, setEditInvoiceTax] = useState<number>(0);
+  const [editInvoiceTotal, setEditInvoiceTotal] = useState<number>(0);
+  const [editInvoicePaidAmount, setEditInvoicePaidAmount] = useState<number>(0);
+  const [editInvoiceStatus, setEditInvoiceStatus] = useState<"Paid" | "Partially Paid" | "Unpaid" | "Pending">("Pending");
+  const [editInvoicePaymentDate, setEditInvoicePaymentDate] = useState("");
+  const [savingInvoice, setSavingInvoice] = useState(false);
+
+  const handleEditInvoice = (inv: InvoiceItem) => {
+    setEditingInvoice(inv);
+    setEditInvoicePatientName(inv.patientName || "");
+    setEditInvoiceDoctor(inv.doctor || "");
+    setEditInvoiceTreatment(inv.treatment || "");
+    setEditInvoiceSubtotal(inv.subtotal || 0);
+    setEditInvoiceDiscount(inv.discount || 0);
+    setEditInvoiceTax(inv.tax || 0);
+    setEditInvoiceTotal(inv.total || 0);
+    setEditInvoicePaidAmount(inv.paidAmount || 0);
+    setEditInvoiceStatus(inv.status || "Pending");
+    setEditInvoicePaymentDate(inv.paymentDate || "12 Aug 2026");
+  };
+
+  const handleSaveEditInvoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingInvoice) return;
+
+    const invoiceUuid = editingInvoice.uuid;
+    const invoiceId = editingInvoice.id;
+
+    setSavingInvoice(true);
+
+    const updatedSubtotal = Number(editInvoiceSubtotal) || 0;
+    const updatedDiscount = Number(editInvoiceDiscount) || 0;
+    const updatedTax = Number(editInvoiceTax) || 0;
+    
+    const discountAmt = (updatedSubtotal * updatedDiscount) / 100;
+    const afterDiscount = updatedSubtotal - discountAmt;
+    const taxAmt = (afterDiscount * updatedTax) / 100;
+    const calculatedTotal = Math.round(afterDiscount + taxAmt);
+    const finalTotal = Number(editInvoiceTotal) > 0 ? Number(editInvoiceTotal) : calculatedTotal;
+    const finalPaid = Number(editInvoicePaidAmount) || 0;
+
+    let finalStatus: "Paid" | "Partially Paid" | "Unpaid" | "Pending" = editInvoiceStatus;
+    if (finalPaid >= finalTotal && finalTotal > 0) {
+      finalStatus = "Paid";
+    } else if (finalPaid > 0 && finalPaid < finalTotal) {
+      finalStatus = "Partially Paid";
+    }
+
+    const patRecord = patients.find(p => p.name === editInvoicePatientName || p.id === editInvoicePatientName);
+    const dbPatId = patRecord ? (patRecord.uuid || patRecord.id) : undefined;
+
+    const updateFields: any = {
+      patient_name: editInvoicePatientName.trim(),
+      doctor: editInvoiceDoctor.trim(),
+      treatment: editInvoiceTreatment.trim(),
+      subtotal: updatedSubtotal,
+      discount: updatedDiscount,
+      tax: updatedTax,
+      total: finalTotal,
+      paid_amount: finalPaid,
+      status: finalStatus,
+      payment_date: editInvoicePaymentDate.trim()
+    };
+
+    if (dbPatId) {
+      updateFields.patient_id = dbPatId;
+    }
+
+    let query = supabase.from("billing").update(updateFields);
+
+    if (invoiceUuid) {
+      query = query.eq("id", invoiceUuid);
+    } else {
+      query = query.eq("invoice_id", invoiceId);
+    }
+
+    const { data: updatedDb, error: updateErr } = await query.select().single();
+
+    setSavingInvoice(false);
+
+    if (updateErr) {
+      console.error("Failed to update billing record in database:", updateErr.message, updateErr.code);
+      showToast("Failed to update billing record in database.", "error");
+      return;
+    }
+
+    setInvoices(prev => prev.map(inv => {
+      if ((invoiceUuid && inv.uuid === invoiceUuid) || inv.id === invoiceId) {
+        return {
+          ...inv,
+          patientName: updatedDb?.patient_name || editInvoicePatientName.trim(),
+          doctor: updatedDb?.doctor || editInvoiceDoctor.trim(),
+          treatment: updatedDb?.treatment || editInvoiceTreatment.trim(),
+          subtotal: updatedDb?.subtotal !== undefined ? Number(updatedDb.subtotal) : updatedSubtotal,
+          discount: updatedDb?.discount !== undefined ? Number(updatedDb.discount) : updatedDiscount,
+          tax: updatedDb?.tax !== undefined ? Number(updatedDb.tax) : updatedTax,
+          total: updatedDb?.total !== undefined ? Number(updatedDb.total) : finalTotal,
+          paidAmount: updatedDb?.paid_amount !== undefined ? Number(updatedDb.paid_amount) : finalPaid,
+          status: updatedDb?.status || finalStatus,
+          paymentDate: updatedDb?.payment_date || editInvoicePaymentDate.trim()
+        };
+      }
+      return inv;
+    }));
+
+    setEditingInvoice(null);
+    showToast(`Billing record ${invoiceId} updated successfully.`, "success");
+  };
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [profileSubTab, setProfileSubTab] = useState("Overview");
 
@@ -8477,6 +8593,14 @@ Apex Clinic`;
                       >
                         <Printer className="h-4 w-4" />
                       </button>
+                      <button
+                        type="button"
+                        title="Edit Invoice"
+                        onClick={() => handleEditInvoice(inv)}
+                        className="h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                      >
+                        <Pencil className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </button>
                       {inv.status !== "Paid" && (
                         <button
                           type="button"
@@ -12634,6 +12758,204 @@ Apex Clinic`;
           </div>
         );
       })()}
+
+      {/* EDIT INVOICE MODAL */}
+      {editingInvoice && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl max-w-lg w-full space-y-5 animate-fadeIn">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Pencil className="h-5 w-5 text-blue-600" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Edit Billing Record — {editingInvoice.id}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingInvoice(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1 rounded-lg text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditInvoice} className="space-y-4 text-xs font-semibold">
+              {/* Row 1: Patient Name & Doctor */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-slate-700 dark:text-slate-300 block font-medium">Patient Name</label>
+                  <Input
+                    type="text"
+                    value={editInvoicePatientName}
+                    onChange={(e) => setEditInvoicePatientName(e.target.value)}
+                    required
+                    className="text-[13px]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-slate-700 dark:text-slate-300 block font-medium">Doctor Assigned</label>
+                  <select
+                    value={editInvoiceDoctor}
+                    onChange={(e) => setEditInvoiceDoctor(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-[13px] focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                  >
+                    {doctors.map(d => (
+                      <option key={d.name} value={d.name}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: Treatment & Payment Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-slate-700 dark:text-slate-300 block font-medium">Treatment Procedure</label>
+                  <Input
+                    type="text"
+                    value={editInvoiceTreatment}
+                    onChange={(e) => setEditInvoiceTreatment(e.target.value)}
+                    required
+                    className="text-[13px]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-slate-700 dark:text-slate-300 block font-medium">Payment Date</label>
+                  <Input
+                    type="text"
+                    value={editInvoicePaymentDate}
+                    onChange={(e) => setEditInvoicePaymentDate(e.target.value)}
+                    className="text-[13px]"
+                    placeholder="e.g. 12 Aug 2026"
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Subtotal, Discount %, Tax % */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-slate-700 dark:text-slate-300 block font-medium">Subtotal (₹)</label>
+                  <Input
+                    type="number"
+                    value={editInvoiceSubtotal}
+                    onChange={(e) => {
+                      const sub = Number(e.target.value);
+                      setEditInvoiceSubtotal(sub);
+                      const discAmt = (sub * editInvoiceDiscount) / 100;
+                      const afterDisc = sub - discAmt;
+                      const taxAmt = (afterDisc * editInvoiceTax) / 100;
+                      setEditInvoiceTotal(Math.round(afterDisc + taxAmt));
+                    }}
+                    min={0}
+                    required
+                    className="text-[13px]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-slate-700 dark:text-slate-300 block font-medium">Discount (%)</label>
+                  <Input
+                    type="number"
+                    value={editInvoiceDiscount}
+                    onChange={(e) => {
+                      const disc = Number(e.target.value);
+                      setEditInvoiceDiscount(disc);
+                      const discAmt = (editInvoiceSubtotal * disc) / 100;
+                      const afterDisc = editInvoiceSubtotal - discAmt;
+                      const taxAmt = (afterDisc * editInvoiceTax) / 100;
+                      setEditInvoiceTotal(Math.round(afterDisc + taxAmt));
+                    }}
+                    min={0}
+                    max={100}
+                    className="text-[13px]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-slate-700 dark:text-slate-300 block font-medium">Tax (%)</label>
+                  <Input
+                    type="number"
+                    value={editInvoiceTax}
+                    onChange={(e) => {
+                      const taxVal = Number(e.target.value);
+                      setEditInvoiceTax(taxVal);
+                      const discAmt = (editInvoiceSubtotal * editInvoiceDiscount) / 100;
+                      const afterDisc = editInvoiceSubtotal - discAmt;
+                      const taxAmt = (afterDisc * taxVal) / 100;
+                      setEditInvoiceTotal(Math.round(afterDisc + taxAmt));
+                    }}
+                    min={0}
+                    max={100}
+                    className="text-[13px]"
+                  />
+                </div>
+              </div>
+
+              {/* Row 4: Total Payable, Paid Amount, Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-slate-700 dark:text-slate-300 block font-medium">Total Payable (₹)</label>
+                  <Input
+                    type="number"
+                    value={editInvoiceTotal}
+                    onChange={(e) => setEditInvoiceTotal(Number(e.target.value))}
+                    min={0}
+                    required
+                    className="text-[13px]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-slate-700 dark:text-slate-300 block font-medium">Paid Amount (₹)</label>
+                  <Input
+                    type="number"
+                    value={editInvoicePaidAmount}
+                    onChange={(e) => {
+                      const paid = Number(e.target.value);
+                      setEditInvoicePaidAmount(paid);
+                      if (paid >= editInvoiceTotal && editInvoiceTotal > 0) {
+                        setEditInvoiceStatus("Paid");
+                      } else if (paid > 0) {
+                        setEditInvoiceStatus("Partially Paid");
+                      }
+                    }}
+                    min={0}
+                    className="text-[13px]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-slate-700 dark:text-slate-300 block font-medium">Payment Status</label>
+                  <select
+                    value={editInvoiceStatus}
+                    onChange={(e) => setEditInvoiceStatus(e.target.value as any)}
+                    className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-[13px] focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                  >
+                    <option value="Paid">Paid</option>
+                    <option value="Partially Paid">Partially Paid</option>
+                    <option value="Unpaid">Unpaid</option>
+                    <option value="Pending">Pending</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <Button
+                  type="button"
+                  onClick={() => setEditingInvoice(null)}
+                  className="h-9 px-4 rounded border font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={savingInvoice}
+                  className="h-9 px-5 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold flex items-center gap-2 cursor-pointer"
+                >
+                  {savingInvoice ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
