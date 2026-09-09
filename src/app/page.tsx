@@ -10524,41 +10524,41 @@ Apex Clinic`;
                 {/* Backup History Table */}
                 <div className="space-y-3 pt-2">
                   <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Backup History</span>
-                  <div className="border border-slate-100 dark:border-slate-800/80 rounded-xl overflow-hidden">
-                    <table className="w-full text-left text-[13px]">
+                  <div className="border border-slate-100 dark:border-slate-800/80 rounded-xl overflow-x-auto scrollbar-thin">
+                    <table className="w-full min-w-[620px] text-left text-[13px]">
                       <thead className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-100 dark:border-slate-800/80 text-slate-500 dark:text-slate-400 font-medium">
                         <tr>
-                          <th className="py-2.5 px-4">Date & Time</th>
-                          <th className="py-2.5 px-4">Backup Size</th>
-                          <th className="py-2.5 px-4">Status</th>
-                          <th className="py-2.5 px-4 text-right">Actions</th>
+                          <th className="py-2.5 px-4 whitespace-nowrap min-w-[180px]">Date & Time</th>
+                          <th className="py-2.5 px-4 whitespace-nowrap min-w-[110px]">Backup Size</th>
+                          <th className="py-2.5 px-4 whitespace-nowrap min-w-[110px]">Status</th>
+                          <th className="py-2.5 px-4 text-right whitespace-nowrap min-w-[200px]">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                         {backupHistory.map(item => (
                           <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40">
-                            <td className="py-3 px-4 font-medium text-slate-900 dark:text-white">
+                            <td className="py-3 px-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">
                               {item.date} • {item.time}
                             </td>
-                            <td className="py-3 px-4 text-slate-600 dark:text-slate-400">{item.size}</td>
-                            <td className="py-3 px-4">
-                              <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 rounded-full text-[11px] font-medium">
+                            <td className="py-3 px-4 text-slate-600 dark:text-slate-400 whitespace-nowrap">{item.size}</td>
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 rounded-full text-[11px] font-medium inline-block">
                                 {item.status}
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
+                            <td className="py-3 px-4 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-2 shrink-0">
                                 <Button
                                   variant="outline"
                                   onClick={() => setRestoreBackupConfirm(item)}
-                                  className="h-7 px-2.5 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 cursor-pointer"
+                                  className="h-7 px-2.5 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 cursor-pointer shrink-0"
                                 >
                                   <RotateCcw className="h-3 w-3 text-slate-600 dark:text-slate-300" /> Restore
                                 </Button>
                                 <Button
                                   variant="outline"
                                   onClick={() => showToast(`Downloading backup snapshot (${item.size})...`, "success")}
-                                  className="h-7 px-2.5 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 cursor-pointer"
+                                  className="h-7 px-2.5 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 cursor-pointer shrink-0"
                                 >
                                   <Download className="h-3 w-3 text-slate-600 dark:text-slate-300" /> Download
                                 </Button>
