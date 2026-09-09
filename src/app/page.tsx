@@ -5924,16 +5924,16 @@ Apex Clinic`;
             {activeSubTab === "Queue" && (
               <div className="space-y-4">
                 {queueAppts.length > 0 ? (
-                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-                    <table className="w-full text-left border-collapse text-xs font-semibold">
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto scrollbar-thin">
+                    <table className="w-full min-w-[760px] text-left border-collapse text-xs font-semibold">
                       <thead>
                         <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-400">
-                          <th className="p-3">Time</th>
-                          <th className="p-3">Patient</th>
-                          <th className="p-3">Doctor</th>
-                          <th className="p-3">Treatment</th>
-                          <th className="p-3">Status</th>
-                          <th className="p-3 text-right">Actions</th>
+                          <th className="p-3 whitespace-nowrap min-w-[100px]">Time</th>
+                          <th className="p-3 whitespace-nowrap min-w-[160px]">Patient</th>
+                          <th className="p-3 whitespace-nowrap min-w-[160px]">Doctor</th>
+                          <th className="p-3 whitespace-nowrap min-w-[130px]">Treatment</th>
+                          <th className="p-3 whitespace-nowrap min-w-[110px]">Status</th>
+                          <th className="p-3 text-right whitespace-nowrap min-w-[160px]">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-700 dark:text-slate-300">
@@ -6551,17 +6551,17 @@ Apex Clinic`;
                     )}
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                  <div className="overflow-x-auto scrollbar-thin">
+                    <table className="w-full min-w-[680px] text-left border-collapse">
                       <thead>
                         <tr className="border-b text-slate-400 font-bold uppercase text-[10px]">
-                          <th className="py-2.5">Date</th>
-                          <th className="py-2.5">Procedure</th>
-                          <th className="py-2.5">Tooth</th>
-                          <th className="py-2.5">Doctor</th>
-                          <th className="py-2.5">Stage</th>
-                          <th className="py-2.5">Cost</th>
-                          <th className="py-2.5 text-right">Actions</th>
+                          <th className="py-2.5 whitespace-nowrap min-w-[110px]">Date</th>
+                          <th className="py-2.5 whitespace-nowrap min-w-[150px]">Procedure</th>
+                          <th className="py-2.5 whitespace-nowrap min-w-[80px]">Tooth</th>
+                          <th className="py-2.5 whitespace-nowrap min-w-[140px]">Doctor</th>
+                          <th className="py-2.5 whitespace-nowrap min-w-[110px]">Stage</th>
+                          <th className="py-2.5 whitespace-nowrap min-w-[90px]">Cost</th>
+                          <th className="py-2.5 text-right whitespace-nowrap min-w-[90px]">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -7213,19 +7213,20 @@ Apex Clinic`;
                 </form>
 
                 {/* Invoices List */}
-                <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs">
-                  <span className="font-bold text-sm block mb-3 border-b pb-2">Billing Statements</span>
-                  <table className="w-full text-left border-collapse font-semibold">
-                    <thead>
-                      <tr className="border-b text-[10px] text-slate-405 uppercase">
-                        <th className="pb-2">Invoice #</th>
-                        <th className="pb-2">Procedure</th>
-                        <th className="pb-2">Total Amount</th>
-                        <th className="pb-2">Paid Amount</th>
-                        <th className="pb-2">Status</th>
-                        <th className="pb-2 text-right">Actions</th>
-                      </tr>
-                    </thead>
+                <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs space-y-3">
+                  <span className="font-bold text-sm block border-b pb-2">Billing Statements</span>
+                  <div className="overflow-x-auto scrollbar-thin">
+                    <table className="w-full min-w-[650px] text-left border-collapse font-semibold">
+                      <thead>
+                        <tr className="border-b text-[10px] text-slate-405 uppercase">
+                          <th className="pb-2 whitespace-nowrap min-w-[110px]">Invoice #</th>
+                          <th className="pb-2 whitespace-nowrap min-w-[150px]">Procedure</th>
+                          <th className="pb-2 whitespace-nowrap min-w-[110px]">Total Amount</th>
+                          <th className="pb-2 whitespace-nowrap min-w-[110px]">Paid Amount</th>
+                          <th className="pb-2 whitespace-nowrap min-w-[100px]">Status</th>
+                          <th className="pb-2 text-right whitespace-nowrap min-w-[90px]">Actions</th>
+                        </tr>
+                      </thead>
                     <tbody>
                       {pInvoices.length > 0 ? (
                         pInvoices.map((inv) => (
@@ -7291,6 +7292,7 @@ Apex Clinic`;
                     </tbody>
                   </table>
                 </div>
+              </div>
               </div>
             )}
 
@@ -8397,30 +8399,32 @@ Apex Clinic`;
           </div>
 
           {/* Horizontal Nodes Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 pt-1">
-            {timelineNodes.map((node) => (
-              <div 
-                key={node.num} 
-                className={`p-3 rounded-xl border transition-all ${
-                  node.isCurrent 
-                    ? "bg-blue-50/70 dark:bg-blue-955/40 border-blue-100 dark:border-blue-900/40 text-blue-700 dark:text-blue-300"
-                    : node.isCompleted 
-                    ? "bg-slate-50/60 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800/80 text-slate-800 dark:text-slate-200"
-                    : "bg-slate-50/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800/40 opacity-60 text-slate-400"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[12px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                    Phase {node.num}
-                  </span>
-                  {node.isCompleted && <span className="h-4 w-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] font-bold">✓</span>}
-                  {node.isCurrent && <span className="h-4 w-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-bold ring-2 ring-blue-200 dark:ring-blue-900">●</span>}
-                  {!node.isCompleted && !node.isCurrent && <span className="h-4 w-4 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center text-[9px] text-slate-400">○</span>}
+          <div className="overflow-x-auto scrollbar-thin pb-1">
+            <div className="grid grid-cols-6 min-w-[720px] gap-3 pt-1">
+              {timelineNodes.map((node) => (
+                <div 
+                  key={node.num} 
+                  className={`p-3 rounded-xl border transition-all ${
+                    node.isCurrent 
+                      ? "bg-blue-50/70 dark:bg-blue-955/40 border-blue-100 dark:border-blue-900/40 text-blue-700 dark:text-blue-300"
+                      : node.isCompleted 
+                      ? "bg-slate-50/60 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800/80 text-slate-800 dark:text-slate-200"
+                      : "bg-slate-50/30 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800/40 opacity-60 text-slate-400"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[12px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                      Phase {node.num}
+                    </span>
+                    {node.isCompleted && <span className="h-4 w-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] font-bold">✓</span>}
+                    {node.isCurrent && <span className="h-4 w-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-bold ring-2 ring-blue-200 dark:ring-blue-900">●</span>}
+                    {!node.isCompleted && !node.isCurrent && <span className="h-4 w-4 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center text-[9px] text-slate-400">○</span>}
+                  </div>
+                  <span className="text-[14px] font-medium block truncate">{node.title}</span>
+                  <span className="text-[12px] font-normal text-slate-400 dark:text-slate-500 block mt-0.5 truncate">{node.date}</span>
                 </div>
-                <span className="text-[14px] font-medium block truncate">{node.title}</span>
-                <span className="text-[12px] font-normal text-slate-400 dark:text-slate-500 block mt-0.5 truncate">{node.date}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
@@ -8734,16 +8738,18 @@ Apex Clinic`;
       {activeSubTab === "Payments" && (
         <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs text-xs font-semibold space-y-4">
           <span className="font-bold text-sm block">Payments transaction logs</span>
-          <div className="divide-y">
-            {invoices.flatMap(inv => inv.paymentLogs.map((log, idx) => ({ ...log, patient: inv.patientName, invId: inv.id, doctor: inv.doctor, key: `${inv.id}-${idx}` }))).map((pay) => (
-              <div key={pay.key} className="py-3.5 flex justify-between items-center">
-                <div>
-                  <span className="font-bold text-slate-800 block">{pay.patient}</span>
-                  <p className="text-slate-450 mt-0.5 text-[10px]">Method: {pay.method} • Invoice: {pay.invId} • Doctor: {pay.doctor} • Date: {pay.date}</p>
+          <div className="overflow-x-auto scrollbar-thin">
+            <div className="divide-y min-w-[550px]">
+              {invoices.flatMap(inv => inv.paymentLogs.map((log, idx) => ({ ...log, patient: inv.patientName, invId: inv.id, doctor: inv.doctor, key: `${inv.id}-${idx}` }))).map((pay) => (
+                <div key={pay.key} className="py-3.5 flex justify-between items-center whitespace-nowrap">
+                  <div>
+                    <span className="font-bold text-slate-800 dark:text-white block">{pay.patient}</span>
+                    <p className="text-slate-450 mt-0.5 text-[10px]">Method: {pay.method} • Invoice: {pay.invId} • Doctor: {pay.doctor} • Date: {pay.date}</p>
+                  </div>
+                  <span className="font-black text-slate-900 dark:text-white">₹{pay.amount.toLocaleString()}</span>
                 </div>
-                <span className="font-black text-slate-900">₹{pay.amount.toLocaleString()}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       )}
