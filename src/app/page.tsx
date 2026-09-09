@@ -5105,9 +5105,26 @@ Apex Clinic`;
                 value={`${apptCalendarDate.getFullYear()}-${String(apptCalendarDate.getMonth() + 1).padStart(2, '0')}-${String(apptCalendarDate.getDate()).padStart(2, '0')}`}
                 onChange={(e) => {
                   if (e.target.value) {
-                    const [year, month, day] = e.target.value.split("-").map(Number);
+                    const rawVal = e.target.value;
+                    const [year, month, day] = rawVal.split("-").map(Number);
                     if (year && month && day) {
-                      setApptCalendarDate(new Date(year, month - 1, day));
+                      const selectedDate = new Date(year, month - 1, day);
+                      setApptCalendarDate(selectedDate);
+
+                      const normalizedDateStr = convertToUiDate(rawVal);
+                      const matchedAppts = appointments.filter(a => a.date === normalizedDateStr);
+
+                      setHoveredApptDay({
+                        dateStr: normalizedDateStr,
+                        rect: {
+                          top: typeof window !== "undefined" ? window.innerHeight / 2 - 170 : 200,
+                          left: typeof window !== "undefined" ? window.innerWidth / 2 - 160 : 200,
+                          width: 320,
+                          height: 340
+                        },
+                        appointments: matchedAppts,
+                        isPinned: true
+                      });
                     }
                   }
                 }}
