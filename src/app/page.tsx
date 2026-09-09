@@ -5891,16 +5891,16 @@ Apex Clinic`;
 
             <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 border-l sm:border-l-0 pl-4 sm:pl-0">
               <div>
-                <span className="text-[10px] text-slate-405 block uppercase">Phone</span>
-                <span className="text-slate-800 dark:text-slate-200">{patientItem.phone}</span>
+                <span className="text-[11px] font-bold text-slate-405 block uppercase">Phone</span>
+                <span className="text-slate-800 dark:text-slate-200 text-[13px] sm:text-[14px] font-semibold">{patientItem.phone}</span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-405 block uppercase">Gender / Age</span>
-                <span className="text-slate-800 dark:text-slate-200">{patientItem.gender} • {patientItem.age} Years</span>
+                <span className="text-[11px] font-bold text-slate-405 block uppercase">Gender / Age</span>
+                <span className="text-slate-800 dark:text-slate-200 text-[13px] sm:text-[14px] font-semibold">{patientItem.gender} • {patientItem.age} Years</span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-405 block uppercase">Status</span>
-                <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold text-[9px]">{patientItem.status}</span>
+                <span className="text-[11px] font-bold text-slate-405 block uppercase">Status</span>
+                <span className="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full font-bold text-[11px] inline-block">{patientItem.status}</span>
               </div>
             </div>
           </div>
@@ -6418,14 +6418,121 @@ Apex Clinic`;
                         </div>
                       </form>
                     ) : (
-                      <div className="flex-grow flex flex-col items-center justify-center text-center p-8 text-slate-400 dark:text-slate-550 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl h-full min-h-[300px] -translate-y-2">
-                        <div className="bg-slate-50 dark:bg-slate-900/60 p-2.5 rounded-full mb-2 text-slate-400 dark:text-slate-500 shrink-0">
-                          <Activity className="h-5 w-5" />
+                      <div className="flex-grow flex flex-col space-y-5 h-full overflow-y-auto pr-1">
+                        {/* Header */}
+                        <div className="border-b pb-3 flex justify-between items-center">
+                          <div>
+                            <span className="text-[18px] font-semibold text-slate-900 dark:text-white block">
+                              Clinical Chart & Legend
+                            </span>
+                            <span className="text-[12px] text-slate-500 font-normal block mt-0.5">
+                              Status indicators and active diagnosis summary
+                            </span>
+                          </div>
                         </div>
-                        <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs mb-0.5">Select a Tooth</span>
-                        <p className="max-w-[200px] text-[10px] font-medium leading-normal text-slate-450 dark:text-slate-400">
-                          Select a tooth from the dental chart to view or update its clinical information.
-                        </p>
+
+                        {/* Color Legend Section */}
+                        <div className="bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 rounded-xl p-4 space-y-3">
+                          <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200 block uppercase tracking-wider">
+                            Tooth Status Indications
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div className="flex items-center gap-2.5 p-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
+                              <span className="w-3.5 h-3.5 rounded-full bg-blue-100 border border-blue-500 shrink-0"></span>
+                              <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">Diagnosed / Assigned</span>
+                            </div>
+                            <div className="flex items-center gap-2.5 p-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
+                              <span className="w-3.5 h-3.5 rounded-full bg-emerald-100 border border-emerald-500 shrink-0"></span>
+                              <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">Completed</span>
+                            </div>
+                            <div className="flex items-center gap-2.5 p-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
+                              <span className="w-3.5 h-3.5 rounded-full bg-blue-100 border border-blue-600 shrink-0"></span>
+                              <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">In Progress</span>
+                            </div>
+                            <div className="flex items-center gap-2.5 p-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
+                              <span className="w-3.5 h-3.5 rounded-full bg-amber-100 border border-amber-500 shrink-0"></span>
+                              <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">Planned</span>
+                            </div>
+                            <div className="flex items-center gap-2.5 p-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800 sm:col-span-2">
+                              <span className="w-3.5 h-3.5 rounded-full bg-white border border-slate-300 dark:bg-slate-900 shrink-0"></span>
+                              <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">Healthy / Unassigned</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Active Tooth Diagnoses Summary */}
+                        <div className="space-y-3 flex-grow flex flex-col">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                              Active Teeth & Clinical Log
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-medium">
+                              Select tooth to update
+                            </span>
+                          </div>
+
+                          {(() => {
+                            const chartMap = patientItem.dentalChart || {};
+                            const activeToothEntries = Object.entries(chartMap).filter(([_, status]) => status && status !== "Healthy");
+                            
+                            if (activeToothEntries.length === 0) {
+                              return (
+                                <div className="flex-grow flex flex-col items-center justify-center text-center p-6 text-slate-400 dark:text-slate-550 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl min-h-[160px]">
+                                  <div className="bg-slate-50 dark:bg-slate-900/60 p-2.5 rounded-full mb-2 text-slate-400 dark:text-slate-500 shrink-0">
+                                    <Activity className="h-5 w-5" />
+                                  </div>
+                                  <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs mb-0.5">No Active Conditions</span>
+                                  <p className="max-w-[240px] text-[11px] font-medium leading-normal text-slate-450 dark:text-slate-400">
+                                    Click any tooth on the Odontogram to add diagnoses or treatment records.
+                                  </p>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                                {activeToothEntries.map(([toothIdxStr, statusStr]) => {
+                                  const toothNum = Number(toothIdxStr);
+                                  const toothObj = ALL_TEETH.find(t => t.index === toothNum);
+                                  const fdi = toothObj?.fdi || toothNum;
+                                  const isCompleted = String(statusStr).includes("Completed");
+                                  const isInProgress = String(statusStr).includes("In Progress");
+                                  const isPlanned = String(statusStr).includes("Planned");
+
+                                  let badgeStyle = "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400";
+                                  if (isCompleted) badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400";
+                                  else if (isInProgress) badgeStyle = "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/40 dark:text-blue-400";
+                                  else if (isPlanned) badgeStyle = "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400";
+
+                                  return (
+                                    <div
+                                      key={toothIdxStr}
+                                      onClick={() => handleChartToothSelect(toothNum)}
+                                      className="flex items-center justify-between p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/40 dark:hover:bg-blue-950/20 cursor-pointer transition-all duration-150 group"
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-blue-100/70 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold text-xs flex items-center justify-center border border-blue-300 dark:border-blue-700 group-hover:scale-105 transition-transform">
+                                          #{fdi}
+                                        </div>
+                                        <div>
+                                          <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200 block group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                                            Tooth #{fdi} ({toothObj?.type || 'Tooth'})
+                                          </span>
+                                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block">
+                                            {statusStr}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${badgeStyle}`}>
+                                        {isCompleted ? "Completed" : isInProgress ? "In Progress" : isPlanned ? "Planned" : "Diagnosed"}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -7660,7 +7767,7 @@ Apex Clinic`;
           <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs overflow-x-auto scrollbar-thin">
             <table className="w-full min-w-[760px] text-left border-collapse text-xs font-semibold">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] text-slate-450 uppercase tracking-wider">
+                <tr className="border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-450 uppercase tracking-wider font-bold">
                   <th className="py-3 px-3 whitespace-nowrap min-w-[170px]">Patient Name</th>
                   <th className="py-3 px-3 whitespace-nowrap min-w-[140px]">Phone</th>
                   <th className="py-3 px-3 whitespace-nowrap min-w-[120px]">Age</th>
@@ -7680,21 +7787,21 @@ Apex Clinic`;
                   .map((pat) => (
                     <tr key={pat.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-colors">
                       <td className="py-3.5 px-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
-                        <button onClick={() => setSelectedPatientId(pat.id)} className="hover:underline text-left text-[15px] sm:text-[16px] font-semibold cursor-pointer">
+                        <button onClick={() => setSelectedPatientId(pat.id)} className="hover:underline text-left text-[16px] sm:text-[17px] font-semibold cursor-pointer">
                           {pat.name}
                         </button>
                       </td>
-                      <td className="py-3.5 px-3 text-[13px] sm:text-[14px] font-normal text-slate-500 whitespace-nowrap">{pat.phone}</td>
-                      <td className="py-3.5 px-3 text-[13px] sm:text-[14px] font-normal whitespace-nowrap">{pat.age} Years ({pat.gender[0]})</td>
-                      <td className="py-3.5 px-3 text-[12px] font-normal text-slate-455 whitespace-nowrap">{pat.visit}</td>
-                      <td className="py-3.5 px-3 text-[13px] sm:text-[14px] font-semibold text-red-600 whitespace-nowrap">{pat.balance}</td>
+                      <td className="py-3.5 px-3 text-[14px] sm:text-[15px] font-normal text-slate-500 whitespace-nowrap">{pat.phone}</td>
+                      <td className="py-3.5 px-3 text-[14px] sm:text-[15px] font-normal whitespace-nowrap">{pat.age} Years ({pat.gender[0]})</td>
+                      <td className="py-3.5 px-3 text-[13px] font-normal text-slate-455 whitespace-nowrap">{pat.visit}</td>
+                      <td className="py-3.5 px-3 text-[14px] sm:text-[15px] font-semibold text-red-600 whitespace-nowrap">{pat.balance}</td>
                       <td className="py-3.5 px-3 whitespace-nowrap">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[11px] sm:text-[12px] font-normal inline-block ${
+                        <span className={`px-2.5 py-0.5 rounded-full text-[12px] sm:text-[13px] font-medium inline-block ${
                           pat.status === "Active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
                         }`}>{pat.status}</span>
                       </td>
                       <td className="py-3.5 px-3 text-center whitespace-nowrap">
-                        <button onClick={() => setSelectedPatientId(pat.id)} className="text-blue-605 hover:underline text-[13px] sm:text-[14px] font-semibold cursor-pointer">
+                        <button onClick={() => setSelectedPatientId(pat.id)} className="text-blue-605 hover:underline text-[14px] sm:text-[15px] font-semibold cursor-pointer">
                           Open Profile
                         </button>
                       </td>
