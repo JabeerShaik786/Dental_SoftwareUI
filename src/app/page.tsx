@@ -335,6 +335,149 @@ export function getTreatmentColorConfig(statusStr?: string): TreatmentColorConfi
   };
 }
 
+export interface TreatmentVisitNode {
+  num: number;
+  title: string;
+  date: string;
+  stage: "Completed" | "In Progress" | "Planned";
+  isCompleted: boolean;
+  isCurrent: boolean;
+  isUpcoming: boolean;
+  subtitle?: string;
+}
+
+export function getPatientVisitsList(
+  tr: TreatmentItem,
+  patientTreatments: TreatmentItem[],
+  patientAppointments: Appointment[]
+): TreatmentVisitNode[] {
+  const targetPatient = (tr.patient || "").trim();
+  const pTrs = patientTreatments.filter(t => t.patient && targetPatient && t.patient.toLowerCase() === targetPatient.toLowerCase());
+  const pAppts = patientAppointments.filter(a => a.patientName && targetPatient && a.patientName.toLowerCase() === targetPatient.toLowerCase() && a.status !== "Cancelled");
+
+  const combinedRawItems: Array<{
+    id: string;
+    title: string;
+    date: string;
+    stage: "Completed" | "In Progress" | "Planned";
+    timestamp: number;
+  }> = [];
+
+  pTrs.forEach((t, i) => {
+    let dateStr = t.date || t.nextVisit || "Scheduled";
+    let ts = 0;
+    if (t.date) {
+      const parsed = Date.parse(t.date);
+      if (!isNaN(parsed)) ts = parsed;
+    }
+    combinedRawItems.push({
+      id: `tr-${t.id || i}`,
+      title: t.name,
+      date: dateStr,
+      stage: t.stage === "Completed" ? "Completed" : t.stage === "In Progress" ? "In Progress" : "Planned",
+      timestamp: ts
+    });
+  });
+
+  pAppts.forEach((a, i) => {
+    const dateStr = a.date || "Scheduled";
+    const exists = combinedRawItems.some(item => item.title.toLowerCase() === a.treatment.toLowerCase() && item.date === dateStr);
+    if (!exists) {
+      let ts = 0;
+      if (a.date) {
+        const parsed = Date.parse(a.date);
+        if (!isNaN(parsed)) ts = parsed;
+      }
+      const stage = a.status === "Completed" ? "Completed" : (a.status === "In Consultation" || a.status === "In Procedure" || a.status === "Waiting" || a.status === "Checked In") ? "In Progress" : "Planned";
+      combinedRawItems.push({
+        id: `appt-${a.id || i}`,
+        title: a.treatment,
+        date: dateStr,
+        stage: stage,
+        timestamp: ts
+      });
+    }
+  });
+
+  if (combinedRawItems.length <= 1) {
+    const mainTitle = tr.name || "Consultation";
+    const totalCount = tr.totalVisits || (tr.stage === "Completed" ? 1 : 6);
+    const completedCount = tr.completedVisits !== undefined ? tr.completedVisits : (tr.stage === "Completed" ? totalCount : (tr.stage === "Planned" ? 0 : 2));
+
+    const isRootCanal = mainTitle.toLowerCase().includes("root");
+    const isCrown = mainTitle.toLowerCase().includes("crown");
+    const isImplant = mainTitle.toLowerCase().includes("implant");
+
+    const defaultStepTitles = isRootCanal
+      ? ["Consultation & Assessment", "Dental X-Ray & Prep", "Obturation & Cleaning", "Follow-up", "Tooth Restoration", "Final Crown Fit"]
+      : isCrown
+      ? ["Consultation & Assessment", "Impression & Prep", "Temporary Fit", "Crown Fabrication", "Permanent Placement", "Final Checkup"]
+      : isImplant
+      ? ["Consultation & Assessment", "CBCT Scan & Planning", "Implant Surgery", "Healing Review", "Abutment Placement", "Final Crown Attachment"]
+      : ["Consultation & Assessment", "Diagnosis & Prep", "Procedure Session 1", "Procedure Session 2", "Follow-up Check", "Final Evaluation"];
+
+    const nodes: TreatmentVisitNode[] = [];
+    for (let i = 1; i <= totalCount; i++) {
+      const stepTitle = defaultStepTitles[i - 1] || `${mainTitle} – Visit ${i}`;
+      const isComp = i <= completedCount;
+      const isCurr = !isComp && (i === completedCount + 1 || (completedCount === 0 && i === 1));
+      const isUpc = !isComp && !isCurr;
+
+      let dateStr = "Upcoming Visit";
+      if (isComp) dateStr = tr.date ? `Completed ${tr.date}` : "Completed";
+      else if (isCurr) dateStr = tr.nextVisit ? `Scheduled: ${tr.nextVisit}` : "Active Session";
+
+      nodes.push({
+        num: i,
+        title: stepTitle,
+        date: dateStr,
+        stage: isComp ? "Completed" : isCurr ? "In Progress" : "Planned",
+        isCompleted: isComp,
+        isCurrent: isCurr,
+        isUpcoming: isUpc,
+        subtitle: isComp ? "Completed" : isCurr ? "Active Procedure Session" : "Upcoming Visit"
+      });
+    }
+
+    return nodes;
+  }
+
+  combinedRawItems.sort((a, b) => {
+    const orderMap = { "Completed": 1, "In Progress": 2, "Planned": 3 };
+    if (orderMap[a.stage] !== orderMap[b.stage]) {
+      return orderMap[a.stage] - orderMap[b.stage];
+    }
+    return a.timestamp - b.timestamp;
+  });
+
+  let hasCurrent = combinedRawItems.some(i => i.stage === "In Progress");
+  if (!hasCurrent) {
+    const firstPlanned = combinedRawItems.find(i => i.stage === "Planned");
+    if (firstPlanned) {
+      firstPlanned.stage = "In Progress";
+    }
+  }
+
+  const nodes: TreatmentVisitNode[] = combinedRawItems.map((item, idx) => {
+    const isComp = item.stage === "Completed";
+    const isCurr = item.stage === "In Progress";
+    const isUpc = item.stage === "Planned";
+
+    return {
+      num: idx + 1,
+      title: item.title,
+      date: item.date,
+      stage: item.stage,
+      isCompleted: isComp,
+      isCurrent: isCurr,
+      isUpcoming: isUpc,
+      subtitle: isComp ? "Completed" : isCurr ? "Active Procedure Session" : "Upcoming Visit"
+    };
+  });
+
+  return nodes;
+}
+
 interface OdontogramProps {
   chartData: Record<number, string>;
   selectedTooth?: number | null;
@@ -7976,18 +8119,10 @@ Apex Clinic`;
     const remaining = cost - paid;
     const invId = `INV-${tr.id.replace(/\D/g, '') || '1001'}`;
 
-    const totalVisits = tr.totalVisits || (tr.stage === "Completed" ? 1 : 6);
-    const completedVisits = tr.completedVisits !== undefined ? tr.completedVisits : (tr.stage === "Completed" ? totalVisits : (tr.stage === "Planned" ? 0 : 2));
-    const progressPct = Math.min(100, Math.round((completedVisits / totalVisits) * 100));
-
-    const timelineNodes = [
-      { num: 1, title: "Consultation", date: "05 Aug 2026", isCompleted: completedVisits >= 1, isCurrent: completedVisits === 0 },
-      { num: 2, title: "X-Ray & Prep", date: "08 Aug 2026", isCompleted: completedVisits >= 2, isCurrent: completedVisits === 1 },
-      { num: 3, title: tr.name.includes("Root") ? "Obturation" : "Procedure", date: tr.nextVisit || "10 Sep 2026", isCompleted: completedVisits >= 3, isCurrent: completedVisits === 2 },
-      { num: 4, title: "Follow-up", date: "Scheduled", isCompleted: completedVisits >= 4, isCurrent: completedVisits === 3 },
-      { num: 5, title: "Restoration", date: "Upcoming", isCompleted: completedVisits >= 5, isCurrent: completedVisits === 4 },
-      { num: 6, title: "Crown Fit", date: "Final Visit", isCompleted: completedVisits >= 6, isCurrent: completedVisits === 5 }
-    ].slice(0, Math.max(totalVisits, 4));
+    const timelineNodes = getPatientVisitsList(tr, treatments, appointments);
+    const totalVisits = timelineNodes.length;
+    const completedVisits = timelineNodes.filter(n => n.isCompleted).length;
+    const progressPct = totalVisits > 0 ? Math.min(100, Math.round((completedVisits / totalVisits) * 100)) : 0;
 
     return (
       <div className="space-y-6 animate-fadeIn text-slate-800 dark:text-slate-200">
@@ -8057,9 +8192,9 @@ Apex Clinic`;
 
           {/* Horizontal Nodes Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 pt-1">
-            {timelineNodes.map((node, idx) => (
+            {timelineNodes.map((node) => (
               <div 
-                key={idx} 
+                key={node.num} 
                 className={`p-3 rounded-xl border transition-all ${
                   node.isCurrent 
                     ? "bg-blue-50/70 dark:bg-blue-955/40 border-blue-100 dark:border-blue-900/40 text-blue-700 dark:text-blue-300"
@@ -8093,53 +8228,39 @@ Apex Clinic`;
 
               {/* Vertical Timeline / Checklist */}
               <div className="relative pl-7 space-y-5 text-sm before:absolute before:left-3 before:top-2.5 before:bottom-2.5 before:w-0.5 before:bg-slate-200/80 dark:before:bg-slate-800">
-                <div className="relative">
-                  <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">✓</span>
-                  <div className="space-y-0.5">
-                    <span className="text-[14px] font-medium text-slate-900 dark:text-white block">Consultation & Assessment</span>
-                    <span className="text-[12px] font-normal text-slate-400 dark:text-slate-500 block">Completed 05 Aug 2026</span>
-                  </div>
-                </div>
-
-                <div className="relative">
-                  <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">✓</span>
-                  <div className="space-y-0.5">
-                    <span className="text-[14px] font-medium text-slate-900 dark:text-white block">Dental X-Ray & Imaging</span>
-                    <span className="text-[12px] font-normal text-slate-400 dark:text-slate-500 block">Completed 08 Aug 2026</span>
-                  </div>
-                </div>
-
-                <div className="relative">
-                  <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">✓</span>
-                  <div className="space-y-0.5">
-                    <span className="text-[14px] font-medium text-slate-900 dark:text-white block">Prophylaxis Cleaning</span>
-                    <span className="text-[12px] font-normal text-slate-400 dark:text-slate-500 block">Completed 10 Aug 2026</span>
-                  </div>
-                </div>
-
-                <div className="relative">
-                  <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-sm ring-4 ring-blue-100 dark:ring-blue-955">●</span>
-                  <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-955/40 border border-blue-100 dark:border-blue-900/40 space-y-0.5">
-                    <span className="text-[14px] font-semibold text-blue-700 dark:text-blue-300 block">{tr.name} – Visit 2 (Current)</span>
-                    <span className="text-[12px] font-normal text-blue-600 dark:text-blue-400 block">Active Procedure Session</span>
-                  </div>
-                </div>
-
-                <div className="relative opacity-60">
-                  <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-400 flex items-center justify-center text-xs font-medium">○</span>
-                  <div className="space-y-0.5">
-                    <span className="text-[14px] font-medium text-slate-700 dark:text-slate-300 block">Procedure Completion</span>
-                    <span className="text-[12px] font-normal text-slate-400 block">Upcoming Visit</span>
-                  </div>
-                </div>
-
-                <div className="relative opacity-60">
-                  <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-400 flex items-center justify-center text-xs font-medium">○</span>
-                  <div className="space-y-0.5">
-                    <span className="text-[14px] font-medium text-slate-700 dark:text-slate-300 block">Crown Placement</span>
-                    <span className="text-[12px] font-normal text-slate-400 block">Final Step</span>
-                  </div>
-                </div>
+                {timelineNodes.map((node) => {
+                  if (node.isCompleted) {
+                    return (
+                      <div key={node.num} className="relative">
+                        <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">✓</span>
+                        <div className="space-y-0.5">
+                          <span className="text-[14px] font-medium text-slate-900 dark:text-white block">{node.title}</span>
+                          <span className="text-[12px] font-normal text-slate-400 dark:text-slate-500 block">{node.date}</span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  if (node.isCurrent) {
+                    return (
+                      <div key={node.num} className="relative">
+                        <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-sm ring-4 ring-blue-100 dark:ring-blue-955">●</span>
+                        <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-955/40 border border-blue-100 dark:border-blue-900/40 space-y-0.5">
+                          <span className="text-[14px] font-semibold text-blue-700 dark:text-blue-300 block">{node.title} (Current)</span>
+                          <span className="text-[12px] font-normal text-blue-600 dark:text-blue-400 block">{node.subtitle || "Active Procedure Session"}</span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={node.num} className="relative opacity-60">
+                      <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-400 flex items-center justify-center text-xs font-medium">○</span>
+                      <div className="space-y-0.5">
+                        <span className="text-[14px] font-medium text-slate-700 dark:text-slate-300 block">{node.title}</span>
+                        <span className="text-[12px] font-normal text-slate-400 block">{node.subtitle || "Upcoming Visit"}</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -8256,11 +8377,14 @@ Apex Clinic`;
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-slate-705">
               {treatments.map((tr) => {
-                  const total = tr.totalVisits || (tr.stage === "Completed" ? 1 : 3);
-                  const completed = tr.completedVisits !== undefined ? tr.completedVisits : (tr.stage === "Completed" ? total : (tr.stage === "Planned" ? 0 : 1));
+                  const pTreatments = treatments.filter(t => t.patient && tr.patient && t.patient.toLowerCase() === tr.patient.toLowerCase());
+                  const pAppts = appointments.filter(a => a.patientName && tr.patient && a.patientName.toLowerCase() === tr.patient.toLowerCase() && a.status !== "Cancelled");
+                  const visits = getPatientVisitsList(tr, pTreatments, pAppts);
+                  const total = visits.length;
+                  const completed = visits.filter(v => v.isCompleted).length;
                   const planName = tr.treatmentPlan || tr.name;
                   const costVal = tr.cost !== undefined && tr.cost > 0 ? tr.cost : (planName.includes("Implant") ? 35000 : planName.includes("Crown") ? 12000 : planName.includes("Orthodontic") ? 45000 : planName.includes("Scaling") ? 2500 : planName.includes("Extraction") ? 3500 : 8500);
-                  const isCompleted = tr.stage === "Completed";
+                  const isCompleted = tr.stage === "Completed" || (total > 0 && completed === total);
 
                   return (
                     <tr 
