@@ -255,6 +255,86 @@ const ALL_TEETH: ToothConfig[] = [
   { index: 32, fdi: 48, x: 83, y: 274, rotation: 90, type: 'molar', labelX: 51, labelY: 270 }
 ];
 
+export interface TreatmentColorConfig {
+  name: string;
+  dotColor: string;
+  badgeBg: string;
+  toothFillClass: string;
+}
+
+export const TREATMENT_COLORS: Record<string, TreatmentColorConfig> = {
+  "Root Canal": {
+    name: "Root Canal",
+    dotColor: "bg-blue-500 border-blue-600",
+    badgeBg: "bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-300",
+    toothFillClass: "fill-blue-200/90 dark:fill-blue-900/60 stroke-blue-600 stroke-[1.5]"
+  },
+  "Scaling": {
+    name: "Scaling",
+    dotColor: "bg-emerald-500 border-emerald-600",
+    badgeBg: "bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300",
+    toothFillClass: "fill-emerald-200/90 dark:fill-emerald-900/60 stroke-emerald-600 stroke-[1.5]"
+  },
+  "Extraction": {
+    name: "Extraction",
+    dotColor: "bg-orange-500 border-orange-600",
+    badgeBg: "bg-orange-50 border-orange-200 text-orange-800 dark:bg-orange-950/40 dark:border-orange-800 dark:text-orange-300",
+    toothFillClass: "fill-orange-200/90 dark:fill-orange-900/60 stroke-orange-600 stroke-[1.5]"
+  },
+  "Filling": {
+    name: "Filling",
+    dotColor: "bg-purple-500 border-purple-600",
+    badgeBg: "bg-purple-50 border-purple-200 text-purple-800 dark:bg-purple-950/40 dark:border-purple-800 dark:text-purple-300",
+    toothFillClass: "fill-purple-200/90 dark:fill-purple-900/60 stroke-purple-600 stroke-[1.5]"
+  },
+  "Crown": {
+    name: "Crown",
+    dotColor: "bg-rose-500 border-rose-600",
+    badgeBg: "bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300",
+    toothFillClass: "fill-rose-200/90 dark:fill-rose-900/60 stroke-rose-600 stroke-[1.5]"
+  },
+  "Implant": {
+    name: "Implant",
+    dotColor: "bg-cyan-500 border-cyan-600",
+    badgeBg: "bg-cyan-50 border-cyan-200 text-cyan-800 dark:bg-cyan-950/40 dark:border-cyan-800 dark:text-cyan-300",
+    toothFillClass: "fill-cyan-200/90 dark:fill-cyan-900/60 stroke-cyan-600 stroke-[1.5]"
+  },
+  "Braces": {
+    name: "Braces",
+    dotColor: "bg-fuchsia-500 border-fuchsia-600",
+    badgeBg: "bg-fuchsia-50 border-fuchsia-200 text-fuchsia-800 dark:bg-fuchsia-950/40 dark:border-fuchsia-800 dark:text-fuchsia-300",
+    toothFillClass: "fill-fuchsia-200/90 dark:fill-fuchsia-900/60 stroke-fuchsia-600 stroke-[1.5]"
+  },
+  "Consultation": {
+    name: "Consultation",
+    dotColor: "bg-sky-500 border-sky-600",
+    badgeBg: "bg-sky-50 border-sky-200 text-sky-800 dark:bg-sky-950/40 dark:border-sky-800 dark:text-sky-300",
+    toothFillClass: "fill-sky-200/90 dark:fill-sky-900/60 stroke-sky-600 stroke-[1.5]"
+  }
+};
+
+export function getTreatmentColorConfig(statusStr?: string): TreatmentColorConfig | null {
+  if (!statusStr || statusStr === "Healthy") return null;
+  const mainName = statusStr.split(" (")[0].trim();
+  
+  if (TREATMENT_COLORS[mainName]) {
+    return TREATMENT_COLORS[mainName];
+  }
+  
+  for (const [key, config] of Object.entries(TREATMENT_COLORS)) {
+    if (mainName.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(mainName.toLowerCase())) {
+      return config;
+    }
+  }
+  
+  return {
+    name: mainName,
+    dotColor: "bg-blue-500 border-blue-600",
+    badgeBg: "bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-300",
+    toothFillClass: "fill-blue-200/90 dark:fill-blue-900/60 stroke-blue-600 stroke-[1.5]"
+  };
+}
+
 interface OdontogramProps {
   chartData: Record<number, string>;
   selectedTooth?: number | null;
@@ -274,7 +354,7 @@ const Odontogram: React.FC<OdontogramProps> = ({
     } else if (type === 'premolar') {
       return "M -7,-9 C -7,-11 -4,-11.5 0,-11.5 C 4,-11.5 7,-9 7,-9 C 9.5,-5 9.5,5 7,9 C 7,11 4,11.5 0,11.5 C -4,11.5 -7,11 -7,9 C -9.5,5 -9.5,-5 -7,-9 Z";
     } else {
-      return "M -10,-10 C -10,-13 -7,-13.5 0,-13.5 C 7,-13.5 10,-13 10,-10 C 12.5,-5 12.5,5 10,10 C 10,13 7,13.5 0,13.5 C -7,13.5 -10,13 -10,10 C -12.5,5 -12.5,-5 -10,-10 Z";
+      return "M -10,-10 C -10,-13 -7,-13.5 0,-13.5 C 7,-13.5 10,-10 10,-10 C 12.5,-5 12.5,5 10,10 C 10,13 7,13.5 0,13.5 C -7,13.5 -10,13 -10,10 C -12.5,5 -12.5,-5 -10,-10 Z";
     }
   };
 
@@ -298,8 +378,16 @@ const Odontogram: React.FC<OdontogramProps> = ({
           {ALL_TEETH.map((tooth) => {
             const status = chartData[tooth.index];
             const isSelected = selectedTooth === tooth.index;
-            const hasStatus = !!status && status !== "Healthy";
-            const isHighlighted = isSelected || hasStatus;
+            const treatmentConfig = getTreatmentColorConfig(status);
+            const isHighlighted = isSelected || !!treatmentConfig;
+
+            let pathClass = "fill-white dark:fill-slate-900 hover:fill-blue-50/50 dark:hover:fill-blue-955/40 stroke-slate-300 dark:stroke-slate-700 hover:stroke-blue-400 stroke-[1]";
+
+            if (treatmentConfig) {
+              pathClass = `${treatmentConfig.toothFillClass}${isSelected ? ' stroke-[2.5] filter drop-shadow-sm' : ''}`;
+            } else if (isSelected) {
+              pathClass = "fill-blue-100/70 dark:fill-blue-900/30 stroke-blue-500 stroke-[1.5]";
+            }
 
             return (
               <g
@@ -311,11 +399,7 @@ const Odontogram: React.FC<OdontogramProps> = ({
                 <g transform={`translate(${tooth.x}, ${tooth.y}) rotate(${tooth.rotation})`}>
                   <path
                     d={getToothPath(tooth.type)}
-                    className={`transition-colors duration-200 ${
-                      isHighlighted 
-                        ? 'fill-blue-100/70 dark:fill-blue-900/30 stroke-blue-500 stroke-[1.2]' 
-                        : 'fill-white dark:fill-slate-900 hover:fill-blue-50/50 dark:hover:fill-blue-955/40 stroke-slate-300 dark:stroke-slate-700 hover:stroke-blue-400 stroke-[1]'
-                    }`}
+                    className={`transition-colors duration-200 ${pathClass}`}
                   />
                   {getToothFissures(tooth.type)}
                 </g>
@@ -328,7 +412,7 @@ const Odontogram: React.FC<OdontogramProps> = ({
                   dominantBaseline="middle"
                   className={`text-[12px] font-semibold transition-colors duration-200 ${
                     isHighlighted
-                      ? 'fill-blue-600 dark:fill-blue-400 font-bold'
+                      ? 'fill-slate-900 dark:fill-white font-bold'
                       : 'fill-slate-400 dark:fill-slate-500 group-hover:fill-blue-500'
                   }`}
                 >
@@ -6426,7 +6510,7 @@ Apex Clinic`;
                               Clinical Chart & Legend
                             </span>
                             <span className="text-[12px] text-slate-500 font-normal block mt-0.5">
-                              Status indicators and active diagnosis summary
+                              Treatment color indications and active clinical log
                             </span>
                           </div>
                         </div>
@@ -6434,29 +6518,15 @@ Apex Clinic`;
                         {/* Color Legend Section */}
                         <div className="bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 rounded-xl p-4 space-y-3">
                           <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200 block uppercase tracking-wider">
-                            Tooth Status Indications
+                            Tooth Treatment Indications
                           </span>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            <div className="flex items-center gap-2.5 p-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
-                              <span className="w-3.5 h-3.5 rounded-full bg-blue-100 border border-blue-500 shrink-0"></span>
-                              <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">Diagnosed / Assigned</span>
-                            </div>
-                            <div className="flex items-center gap-2.5 p-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
-                              <span className="w-3.5 h-3.5 rounded-full bg-emerald-100 border border-emerald-500 shrink-0"></span>
-                              <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">Completed</span>
-                            </div>
-                            <div className="flex items-center gap-2.5 p-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
-                              <span className="w-3.5 h-3.5 rounded-full bg-blue-100 border border-blue-600 shrink-0"></span>
-                              <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">In Progress</span>
-                            </div>
-                            <div className="flex items-center gap-2.5 p-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
-                              <span className="w-3.5 h-3.5 rounded-full bg-amber-100 border border-amber-500 shrink-0"></span>
-                              <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">Planned</span>
-                            </div>
-                            <div className="flex items-center gap-2.5 p-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800 sm:col-span-2">
-                              <span className="w-3.5 h-3.5 rounded-full bg-white border border-slate-300 dark:bg-slate-900 shrink-0"></span>
-                              <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">Healthy / Unassigned</span>
-                            </div>
+                            {Object.entries(TREATMENT_COLORS).map(([tKey, cfg]) => (
+                              <div key={tKey} className="flex items-center gap-2.5 p-2 rounded-lg bg-white dark:bg-slate-955 border border-slate-200/60 dark:border-slate-800">
+                                <span className={`w-3.5 h-3.5 rounded-full ${cfg.dotColor} shrink-0`}></span>
+                                <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">{cfg.name}</span>
+                              </div>
+                            ))}
                           </div>
                         </div>
 
