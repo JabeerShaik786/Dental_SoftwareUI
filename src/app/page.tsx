@@ -1222,6 +1222,26 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
 
   const [showNotifications, setShowNotifications] = useState(false);
+  const notificationDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
+      if (
+        notificationDropdownRef.current &&
+        !notificationDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowNotifications(false);
+      }
+    }
+    if (showNotifications) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [showNotifications]);
   const [globalSearchQuery, setGlobalSearchQuery] = useState("");
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -11408,15 +11428,17 @@ Apex Clinic`;
             </div>
 
             {/* Notifications Alert Dropdown */}
-            <div className="relative">
+            <div className="relative" ref={notificationDropdownRef}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-505 hover:text-slate-808 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400 relative cursor-pointer"
+                className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:text-slate-800 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400 relative cursor-pointer"
               >
-                <Bell className="h-4 w-4" />
-                {notifications.some(n => n.unread) && (
-                  <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-red-650 border border-white animate-pulse" />
-                )}
+                <div className="relative inline-flex items-center justify-center">
+                  <Bell className="h-4 w-4" />
+                  {notifications.some(n => n.unread) && (
+                    <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900 shrink-0" />
+                  )}
+                </div>
               </button>
 
               {showNotifications && (
