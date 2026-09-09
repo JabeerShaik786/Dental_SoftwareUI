@@ -1085,6 +1085,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [slotPatientDropdownOpen, setSlotPatientDropdownOpen] = useState(false);
   const [slotPatientSearchQuery, setSlotPatientSearchQuery] = useState("");
   const slotPatientDropdownRef = useRef<HTMLDivElement | null>(null);
+  const goToDateRef = useRef<HTMLInputElement | null>(null);
   const [slotDoctor, setSlotDoctor] = useState("Dr. Deepa Kodali");
   const [slotTreatment, setSlotTreatment] = useState("Consultation");
 
@@ -5083,28 +5084,37 @@ Apex Clinic`;
                 <CalendarPlus className="h-4 w-4" /> Book Appointment
               </Button>
 
-              <div className="relative">
-                <Button 
-                  variant="outline"
-                  className="w-full h-10 border-slate-200 hover:bg-slate-50 dark:border-slate-800 text-blue-600 font-semibold text-xs rounded-xl flex items-center justify-center gap-2 pointer-events-none"
-                >
-                  <Calendar className="h-4 w-4" /> Go to Date
-                </Button>
-                <input 
-                  type="date"
-                  value={`${apptCalendarDate.getFullYear()}-${String(apptCalendarDate.getMonth() + 1).padStart(2, '0')}-${String(apptCalendarDate.getDate()).padStart(2, '0')}`}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      const [y, m, d] = e.target.value.split("-").map(Number);
-                      if (y && m && d) {
-                        setApptCalendarDate(new Date(y, m - 1, d));
-                      }
+              <Button 
+                variant="outline"
+                className="w-full h-10 border-slate-200 hover:bg-slate-50 dark:border-slate-800 text-blue-600 font-semibold text-xs rounded-xl flex items-center justify-center gap-2"
+                onClick={() => {
+                  if (goToDateRef.current) {
+                    if ("showPicker" in goToDateRef.current && typeof (goToDateRef.current as any).showPicker === "function") {
+                      (goToDateRef.current as any).showPicker();
+                    } else {
+                      goToDateRef.current.click();
                     }
-                  }}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                  title="Select date to navigate calendar"
-                />
-              </div>
+                  }
+                }}
+              >
+                <Calendar className="h-4 w-4" /> Go to Date
+              </Button>
+              <input 
+                ref={goToDateRef}
+                type="date"
+                value={`${apptCalendarDate.getFullYear()}-${String(apptCalendarDate.getMonth() + 1).padStart(2, '0')}-${String(apptCalendarDate.getDate()).padStart(2, '0')}`}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const [year, month, day] = e.target.value.split("-").map(Number);
+                    if (year && month && day) {
+                      setApptCalendarDate(new Date(year, month - 1, day));
+                    }
+                  }
+                }}
+                className="sr-only hidden"
+                tabIndex={-1}
+                aria-hidden="true"
+              />
 
               <hr className="border-slate-100 dark:border-slate-800" />
 
