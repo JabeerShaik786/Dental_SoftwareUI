@@ -23,6 +23,8 @@ import {
   Search,
   Plus,
   Bell,
+  Maximize2,
+  Minimize2,
   CalendarDays,
   Check,
   CheckCircle2,
@@ -1072,6 +1074,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [apptSelectedTreatment, setApptSelectedTreatment] = useState("All");
   const [apptSelectedType, setApptSelectedType] = useState("All");
   const [apptCalendarDate, setApptCalendarDate] = useState<Date>(new Date());
+  const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
 
   // Calendar slot selection for detail modal
   const [selectedApptDetail, setSelectedApptDetail] = useState<Appointment | null>(null);
@@ -5070,106 +5073,114 @@ Apex Clinic`;
       <div className="animate-fadeIn grid grid-cols-1 lg:grid-cols-12 gap-4 text-xs font-semibold text-slate-700">
         
         {/* LEFT SIDEBAR PANEL (col-span-2 ~16.6%) */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs space-y-3">
-            <Button 
-              onClick={() => setActiveModal("addAppointment")} 
-              className="w-full h-10 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs"
-            >
-              <CalendarPlus className="h-4 w-4" /> Book Appointment
-            </Button>
-
-            <Button 
-              variant="outline"
-              className="w-full h-10 border-slate-200 hover:bg-slate-50 dark:border-slate-800 text-blue-600 font-semibold text-xs rounded-xl flex items-center justify-center gap-2"
-              onClick={() => {
-                const dateStrInput = prompt("Enter target date (YYYY-MM-DD):", "2026-08-12");
-                if (dateStrInput) {
-                  const parts = dateStrInput.split("-");
-                  if (parts.length === 3) {
-                    const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-                    setApptCalendarDate(d);
-                  }
-                }
-              }}
-            >
-              <Calendar className="h-4 w-4" /> Go to Date
-            </Button>
-
-            <hr className="border-slate-100 dark:border-slate-800" />
-
-            {/* Doctor Filter Header */}
-            <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Doctors Directory</span>
-
-            {/* Vertical Doctor List (No internal scrollbar) */}
-            <div className="space-y-1.5 pt-0.5">
-              {/* All Doctors Pinned Row */}
-              <div
-                onClick={() => setApptSelectedDoctor("All")}
-                className={`h-[48px] px-2.5 rounded-xl border flex items-center gap-2.5 cursor-pointer transition-all ${
-                  apptSelectedDoctor === "All"
-                    ? "bg-blue-600 border-blue-600 text-white shadow-xs"
-                    : "bg-slate-50/60 hover:bg-slate-100 dark:bg-slate-900/50 dark:hover:bg-slate-900 border-slate-100 dark:border-slate-800/70 text-slate-700 dark:text-slate-300"
-                }`}
+        {!isCalendarExpanded && (
+          <div className="lg:col-span-2 space-y-4">
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs space-y-3">
+              <Button 
+                onClick={() => setActiveModal("addAppointment")} 
+                className="w-full h-10 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-xs"
               >
-                <div className={`h-9 w-9 rounded-full font-bold text-xs flex items-center justify-center shrink-0 ${
-                  apptSelectedDoctor === "All"
-                    ? "bg-white/20 text-white"
-                    : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                }`}>
-                  <Users className="h-4 w-4" />
-                </div>
-                <span className={`font-bold text-[13px] truncate leading-none ${apptSelectedDoctor === "All" ? "text-white" : "text-slate-900 dark:text-white"}`}>
-                  All Doctors
-                </span>
+                <CalendarPlus className="h-4 w-4" /> Book Appointment
+              </Button>
+
+              <div className="relative">
+                <Button 
+                  variant="outline"
+                  className="w-full h-10 border-slate-200 hover:bg-slate-50 dark:border-slate-800 text-blue-600 font-semibold text-xs rounded-xl flex items-center justify-center gap-2 pointer-events-none"
+                >
+                  <Calendar className="h-4 w-4" /> Go to Date
+                </Button>
+                <input 
+                  type="date"
+                  value={`${apptCalendarDate.getFullYear()}-${String(apptCalendarDate.getMonth() + 1).padStart(2, '0')}-${String(apptCalendarDate.getDate()).padStart(2, '0')}`}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      const [y, m, d] = e.target.value.split("-").map(Number);
+                      if (y && m && d) {
+                        setApptCalendarDate(new Date(y, m - 1, d));
+                      }
+                    }
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  title="Select date to navigate calendar"
+                />
               </div>
 
-              {/* Doctor Directory Rows */}
-              {doctors.map((doc, idx) => {
-                const isActive = apptSelectedDoctor === doc.name;
-                const firstName = doc.name.replace(/^Dr\.\s*/i, "").split(" ")[0];
-                const initials = doc.name.replace(/^Dr\.\s*/i, "").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
-                const colors = [
-                  "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300",
-                  "bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300",
-                  "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300",
-                  "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300",
-                  "bg-pink-100 text-pink-700 dark:bg-pink-900/60 dark:text-pink-300"
-                ];
-                const avatarColor = colors[idx % colors.length];
+              <hr className="border-slate-100 dark:border-slate-800" />
 
-                return (
-                  <div
-                    key={doc.name}
-                    onClick={() => setApptSelectedDoctor(isActive ? "All" : doc.name)}
-                    className={`h-[48px] px-2.5 rounded-xl border flex items-center gap-2.5 cursor-pointer transition-all ${
-                      isActive
-                        ? "bg-blue-600 border-blue-600 text-white shadow-xs"
-                        : "bg-slate-50/60 hover:bg-slate-100 dark:bg-slate-900/50 dark:hover:bg-slate-900 border-slate-100 dark:border-slate-800/70 text-slate-700 dark:text-slate-300"
-                    }`}
-                  >
-                    {doc.avatar ? (
-                      <img src={doc.avatar} alt={doc.name} className="h-9 w-9 rounded-full object-cover shrink-0" />
-                    ) : (
-                      <div className={`h-9 w-9 rounded-full font-bold text-xs flex items-center justify-center shrink-0 ${
-                        isActive ? "bg-white/20 text-white" : avatarColor
-                      }`}>
-                        {initials}
-                      </div>
-                    )}
-                    
-                    <span className={`font-bold text-[13px] truncate leading-none ${isActive ? "text-white" : "text-slate-900 dark:text-white"}`}>
-                      {firstName}
-                    </span>
+              {/* Doctor Filter Header */}
+              <span className="font-bold text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Doctors Directory</span>
+
+              {/* Vertical Doctor List (No internal scrollbar) */}
+              <div className="space-y-1.5 pt-0.5">
+                {/* All Doctors Pinned Row */}
+                <div
+                  onClick={() => setApptSelectedDoctor("All")}
+                  className={`h-[48px] px-2.5 rounded-xl border flex items-center gap-2.5 cursor-pointer transition-all ${
+                    apptSelectedDoctor === "All"
+                      ? "bg-blue-600 border-blue-600 text-white shadow-xs"
+                      : "bg-slate-50/60 hover:bg-slate-100 dark:bg-slate-900/50 dark:hover:bg-slate-900 border-slate-100 dark:border-slate-800/70 text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  <div className={`h-9 w-9 rounded-full font-bold text-xs flex items-center justify-center shrink-0 ${
+                    apptSelectedDoctor === "All"
+                      ? "bg-white/20 text-white"
+                      : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                  }`}>
+                    <Users className="h-4 w-4" />
                   </div>
-                );
-              })}
+                  <span className={`font-bold text-[13px] truncate leading-none ${apptSelectedDoctor === "All" ? "text-white" : "text-slate-900 dark:text-white"}`}>
+                    All Doctors
+                  </span>
+                </div>
+
+                {/* Doctor Directory Rows */}
+                {doctors.map((doc, idx) => {
+                  const isActive = apptSelectedDoctor === doc.name;
+                  const firstName = doc.name.replace(/^Dr\.\s*/i, "").split(" ")[0];
+                  const initials = doc.name.replace(/^Dr\.\s*/i, "").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+                  const colors = [
+                    "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300",
+                    "bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300",
+                    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300",
+                    "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300",
+                    "bg-pink-100 text-pink-700 dark:bg-pink-900/60 dark:text-pink-300"
+                  ];
+                  const avatarColor = colors[idx % colors.length];
+
+                  return (
+                    <div
+                      key={doc.name}
+                      onClick={() => setApptSelectedDoctor(isActive ? "All" : doc.name)}
+                      className={`h-[48px] px-2.5 rounded-xl border flex items-center gap-2.5 cursor-pointer transition-all ${
+                        isActive
+                          ? "bg-blue-600 border-blue-600 text-white shadow-xs"
+                          : "bg-slate-50/60 hover:bg-slate-100 dark:bg-slate-900/50 dark:hover:bg-slate-900 border-slate-100 dark:border-slate-800/70 text-slate-700 dark:text-slate-300"
+                      }`}
+                    >
+                      {doc.avatar ? (
+                        <img src={doc.avatar} alt={doc.name} className="h-9 w-9 rounded-full object-cover shrink-0" />
+                      ) : (
+                        <div className={`h-9 w-9 rounded-full font-bold text-xs flex items-center justify-center shrink-0 ${
+                          isActive ? "bg-white/20 text-white" : avatarColor
+                        }`}>
+                          {initials}
+                        </div>
+                      )}
+                      
+                      <span className={`font-bold text-[13px] truncate leading-none ${isActive ? "text-white" : "text-slate-900 dark:text-white"}`}>
+                        {firstName}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* RIGHT PANEL (col-span-10 ~83.3%) */}
-        <div className="lg:col-span-10 space-y-4">
+        {/* RIGHT PANEL (col-span-10 ~83.3% or col-span-12 ~100% when expanded) */}
+        <div className={isCalendarExpanded ? "lg:col-span-12 space-y-4" : "lg:col-span-10 space-y-4"}>
           
           {/* Filters Row */}
           <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-xs flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs font-semibold text-slate-605">
@@ -5178,7 +5189,7 @@ Apex Clinic`;
               <span className="font-semibold text-slate-700 dark:text-slate-300">Filters:</span>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:gap-3">
+            <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:gap-3">
               <select 
                 value={apptSelectedStatus}
                 onChange={(e) => setApptSelectedStatus(e.target.value)}
@@ -5203,16 +5214,6 @@ Apex Clinic`;
                 <option value="Implant">Implant</option>
                 <option value="Crown">Crown</option>
                 <option value="Consultation">Consultation</option>
-              </select>
-
-              <select 
-                value={apptSelectedType}
-                onChange={(e) => setApptSelectedType(e.target.value)}
-                className="h-8.5 sm:h-8 w-full sm:w-auto px-2 sm:px-2.5 rounded-lg border border-slate-200 bg-white text-[11.5px] sm:text-[12px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-800 text-slate-700 dark:text-slate-300 truncate"
-              >
-                <option value="All">All Types</option>
-                <option value="Scheduled">Scheduled Only</option>
-                <option value="Walk-In">Walk-Ins Only</option>
               </select>
             </div>
           </div>
@@ -5248,8 +5249,8 @@ Apex Clinic`;
                   : apptCalendarDate.toLocaleString("default", { month: "long", year: "numeric" })}
               </span>
 
-              {/* Right Section: View Switcher (Only visible in Today view) */}
-              <div>
+              {/* Right Section: View Switcher & Expand Symbol Control */}
+              <div className="flex items-center gap-2">
                 {activeSubTab === "Today" ? (
                   <div className="bg-slate-100 dark:bg-slate-900 p-0.5 rounded-lg flex items-center">
                     {(["Month", "Week", "Day"] as const).map((view) => (
@@ -5271,6 +5272,19 @@ Apex Clinic`;
                     {activeSubTab}
                   </div>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => setIsCalendarExpanded(!isCalendarExpanded)}
+                  className="h-8 w-8 rounded-lg border border-slate-200 hover:bg-slate-50 dark:border-slate-800 text-slate-600 dark:text-slate-300 dark:hover:bg-slate-900 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                  title={isCalendarExpanded ? "Restore View" : "Expand Calendar"}
+                >
+                  {isCalendarExpanded ? (
+                    <Minimize2 className="h-4 w-4" />
+                  ) : (
+                    <Maximize2 className="h-4 w-4" />
+                  )}
+                </button>
               </div>
             </div>
 
