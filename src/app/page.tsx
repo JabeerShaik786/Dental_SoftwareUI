@@ -8688,19 +8688,6 @@ Apex Clinic`;
                       </button>
                       <button
                         type="button"
-                        title="Print"
-                        onClick={() => {
-                          setLastGeneratedReceipt(inv);
-                          setTimeout(() => {
-                            window.print();
-                          }, 150);
-                        }}
-                        className="h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                      >
-                        <Printer className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
                         title="Edit Invoice"
                         onClick={() => handleEditInvoice(inv)}
                         className="h-9 w-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer shrink-0"
