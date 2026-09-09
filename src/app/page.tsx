@@ -352,126 +352,134 @@ export function getPatientVisitsList(
   patientAppointments: Appointment[]
 ): TreatmentVisitNode[] {
   const targetPatient = (tr.patient || "").trim();
-  const pTrs = patientTreatments.filter(t => t.patient && targetPatient && t.patient.toLowerCase() === targetPatient.toLowerCase());
-  const pAppts = patientAppointments.filter(a => a.patientName && targetPatient && a.patientName.toLowerCase() === targetPatient.toLowerCase() && a.status !== "Cancelled");
+  const pAppts = patientAppointments.filter(
+    a => a.patientName && targetPatient && a.patientName.toLowerCase() === targetPatient.toLowerCase() && a.status !== "Cancelled"
+  );
 
-  const combinedRawItems: Array<{
-    id: string;
-    title: string;
-    date: string;
-    stage: "Completed" | "In Progress" | "Planned";
-    timestamp: number;
-  }> = [];
+  const mainTitle = tr.name || "Consultation";
+  const lowerTitle = mainTitle.toLowerCase();
 
-  pTrs.forEach((t, i) => {
-    let dateStr = t.date || t.nextVisit || "Scheduled";
-    let ts = 0;
-    if (t.date) {
-      const parsed = Date.parse(t.date);
-      if (!isNaN(parsed)) ts = parsed;
+  let phaseNames: string[] = [];
+
+  if (lowerTitle.includes("root") || lowerTitle.includes("rct")) {
+    phaseNames = [
+      "Consultation & Assessment",
+      "Dental X-Ray & Prep",
+      "Treatment – Visit 1 (Canal Prep)",
+      "Treatment Continued – Visit 2 (Obturation)",
+      "Tooth Restoration & Crown",
+      "Completed & Follow-up"
+    ];
+  } else if (lowerTitle.includes("crown") || lowerTitle.includes("bridge")) {
+    phaseNames = [
+      "Consultation & Assessment",
+      "Impression & Prep",
+      "Temporary Fit",
+      "Crown Fabrication",
+      "Permanent Placement",
+      "Completed & Final Checkup"
+    ];
+  } else if (lowerTitle.includes("implant")) {
+    phaseNames = [
+      "Consultation & Assessment",
+      "CBCT Scan & Planning",
+      "Implant Surgery",
+      "Healing & Osseointegration",
+      "Abutment & Crown Placement",
+      "Completed & Final Checkup"
+    ];
+  } else if (lowerTitle.includes("scaling") || lowerTitle.includes("clean")) {
+    phaseNames = [
+      "Consultation & Assessment",
+      "Ultrasonic Scaling",
+      "Root Planing & Polishing",
+      "Fluoride Treatment",
+      "Completed & Maintenance"
+    ];
+  } else if (lowerTitle.includes("extraction") || lowerTitle.includes("surgery")) {
+    phaseNames = [
+      "Consultation & Assessment",
+      "Pre-op X-Ray & Prep",
+      "Surgical Extraction",
+      "Post-op Healing Review",
+      "Completed"
+    ];
+  } else {
+    phaseNames = [
+      "Planned",
+      "Consultation",
+      "Cleaning / Preparation",
+      "Treatment – Visit 1",
+      "Treatment Continued – Visit 2",
+      "Follow-up",
+      "Completed"
+    ];
+  }
+
+  const currentStageStr = (tr.stage || "").trim();
+  const isOverallCompleted = currentStageStr === "Completed";
+
+  const completedAppts = pAppts.filter(a => a.status === "Completed");
+  const activeAppts = pAppts.filter(a => a.status === "In Procedure" || a.status === "In Consultation" || a.status === "Waiting" || a.status === "Checked In" || a.status === "Scheduled");
+
+  let completedCount = completedAppts.length;
+
+  if (isOverallCompleted) {
+    completedCount = phaseNames.length;
+  } else {
+    const stageIdx = phaseNames.findIndex(p => p.toLowerCase() === currentStageStr.toLowerCase() || p.toLowerCase().includes(currentStageStr.toLowerCase()));
+    if (stageIdx >= 0) {
+      completedCount = Math.max(completedCount, stageIdx);
     }
-    combinedRawItems.push({
-      id: `tr-${t.id || i}`,
-      title: t.name,
-      date: dateStr,
-      stage: t.stage === "Completed" ? "Completed" : t.stage === "In Progress" ? "In Progress" : "Planned",
-      timestamp: ts
-    });
-  });
+  }
 
-  pAppts.forEach((a, i) => {
-    const dateStr = a.date || "Scheduled";
-    const exists = combinedRawItems.some(item => item.title.toLowerCase() === a.treatment.toLowerCase() && item.date === dateStr);
-    if (!exists) {
-      let ts = 0;
-      if (a.date) {
-        const parsed = Date.parse(a.date);
-        if (!isNaN(parsed)) ts = parsed;
+  completedCount = Math.min(phaseNames.length, completedCount);
+
+  let activePhaseIdx = completedCount;
+  if (activePhaseIdx >= phaseNames.length && !isOverallCompleted) {
+    activePhaseIdx = phaseNames.length - 1;
+  }
+
+  const nodes: TreatmentVisitNode[] = phaseNames.map((phaseTitle, idx) => {
+    const isComp = idx < completedCount || isOverallCompleted;
+    const isCurr = !isOverallCompleted && idx === activePhaseIdx;
+    const isUpc = !isComp && !isCurr;
+
+    let dateStr = "Upcoming Phase";
+    if (isComp) {
+      const matchingCompAppt = completedAppts[idx];
+      if (matchingCompAppt && matchingCompAppt.date) {
+        dateStr = `Completed ${matchingCompAppt.date}`;
+      } else if (tr.date) {
+        dateStr = `Completed ${tr.date}`;
+      } else {
+        dateStr = "Completed";
       }
-      const stage = a.status === "Completed" ? "Completed" : (a.status === "In Consultation" || a.status === "In Procedure" || a.status === "Waiting" || a.status === "Checked In") ? "In Progress" : "Planned";
-      combinedRawItems.push({
-        id: `appt-${a.id || i}`,
-        title: a.treatment,
-        date: dateStr,
-        stage: stage,
-        timestamp: ts
-      });
+    } else if (isCurr) {
+      const matchingActiveAppt = activeAppts[0] || pAppts.find(a => a.status !== "Completed");
+      if (matchingActiveAppt && matchingActiveAppt.date) {
+        dateStr = `Scheduled: ${matchingActiveAppt.date} (${matchingActiveAppt.time || "10:00 AM"})`;
+      } else if (tr.nextVisit) {
+        dateStr = `Scheduled: ${tr.nextVisit}`;
+      } else {
+        dateStr = "Active Session";
+      }
+    } else {
+      const upcomingAppt = pAppts[idx - completedCount];
+      if (upcomingAppt && upcomingAppt.date) {
+        dateStr = `Scheduled: ${upcomingAppt.date}`;
+      }
     }
-  });
-
-  if (combinedRawItems.length <= 1) {
-    const mainTitle = tr.name || "Consultation";
-    const totalCount = tr.totalVisits || (tr.stage === "Completed" ? 1 : 6);
-    const completedCount = tr.completedVisits !== undefined ? tr.completedVisits : (tr.stage === "Completed" ? totalCount : (tr.stage === "Planned" ? 0 : 2));
-
-    const isRootCanal = mainTitle.toLowerCase().includes("root");
-    const isCrown = mainTitle.toLowerCase().includes("crown");
-    const isImplant = mainTitle.toLowerCase().includes("implant");
-
-    const defaultStepTitles = isRootCanal
-      ? ["Consultation & Assessment", "Dental X-Ray & Prep", "Obturation & Cleaning", "Follow-up", "Tooth Restoration", "Final Crown Fit"]
-      : isCrown
-      ? ["Consultation & Assessment", "Impression & Prep", "Temporary Fit", "Crown Fabrication", "Permanent Placement", "Final Checkup"]
-      : isImplant
-      ? ["Consultation & Assessment", "CBCT Scan & Planning", "Implant Surgery", "Healing Review", "Abutment Placement", "Final Crown Attachment"]
-      : ["Consultation & Assessment", "Diagnosis & Prep", "Procedure Session 1", "Procedure Session 2", "Follow-up Check", "Final Evaluation"];
-
-    const nodes: TreatmentVisitNode[] = [];
-    for (let i = 1; i <= totalCount; i++) {
-      const stepTitle = defaultStepTitles[i - 1] || `${mainTitle} – Visit ${i}`;
-      const isComp = i <= completedCount;
-      const isCurr = !isComp && (i === completedCount + 1 || (completedCount === 0 && i === 1));
-      const isUpc = !isComp && !isCurr;
-
-      let dateStr = "Upcoming Visit";
-      if (isComp) dateStr = tr.date ? `Completed ${tr.date}` : "Completed";
-      else if (isCurr) dateStr = tr.nextVisit ? `Scheduled: ${tr.nextVisit}` : "Active Session";
-
-      nodes.push({
-        num: i,
-        title: stepTitle,
-        date: dateStr,
-        stage: isComp ? "Completed" : isCurr ? "In Progress" : "Planned",
-        isCompleted: isComp,
-        isCurrent: isCurr,
-        isUpcoming: isUpc,
-        subtitle: isComp ? "Completed" : isCurr ? "Active Procedure Session" : "Upcoming Visit"
-      });
-    }
-
-    return nodes;
-  }
-
-  combinedRawItems.sort((a, b) => {
-    const orderMap = { "Completed": 1, "In Progress": 2, "Planned": 3 };
-    if (orderMap[a.stage] !== orderMap[b.stage]) {
-      return orderMap[a.stage] - orderMap[b.stage];
-    }
-    return a.timestamp - b.timestamp;
-  });
-
-  let hasCurrent = combinedRawItems.some(i => i.stage === "In Progress");
-  if (!hasCurrent) {
-    const firstPlanned = combinedRawItems.find(i => i.stage === "Planned");
-    if (firstPlanned) {
-      firstPlanned.stage = "In Progress";
-    }
-  }
-
-  const nodes: TreatmentVisitNode[] = combinedRawItems.map((item, idx) => {
-    const isComp = item.stage === "Completed";
-    const isCurr = item.stage === "In Progress";
-    const isUpc = item.stage === "Planned";
 
     return {
       num: idx + 1,
-      title: item.title,
-      date: item.date,
-      stage: item.stage,
+      title: phaseTitle,
+      date: dateStr,
+      stage: isComp ? "Completed" : isCurr ? "In Progress" : "Planned",
       isCompleted: isComp,
       isCurrent: isCurr,
       isUpcoming: isUpc,
-      subtitle: isComp ? "Completed" : isCurr ? "Active Procedure Session" : "Upcoming Visit"
+      subtitle: isComp ? "Completed" : isCurr ? "Active Treatment Phase" : "Upcoming Phase"
     };
   });
 
@@ -1224,6 +1232,43 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [editInvoiceStatus, setEditInvoiceStatus] = useState<"Paid" | "Partially Paid" | "Unpaid" | "Pending">("Pending");
   const [editInvoicePaymentDate, setEditInvoicePaymentDate] = useState("");
   const [savingInvoice, setSavingInvoice] = useState(false);
+
+  // Update Treatment Phase Modal states & handler
+  const [editingPhaseTreatment, setEditingPhaseTreatment] = useState<TreatmentItem | null>(null);
+  const [selectedPhaseStage, setSelectedPhaseStage] = useState<string>("In Progress");
+  const [savingPhase, setSavingPhase] = useState(false);
+
+  const handleSaveTreatmentPhase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPhaseTreatment) return;
+
+    setSavingPhase(true);
+
+    const { data: updatedDb, error: updateErr } = await supabase
+      .from("treatments")
+      .update({ stage: selectedPhaseStage })
+      .eq("id", editingPhaseTreatment.id)
+      .select()
+      .single();
+
+    if (updateErr) {
+      console.error("Failed to update treatment phase in database:", updateErr?.message, updateErr?.code);
+      showToast(updateErr?.message || "Failed to update treatment phase in database.", "error");
+      setSavingPhase(false);
+      return;
+    }
+
+    const updatedStage = updatedDb?.stage || selectedPhaseStage;
+    setTreatments(prev => prev.map(t => t.id === editingPhaseTreatment.id ? { ...t, stage: updatedStage } : t));
+
+    if (selectedTreatmentDetail && selectedTreatmentDetail.id === editingPhaseTreatment.id) {
+      setSelectedTreatmentDetail(prev => prev ? { ...prev, stage: updatedStage } : null);
+    }
+
+    setSavingPhase(false);
+    setEditingPhaseTreatment(null);
+    showToast("Treatment phase updated successfully.", "success");
+  };
 
   const handleEditInvoice = (inv: InvoiceItem) => {
     setEditingInvoice(inv);
@@ -8282,9 +8327,23 @@ Apex Clinic`;
         <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-5">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-base font-semibold leading-6 text-slate-900 dark:text-white tracking-tight">Treatment Progress</h2>
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-base font-semibold leading-6 text-slate-900 dark:text-white tracking-tight">Treatment Progress</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingPhaseTreatment(tr);
+                    setSelectedPhaseStage(tr.stage || "In Progress");
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-955/40 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Update Treatment Phase"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  <span>Update Phase</span>
+                </button>
+              </div>
               <p className="text-[14px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                {completedVisits} of {totalVisits} Visits Completed
+                {completedVisits} of {totalVisits} Phases Completed
               </p>
             </div>
 
@@ -8302,7 +8361,7 @@ Apex Clinic`;
           {/* Legend */}
           <div className="flex items-center gap-4 text-[12px] font-normal text-slate-400 dark:text-slate-500 pt-2 border-t border-slate-100 dark:border-slate-800/80">
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500 inline-block"></span> ✓ Completed</span>
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue-600 inline-block"></span> ● Current Visit</span>
+            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue-600 inline-block"></span> ● Current Phase</span>
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700 inline-block"></span> ○ Upcoming</span>
           </div>
 
@@ -8321,7 +8380,7 @@ Apex Clinic`;
               >
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[12px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                    Visit {node.num}
+                    Phase {node.num}
                   </span>
                   {node.isCompleted && <span className="h-4 w-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] font-bold">✓</span>}
                   {node.isCurrent && <span className="h-4 w-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-bold ring-2 ring-blue-200 dark:ring-blue-900">●</span>}
@@ -8362,7 +8421,7 @@ Apex Clinic`;
                         <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-sm ring-4 ring-blue-100 dark:ring-blue-955">●</span>
                         <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-955/40 border border-blue-100 dark:border-blue-900/40 space-y-0.5">
                           <span className="text-[14px] font-semibold text-blue-700 dark:text-blue-300 block">{node.title} (Current)</span>
-                          <span className="text-[12px] font-normal text-blue-600 dark:text-blue-400 block">{node.subtitle || "Active Procedure Session"}</span>
+                          <span className="text-[12px] font-normal text-blue-600 dark:text-blue-400 block">{node.subtitle || "Active Treatment Phase"}</span>
                         </div>
                       </div>
                     );
@@ -8372,7 +8431,7 @@ Apex Clinic`;
                       <span className="absolute -left-7 top-0.5 h-6 w-6 rounded-full border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-400 flex items-center justify-center text-xs font-medium">○</span>
                       <div className="space-y-0.5">
                         <span className="text-[14px] font-medium text-slate-700 dark:text-slate-300 block">{node.title}</span>
-                        <span className="text-[12px] font-normal text-slate-400 block">{node.subtitle || "Upcoming Visit"}</span>
+                        <span className="text-[12px] font-normal text-slate-400 block">{node.subtitle || "Upcoming Phase"}</span>
                       </div>
                     </div>
                   );
@@ -8382,12 +8441,24 @@ Apex Clinic`;
 
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-4">
               <div className="flex justify-between items-center text-[12px] font-medium text-slate-400 dark:text-slate-500">
-                <span>Total Planned Visits:</span>
-                <span className="text-[14px] font-medium text-slate-700 dark:text-slate-300">{totalVisits} Visits</span>
+                <span>Total Planned Phases:</span>
+                <span className="text-[14px] font-medium text-slate-700 dark:text-slate-300">{totalVisits} Phases</span>
               </div>
 
               <Button 
-                onClick={() => setActiveModal("addAppointment")}
+                onClick={() => {
+                  const pat = patients.find(p => p.name === tr.patient || p.id === tr.patient);
+                  if (pat) {
+                    setApptPatientId(pat.id);
+                  }
+                  if (tr.doctor) {
+                    setApptDoctor(tr.doctor);
+                  }
+                  setApptTreatment(tr.name);
+                  setApptDate(new Date().toISOString().split("T")[0]);
+                  setApptTime("10:00 AM");
+                  setActiveModal("addAppointment");
+                }}
                 className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-11 rounded-xl flex items-center justify-center gap-2 shadow-xs cursor-pointer"
               >
                 <CalendarPlus className="h-4 w-4" /> Schedule Next Visit
@@ -8486,7 +8557,7 @@ Apex Clinic`;
                 <th className="py-3 px-3 whitespace-nowrap min-w-[180px]">Treatment Name</th>
                 <th className="py-3 px-3 whitespace-nowrap min-w-[160px]">Patient</th>
                 <th className="py-3 px-3 whitespace-nowrap min-w-[160px]">Doctor</th>
-                <th className="py-3 px-3 whitespace-nowrap min-w-[110px]">Visits</th>
+                <th className="py-3 px-3 whitespace-nowrap min-w-[110px]">Phases</th>
                 <th className="py-3 px-3 whitespace-nowrap min-w-[120px]">Status</th>
                 <th className="py-3 px-3 whitespace-nowrap text-right min-w-[130px]">Estimated Cost (₹)</th>
               </tr>
@@ -8512,7 +8583,7 @@ Apex Clinic`;
                       <td className="py-3.5 px-3 whitespace-nowrap">{tr.patient}</td>
                       <td className="py-3.5 px-3 whitespace-nowrap">{tr.doctor}</td>
                       <td className="py-3.5 px-3 font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                        {completed} / {total} Visits
+                        {completed} / {total} Phases
                       </td>
                       <td className="py-3.5 px-3 whitespace-nowrap">
                         {isCompleted ? (
@@ -12950,6 +13021,75 @@ Apex Clinic`;
                   className="h-9 px-5 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold flex items-center gap-2 cursor-pointer"
                 >
                   {savingInvoice ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* UPDATE TREATMENT PHASE MODAL */}
+      {editingPhaseTreatment && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl max-w-md w-full space-y-5 animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Pencil className="h-5 w-5 text-blue-600" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Update Clinical Phase – {editingPhaseTreatment.name}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingPhaseTreatment(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1 rounded-lg text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTreatmentPhase} className="space-y-4 text-xs font-semibold">
+              <div className="space-y-1.5">
+                <Label className="text-slate-700 dark:text-slate-300">Patient</Label>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">{editingPhaseTreatment.patient}</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="selectPhaseStage" className="text-slate-700 dark:text-slate-300">
+                  Select Active Clinical Treatment Phase
+                </Label>
+                <select
+                  id="selectPhaseStage"
+                  value={selectedPhaseStage}
+                  onChange={(e) => setSelectedPhaseStage(e.target.value)}
+                  className="flex h-10 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="Planned">Planned</option>
+                  <option value="Consultation & Assessment">Consultation & Assessment</option>
+                  <option value="Cleaning & Preparation">Cleaning / Preparation</option>
+                  <option value="Treatment – Visit 1">Treatment – Visit 1</option>
+                  <option value="Treatment Continued – Visit 2">Treatment Continued – Visit 2</option>
+                  <option value="Treatment Continued – Visit 3">Treatment Continued – Visit 3</option>
+                  <option value="Follow-up Review">Follow-up Review</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <Button
+                  type="button"
+                  onClick={() => setEditingPhaseTreatment(null)}
+                  className="h-9 px-4 rounded border font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={savingPhase}
+                  className="h-9 px-5 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold flex items-center gap-2 cursor-pointer"
+                >
+                  {savingPhase ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Phase"}
                 </Button>
               </div>
             </form>
