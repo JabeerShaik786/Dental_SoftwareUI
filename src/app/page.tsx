@@ -409,6 +409,67 @@ const parseClinicalNote = (noteStr: string) => {
   };
 };
 
+// Phone number formatting & validation helpers (+91 + 10 digits max)
+export function formatPhoneInput(val: string): string {
+  if (!val) return "+91 ";
+  const trimmed = val.trimStart();
+  if (!trimmed) return "+91 ";
+
+  if (trimmed.startsWith("+")) {
+    if (trimmed.startsWith("+91")) {
+      const rest = trimmed.slice(3).replace(/\D/g, "").slice(0, 10);
+      return `+91 ${rest}`;
+    } else {
+      const match = trimmed.match(/^(\+\d{1,3})\s*(.*)$/);
+      if (match) {
+        const countryCode = match[1];
+        const rest = match[2].replace(/\D/g, "").slice(0, 10);
+        return `${countryCode} ${rest}`;
+      }
+    }
+  }
+
+  const digits = trimmed.replace(/\D/g, "").slice(0, 10);
+  return `+91 ${digits}`;
+}
+
+export function extractPhoneDigits(phoneStr: string): string {
+  if (!phoneStr) return "";
+  const clean = phoneStr.trim();
+  if (clean.startsWith("+91")) {
+    return clean.slice(3).replace(/\D/g, "");
+  }
+  const match = clean.match(/^(\+\d{1,3})\s*(.*)$/);
+  if (match) {
+    return match[2].replace(/\D/g, "");
+  }
+  return clean.replace(/\D/g, "");
+}
+
+export function validate10DigitPhone(phoneStr: string): boolean {
+  const digits = extractPhoneDigits(phoneStr);
+  return digits.length === 10;
+}
+
+// Sequential 4-digit Patient ID Generator (0001, 0002, ...)
+export function getNextSequentialPatientId(patientsList: Array<{ id?: string; patient_id?: string }>): string {
+  let maxNum = 0;
+  patientsList.forEach(p => {
+    const rawId = p.id || p.patient_id || "";
+    const matches = rawId.match(/\d+/g);
+    if (matches) {
+      matches.forEach(m => {
+        const num = parseInt(m, 10);
+        if (!isNaN(num) && num > maxNum) {
+          maxNum = num;
+        }
+      });
+    }
+  });
+  const nextNum = maxNum + 1;
+  return nextNum.toString().padStart(4, "0");
+}
+
 const DEFAULT_MOCK_PATIENTS = [
   { id: "DS-1001", name: "Aarav Mehta", phone: "+91 98112 09230", age: 28, gender: "Male", address: "MG Road, Bengaluru", visit: "12 Aug 2026", medicalNotes: "Penicillin Allergy", balance: "₹0", status: "Active", dentalChart: { 16: "Root Canal Completed", 30: "Missing" }, prescriptions: ["Amoxicillin 500mg - 3x daily"], files: [{ name: "panorex_xray_mehta.png", size: "4.2 MB", type: "image/png" }], notes: ["Patient experiences cold sensitivity in lower left molar."] },
   { id: "DS-1002", name: "Priya Patel", phone: "+91 99104 22091", age: 34, gender: "Female", address: "Indiranagar, Bengaluru", visit: "10 Aug 2026", medicalNotes: "None", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] },
@@ -925,7 +986,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
   // Form input states (Patient / Appt modals)
   const [newPatName, setNewPatName] = useState("");
-  const [newPatPhone, setNewPatPhone] = useState("");
+  const [newPatPhone, setNewPatPhone] = useState("+91 ");
   const [newPatAge, setNewPatAge] = useState(30);
   const [newPatGender, setNewPatGender] = useState<"Male" | "Female">("Male");
   const [newPatAddress, setNewPatAddress] = useState("");
@@ -984,7 +1045,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   // Add Patient quick panel inputs
   const [quickFirstName, setQuickFirstName] = useState("");
   const [quickLastName, setQuickLastName] = useState("");
-  const [quickMobile, setQuickMobile] = useState("");
+  const [quickMobile, setQuickMobile] = useState("+91 ");
   const [quickGender, setQuickGender] = useState<"Male" | "Female">("Male");
   const [quickAge, setQuickAge] = useState(30);
   const [quickDOB, setQuickDOB] = useState("");
@@ -1513,7 +1574,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   // --- PATIENT PROFILE FORM EDIT STATES ---
   const [editFirstName, setEditFirstName] = useState("");
   const [editLastName, setEditLastName] = useState("");
-  const [editMobile, setEditMobile] = useState("");
+  const [editMobile, setEditMobile] = useState("+91 ");
   const [editEmail, setEditEmail] = useState("");
   const [editDob, setEditDob] = useState("");
   const [editAge, setEditAge] = useState(0);
@@ -1528,7 +1589,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [editMedicalConditions, setEditMedicalConditions] = useState("");
   const [editCurrentMedications, setEditCurrentMedications] = useState("");
   const [editEmergencyContactName, setEditEmergencyContactName] = useState("");
-  const [editEmergencyContactPhone, setEditEmergencyContactPhone] = useState("");
+  const [editEmergencyContactPhone, setEditEmergencyContactPhone] = useState("+91 ");
   const [editFirstVisit, setEditFirstVisit] = useState("");
   const [editLastVisit, setEditLastVisit] = useState("");
   const [editPreferredDentist, setEditPreferredDentist] = useState("");
@@ -1744,14 +1805,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   // Form states for adding/editing doctor
   const [docFormName, setDocFormName] = useState("");
   const [docFormSpeciality, setDocFormSpeciality] = useState("General Dentist");
-  const [docFormPhone, setDocFormPhone] = useState("");
+  const [docFormPhone, setDocFormPhone] = useState("+91 ");
   const [docFormStatus, setDocFormStatus] = useState<"Available" | "In Consultation" | "On Break" | "Finished Today">("Available");
 
   // Form states for adding/editing staff
   const [staffFormName, setStaffFormName] = useState("");
   const [staffFormEmail, setStaffFormEmail] = useState("");
   const [staffFormRole, setStaffFormRole] = useState("Desk Operations");
-  const [staffFormPhone, setStaffFormPhone] = useState("");
+  const [staffFormPhone, setStaffFormPhone] = useState("+91 ");
   const [staffFormStatus, setStaffFormStatus] = useState<"Active" | "Inactive" | "On Leave">("Active");
   const [createdCredentials, setCreatedCredentials] = useState<{ name: string; email: string; pass: string } | null>(null);
 
@@ -1775,7 +1836,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         const names = p.name.split(" ");
         setEditFirstName(p.firstName || names[0] || "");
         setEditLastName(p.lastName || names.slice(1).join(" ") || "");
-        setEditMobile(p.phone || "");
+        setEditMobile(formatPhoneInput(p.phone || ""));
         setEditEmail(p.email || "");
         setEditDob(p.dob || "");
         setEditAge(p.age || 0);
@@ -1793,7 +1854,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         setEditMedicalConditions(p.medicalConditions || "");
         setEditCurrentMedications(p.currentMedications || "");
         setEditEmergencyContactName(p.emergencyContactName || "");
-        setEditEmergencyContactPhone(p.emergencyContactPhone || "");
+        setEditEmergencyContactPhone(p.emergencyContactPhone ? formatPhoneInput(p.emergencyContactPhone) : "+91 ");
         setEditFirstVisit(p.firstVisit || p.visit || "");
         setEditLastVisit(p.visit || "");
         setEditPreferredDentist(p.preferredDentist || "");
@@ -1820,6 +1881,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     e.preventDefault();
     if (!editFirstName.trim() || !editMobile.trim()) {
       showToast("First name and mobile number are required.", "error");
+      return;
+    }
+    if (!validate10DigitPhone(editMobile)) {
+      showToast("Mobile number must contain exactly 10 digits after +91.", "error");
+      return;
+    }
+    if (editEmergencyContactPhone && editEmergencyContactPhone.trim() !== "" && editEmergencyContactPhone.trim() !== "+91" && !validate10DigitPhone(editEmergencyContactPhone)) {
+      showToast("Emergency contact phone number must contain exactly 10 digits after +91.", "error");
       return;
     }
     
@@ -3132,7 +3201,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     
     // Clear walk-in inputs
     setNewPatName("");
-    setNewPatPhone("");
+    setNewPatPhone("+91 ");
     setNewPatAddress("");
     setNewPatAllergies("None");
     setActiveModal(null);
@@ -3209,7 +3278,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const handleClearPatientForm = () => {
     setQuickFirstName("");
     setQuickLastName("");
-    setQuickMobile("");
+    setQuickMobile("+91 ");
     setQuickGender("Male");
     setQuickAge(30);
     setQuickDOB("");
@@ -3236,13 +3305,16 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const trimmedName = patientData.name.trim();
     const trimmedPhone = patientData.phone.trim();
 
-    // 1. Validation
     if (!trimmedName) {
       showToast("Patient name is required.", "error");
       return false;
     }
-    if (!trimmedPhone) {
+    if (!trimmedPhone || trimmedPhone === "+91") {
       showToast("Mobile number is required.", "error");
+      return false;
+    }
+    if (!validate10DigitPhone(trimmedPhone)) {
+      showToast("Mobile number must contain exactly 10 digits after +91.", "error");
       return false;
     }
 
@@ -3268,18 +3340,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       return false;
     }
 
-    // Generate unique Patient ID by counting rows in the database
-    const { count, error: countErr } = await supabase
+    // Generate continuous 4-digit sequential Patient ID (0001, 0002, ...)
+    const { data: dbAllPats } = await supabase
       .from("patients")
-      .select("*", { count: "exact", head: true });
+      .select("patient_id");
 
-    if (countErr) {
-      console.error("Patient ID generation failed: count query error", countErr.message, countErr.code);
-      showToast("Failed to generate patient ID.", "error");
-      return false;
-    }
-
-    const patientId = `DS-${1000 + (count || 0) + 1}`;
+    const combinedList = dbAllPats && dbAllPats.length > 0 ? dbAllPats.map(p => ({ id: p.patient_id })) : patients;
+    const patientId = getNextSequentialPatientId(combinedList);
 
     // Perform database insertion
     const { data: insertedPat, error } = await supabase
@@ -4403,11 +4470,11 @@ Apex Clinic`;
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <Label htmlFor="qPatID" className="form-label-custom">Patient ID</Label>
-                    <Input id="qPatID" value={`DS-${1000 + patients.length + 1}`} disabled className="form-field-custom bg-slate-50 dark:bg-slate-900 opacity-60 cursor-not-allowed font-bold" />
+                    <Input id="qPatID" value={getNextSequentialPatientId(patients)} disabled className="form-field-custom bg-slate-50 dark:bg-slate-900 opacity-60 cursor-not-allowed font-bold" />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="qMobile" className="form-label-custom">Mobile Number</Label>
-                    <Input id="qMobile" placeholder="e.g. +91 99000 11000" value={quickMobile} onChange={e => setQuickMobile(e.target.value)} required className="form-field-custom" />
+                    <Input id="qMobile" placeholder="e.g. +91 99000 11000" value={quickMobile} onChange={e => setQuickMobile(formatPhoneInput(e.target.value))} required className="form-field-custom" />
                   </div>
                 </div>
 
@@ -5866,7 +5933,7 @@ Apex Clinic`;
                         </div>
                         <div className="space-y-1.5">
                           <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Mobile Number</Label>
-                          <Input value={editMobile} onChange={e => setEditMobile(e.target.value)} required />
+                          <Input value={editMobile} onChange={e => setEditMobile(formatPhoneInput(e.target.value))} required />
                         </div>
                         <div className="space-y-1.5">
                           <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Email</Label>
@@ -5961,7 +6028,7 @@ Apex Clinic`;
                         </div>
                         <div className="space-y-1.5">
                           <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Emergency Contact Phone</Label>
-                          <Input value={editEmergencyContactPhone} onChange={e => setEditEmergencyContactPhone(e.target.value)} />
+                          <Input value={editEmergencyContactPhone} onChange={e => setEditEmergencyContactPhone(formatPhoneInput(e.target.value))} />
                         </div>
                       </div>
                     </div>
@@ -7622,7 +7689,7 @@ Apex Clinic`;
               });
               if (saved) {
                 setNewPatName("");
-                setNewPatPhone("");
+                setNewPatPhone("+91 ");
                 setNewPatAddress("");
                 setNewPatAllergies("None");
                 setActiveSubTab("All Patients");
@@ -7635,7 +7702,7 @@ Apex Clinic`;
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="newPatPhone">Mobile Number</Label>
-                  <Input id="newPatPhone" placeholder="e.g. +91 98112 09230" value={newPatPhone} onChange={e => setNewPatPhone(e.target.value)} />
+                  <Input id="newPatPhone" placeholder="e.g. +91 98112 09230" value={newPatPhone} onChange={e => setNewPatPhone(formatPhoneInput(e.target.value))} />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="newPatAge">Age</Label>
@@ -9107,7 +9174,7 @@ Apex Clinic`;
       setEditingDoctor(null);
       setDocFormName("");
       setDocFormSpeciality("General Dentist");
-      setDocFormPhone("");
+      setDocFormPhone("+91 ");
       setDocFormStatus("Available");
       setDoctorModalOpen(true);
     };
@@ -9116,7 +9183,7 @@ Apex Clinic`;
       setEditingDoctor(doc);
       setDocFormName(doc.name);
       setDocFormSpeciality(doc.speciality);
-      setDocFormPhone(doc.phone || "+91 98765 43210");
+      setDocFormPhone(formatPhoneInput(doc.phone || ""));
       setDocFormStatus(doc.status);
       setDoctorModalOpen(true);
     };
@@ -9152,6 +9219,10 @@ Apex Clinic`;
     const handleSaveDoctor = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!docFormName.trim()) return;
+      if (docFormPhone && !validate10DigitPhone(docFormPhone)) {
+        showToast("Doctor phone number must contain exactly 10 digits after +91.", "error");
+        return;
+      }
 
       const formattedName = docFormName.startsWith("Dr.") ? docFormName.trim() : `Dr. ${docFormName.trim()}`;
 
@@ -9266,7 +9337,7 @@ Apex Clinic`;
       setStaffFormName("");
       setStaffFormEmail("");
       setStaffFormRole("Desk Operations");
-      setStaffFormPhone("");
+      setStaffFormPhone("+91 ");
       setStaffFormStatus("Active");
       setStaffModalOpen(true);
     };
@@ -9276,7 +9347,7 @@ Apex Clinic`;
       setStaffFormName(st.name);
       setStaffFormEmail("");
       setStaffFormRole(st.role);
-      setStaffFormPhone(st.phone);
+      setStaffFormPhone(formatPhoneInput(st.phone || ""));
       setStaffFormStatus(st.status);
       setStaffModalOpen(true);
     };
@@ -9285,6 +9356,10 @@ Apex Clinic`;
       e.preventDefault();
       if (!staffFormName.trim()) {
         showToast("Please enter staff full name.", "error");
+        return;
+      }
+      if (staffFormPhone && !validate10DigitPhone(staffFormPhone)) {
+        showToast("Staff phone number must contain exactly 10 digits after +91.", "error");
         return;
       }
 
@@ -10766,6 +10841,11 @@ Apex Clinic`;
               </div>
             </div>
  
+            {/* Clinic Date */}
+            <div className="hidden lg:block text-right text-[12px] border-r pr-3.5 border-slate-200 dark:border-slate-800 leading-none">
+              <span className="font-semibold text-slate-700 dark:text-slate-300">Wednesday, 12 Aug 2026</span>
+            </div>
+
             {/* Notifications Alert Dropdown */}
             <div className="relative">
               <button
@@ -10777,7 +10857,7 @@ Apex Clinic`;
                   <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-red-650 border border-white animate-pulse" />
                 )}
               </button>
- 
+
               {showNotifications && (
                 <div className="absolute right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 bg-white shadow-xl dark:bg-slate-955 dark:border-slate-800 p-2 z-50 text-xs">
                   <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 mb-2">
@@ -10822,16 +10902,6 @@ Apex Clinic`;
                   </div>
                 </div>
               )}
-            </div>
- 
-            {/* Clinic Date */}
-            <div className="hidden lg:block text-right text-[12px] border-r pr-3.5 border-slate-200 dark:border-slate-800 leading-none">
-              <span className="font-semibold text-slate-700 dark:text-slate-300">Wednesday, 12 Aug 2026</span>
-            </div>
- 
-            {/* Profile Avatar */}
-            <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold border-2 border-slate-100 shadow-sm shrink-0 text-xs sm:text-sm">
-              AN
             </div>
           </div>
         </header>
@@ -11012,7 +11082,7 @@ Apex Clinic`;
                   });
                   if (saved) {
                     setNewPatName("");
-                    setNewPatPhone("");
+                    setNewPatPhone("+91 ");
                     setNewPatAddress("");
                     setNewPatAllergies("None");
                     setActiveModal(null);
@@ -11026,7 +11096,7 @@ Apex Clinic`;
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <Label htmlFor="newPatPhone">Mobile Number</Label>
-                        <Input id="newPatPhone" placeholder="e.g. +91 98112 09230" value={newPatPhone} onChange={e => setNewPatPhone(e.target.value)} />
+                        <Input id="newPatPhone" placeholder="e.g. +91 98112 09230" value={newPatPhone} onChange={e => setNewPatPhone(formatPhoneInput(e.target.value))} />
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="newPatAge">Age</Label>
