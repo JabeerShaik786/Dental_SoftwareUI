@@ -419,6 +419,11 @@ export function getPatientVisitsList(
   const currentStageStr = (tr.stage || "").trim();
   const isOverallCompleted = currentStageStr === "Completed";
 
+  let notesPhase = "";
+  if (tr.notes && tr.notes.includes("Phase: ")) {
+    notesPhase = tr.notes.split("Phase: ")[1].split("\n")[0].trim();
+  }
+
   const completedAppts = pAppts.filter(a => a.status === "Completed");
   const activeAppts = pAppts.filter(a => a.status === "In Procedure" || a.status === "In Consultation" || a.status === "Waiting" || a.status === "Checked In" || a.status === "Scheduled");
 
@@ -427,9 +432,16 @@ export function getPatientVisitsList(
   if (isOverallCompleted) {
     completedCount = phaseNames.length;
   } else {
-    const stageIdx = phaseNames.findIndex(p => p.toLowerCase() === currentStageStr.toLowerCase() || p.toLowerCase().includes(currentStageStr.toLowerCase()));
-    if (stageIdx >= 0) {
-      completedCount = Math.max(completedCount, stageIdx);
+    if (notesPhase) {
+      const notesIdx = phaseNames.findIndex(p => p.toLowerCase() === notesPhase.toLowerCase() || p.toLowerCase().includes(notesPhase.toLowerCase()) || notesPhase.toLowerCase().includes(p.toLowerCase()));
+      if (notesIdx >= 0) {
+        completedCount = Math.max(completedCount, notesIdx);
+      }
+    } else {
+      const stageIdx = phaseNames.findIndex(p => p.toLowerCase() === currentStageStr.toLowerCase() || p.toLowerCase().includes(currentStageStr.toLowerCase()));
+      if (stageIdx >= 0) {
+        completedCount = Math.max(completedCount, stageIdx);
+      }
     }
   }
 
@@ -1244,9 +1256,25 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     setSavingPhase(true);
 
+    // Map UI clinical phase to valid DB stage ("Planned", "In Progress", or "Completed")
+    const dbStage: "Planned" | "In Progress" | "Completed" = selectedPhaseStage === "Completed"
+      ? "Completed"
+      : selectedPhaseStage === "Planned"
+      ? "Planned"
+      : "In Progress";
+
+    // Encode clinical phase name in notes to persist without violating treatments_stage_check constraint
+    const existingNotesClean = (editingPhaseTreatment.notes || "").replace(/Phase: [^\n]+\n?/, "").trim();
+    const updatedNotes = selectedPhaseStage !== "Completed" && selectedPhaseStage !== "Planned"
+      ? `Phase: ${selectedPhaseStage}${existingNotesClean ? `\n${existingNotesClean}` : ""}`
+      : existingNotesClean;
+
     const { data: updatedDb, error: updateErr } = await supabase
       .from("treatments")
-      .update({ stage: selectedPhaseStage })
+      .update({
+        stage: dbStage,
+        notes: updatedNotes
+      })
       .eq("id", editingPhaseTreatment.id)
       .select()
       .single();
@@ -1258,11 +1286,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       return;
     }
 
-    const updatedStage = updatedDb?.stage || selectedPhaseStage;
-    setTreatments(prev => prev.map(t => t.id === editingPhaseTreatment.id ? { ...t, stage: updatedStage } : t));
+    const finalStage = (updatedDb?.stage as any) || dbStage;
+    const finalNotes = updatedDb?.notes || updatedNotes;
+
+    setTreatments(prev => prev.map(t => t.id === editingPhaseTreatment.id ? { ...t, stage: finalStage, notes: finalNotes } : t));
 
     if (selectedTreatmentDetail && selectedTreatmentDetail.id === editingPhaseTreatment.id) {
-      setSelectedTreatmentDetail(prev => prev ? { ...prev, stage: updatedStage } : null);
+      setSelectedTreatmentDetail(prev => prev ? { ...prev, stage: finalStage, notes: finalNotes } : null);
     }
 
     setSavingPhase(false);
@@ -8333,7 +8363,8 @@ Apex Clinic`;
                   type="button"
                   onClick={() => {
                     setEditingPhaseTreatment(tr);
-                    setSelectedPhaseStage(tr.stage || "In Progress");
+                    const activeNode = timelineNodes.find(n => n.isCurrent);
+                    setSelectedPhaseStage(activeNode ? activeNode.title : (tr.stage || "In Progress"));
                   }}
                   className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-955/40 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                   title="Update Treatment Phase"
@@ -13065,14 +13096,11 @@ Apex Clinic`;
                   className="flex h-10 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
-                  <option value="Planned">Planned</option>
-                  <option value="Consultation & Assessment">Consultation & Assessment</option>
-                  <option value="Cleaning & Preparation">Cleaning / Preparation</option>
-                  <option value="Treatment – Visit 1">Treatment – Visit 1</option>
-                  <option value="Treatment Continued – Visit 2">Treatment Continued – Visit 2</option>
-                  <option value="Treatment Continued – Visit 3">Treatment Continued – Visit 3</option>
-                  <option value="Follow-up Review">Follow-up Review</option>
-                  <option value="Completed">Completed</option>
+                  {getPatientVisitsList(editingPhaseTreatment, treatments, appointments).map((node) => (
+                    <option key={node.num} value={node.title}>
+                      Phase {node.num}: {node.title}
+                    </option>
+                  ))}
                 </select>
               </div>
 
