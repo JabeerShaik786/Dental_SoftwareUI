@@ -830,6 +830,15 @@ export function convertToUiDate(dbDate: string): string {
   return dbDate;
 }
 
+export function formatWhatsAppRecipientNumber(phoneStr: string): string {
+  if (!phoneStr) return "";
+  const digits = phoneStr.trim().replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.length === 12 && digits.startsWith("91")) return digits;
+  if (digits.length === 10) return `91${digits}`;
+  return digits;
+}
+
 export function parseToDate(dateStr: string): Date | null {
   if (!dateStr) return null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
@@ -5016,7 +5025,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           <button
                             type="button"
                             onClick={() => {
-                              const whatsappNumber = "918639778188";
+                              const rawPhone = patients.find((p) => p.id === app.patientId)?.phone || patientPhone || "";
+                              const whatsappNumber = formatWhatsAppRecipientNumber(rawPhone);
                               const message = `Hello ${app.patientName},
 
 This is a reminder from ${clinicName} regarding your dental appointment.
@@ -6431,7 +6441,8 @@ ${clinicName}`;
                   </button>
                   <button 
                     onClick={() => {
-                      const whatsappNumber = "918639778188";
+                      const rawPhone = patients.find((p) => p.id === selectedApptDetail.patientId)?.phone || (selectedApptDetail as any).phone || "";
+                      const whatsappNumber = formatWhatsAppRecipientNumber(rawPhone);
                       const message = `Hello ${selectedApptDetail.patientName},
 
 This is a reminder from ${clinicName} regarding your dental appointment.
