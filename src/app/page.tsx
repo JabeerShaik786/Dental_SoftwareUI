@@ -4977,7 +4977,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                               const whatsappNumber = "918639778188";
                               const message = `Hello ${app.patientName},
 
-This is a reminder from Apex Clinic regarding your dental appointment.
+This is a reminder from ${clinicName} regarding your dental appointment.
 
 🦷 Treatment: ${app.treatment}
 📅 Date: ${app.date}
@@ -4988,7 +4988,7 @@ Please arrive 10 minutes before your scheduled appointment.
 If you need to reschedule, please reply to this message.
 
 Thank you,
-Apex Clinic`;
+${clinicName}`;
                               const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
                               window.open(whatsappUrl, "_blank", "noopener,noreferrer");
                             }}
@@ -6391,7 +6391,7 @@ Apex Clinic`;
                       const whatsappNumber = "918639778188";
                       const message = `Hello ${selectedApptDetail.patientName},
 
-This is a reminder from Apex Clinic regarding your dental appointment.
+This is a reminder from ${clinicName} regarding your dental appointment.
 
 🦷 Treatment: ${selectedApptDetail.treatment}
 📅 Date: ${selectedApptDetail.date}
@@ -6402,7 +6402,7 @@ Please arrive 10 minutes before your scheduled appointment.
 If you need to reschedule, please reply to this message.
 
 Thank you,
-Apex Clinic`;
+${clinicName}`;
                       const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
                       window.open(whatsappUrl, "_blank", "noopener,noreferrer");
                     }}
