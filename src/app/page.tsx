@@ -9342,10 +9342,12 @@ Apex Clinic`;
                           </div>
                           <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
                         </div>
-                        {/* Direct Visible Numerical Label */}
-                        <span className={`text-[10px] sm:text-[11px] font-extrabold ${val > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'} whitespace-nowrap`}>
-                          ₹{val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val.toLocaleString()}
-                        </span>
+                        {/* Direct Visible Numerical Label (Only when val > 0) */}
+                        {val > 0 && (
+                          <span className="text-[10px] sm:text-[11px] font-extrabold text-blue-600 dark:text-blue-400 whitespace-nowrap mb-0.5">
+                            ₹{val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val.toLocaleString()}
+                          </span>
+                        )}
                         <div
                           style={{ height: `${heightPct}%` }}
                           className={`w-full max-w-[36px] rounded-t-lg transition-all cursor-pointer ${
@@ -9558,25 +9560,36 @@ Apex Clinic`;
                           <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
                         </div>
 
-                        {/* Direct Visible Value Labels Above Bars */}
-                        <div className="w-full flex justify-center gap-1.5 mb-1 text-[10px] font-bold">
-                          <span className={`w-1/2 text-center ${m.newPts > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>{m.newPts}</span>
-                          <span className={`w-1/2 text-center ${m.returningPts > 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>{m.returningPts}</span>
-                        </div>
-
                         <div className="w-full flex items-end justify-center gap-1.5 h-full">
-                          <div
-                            style={{ height: `${newPct}%` }}
-                            className={`w-1/2 max-w-[24px] sm:max-w-[28px] rounded-t-md transition-all duration-300 ${
-                              m.newPts > 0 ? "bg-blue-600 hover:bg-blue-500" : "bg-slate-200 dark:bg-slate-800"
-                            }`}
-                          />
-                          <div
-                            style={{ height: `${returnPct}%` }}
-                            className={`w-1/2 max-w-[24px] sm:max-w-[28px] rounded-t-md transition-all duration-300 ${
-                              m.returningPts > 0 ? "bg-indigo-600 hover:bg-indigo-500" : "bg-slate-200 dark:bg-slate-800"
-                            }`}
-                          />
+                          {/* New Patients Bar Column */}
+                          <div className="w-1/2 max-w-[24px] sm:max-w-[28px] flex flex-col items-center justify-end h-full">
+                            {m.newPts > 0 && (
+                              <span className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 mb-0.5 leading-none">
+                                {m.newPts}
+                              </span>
+                            )}
+                            <div
+                              style={{ height: `${newPct}%` }}
+                              className={`w-full rounded-t-md transition-all duration-300 ${
+                                m.newPts > 0 ? "bg-blue-600 hover:bg-blue-500 shadow-xs" : "bg-slate-200 dark:bg-slate-800"
+                              }`}
+                            />
+                          </div>
+
+                          {/* Returning Patients Bar Column */}
+                          <div className="w-1/2 max-w-[24px] sm:max-w-[28px] flex flex-col items-center justify-end h-full">
+                            {m.returningPts > 0 && (
+                              <span className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 mb-0.5 leading-none">
+                                {m.returningPts}
+                              </span>
+                            )}
+                            <div
+                              style={{ height: `${returnPct}%` }}
+                              className={`w-full rounded-t-md transition-all duration-300 ${
+                                m.returningPts > 0 ? "bg-indigo-600 hover:bg-indigo-500 shadow-xs" : "bg-slate-200 dark:bg-slate-800"
+                              }`}
+                            />
+                          </div>
                         </div>
 
                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-2.5 text-center truncate max-w-full">
@@ -9701,25 +9714,36 @@ Apex Clinic`;
                           <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
                         </div>
 
-                        {/* Direct Visible Value Labels Above Bars */}
-                        <div className="w-full flex justify-center gap-1.5 mb-1 text-[10px] font-bold">
-                          <span className={`w-1/2 text-center ${m.started > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>{m.started}</span>
-                          <span className={`w-1/2 text-center ${m.completed > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>{m.completed}</span>
-                        </div>
-
                         <div className="w-full flex items-end justify-center gap-1.5 h-full">
-                          <div
-                            style={{ height: `${startedPct}%` }}
-                            className={`w-1/2 max-w-[24px] sm:max-w-[28px] rounded-t-md transition-all duration-300 ${
-                              m.started > 0 ? "bg-blue-600 hover:bg-blue-500" : "bg-slate-200 dark:bg-slate-800"
-                            }`}
-                          />
-                          <div
-                            style={{ height: `${completedPct}%` }}
-                            className={`w-1/2 max-w-[24px] sm:max-w-[28px] rounded-t-md transition-all duration-300 ${
-                              m.completed > 0 ? "bg-emerald-500 hover:bg-emerald-400" : "bg-slate-200 dark:bg-slate-800"
-                            }`}
-                          />
+                          {/* Started Bar Column */}
+                          <div className="w-1/2 max-w-[24px] sm:max-w-[28px] flex flex-col items-center justify-end h-full">
+                            {m.started > 0 && (
+                              <span className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 mb-0.5 leading-none">
+                                {m.started}
+                              </span>
+                            )}
+                            <div
+                              style={{ height: `${startedPct}%` }}
+                              className={`w-full rounded-t-md transition-all duration-300 ${
+                                m.started > 0 ? "bg-blue-600 hover:bg-blue-500 shadow-xs" : "bg-slate-200 dark:bg-slate-800"
+                              }`}
+                            />
+                          </div>
+
+                          {/* Completed Bar Column */}
+                          <div className="w-1/2 max-w-[24px] sm:max-w-[28px] flex flex-col items-center justify-end h-full">
+                            {m.completed > 0 && (
+                              <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 mb-0.5 leading-none">
+                                {m.completed}
+                              </span>
+                            )}
+                            <div
+                              style={{ height: `${completedPct}%` }}
+                              className={`w-full rounded-t-md transition-all duration-300 ${
+                                m.completed > 0 ? "bg-emerald-500 hover:bg-emerald-400 shadow-xs" : "bg-slate-200 dark:bg-slate-800"
+                              }`}
+                            />
+                          </div>
                         </div>
 
                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-2.5 text-center truncate max-w-full">
@@ -9930,25 +9954,36 @@ Apex Clinic`;
                           <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
                         </div>
 
-                        {/* Direct Visible Value Labels Above Bars */}
-                        <div className="w-full flex justify-center gap-1.5 mb-1 text-[10px] font-bold">
-                          <span className={`w-1/2 text-center ${b.scheduled > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>{b.scheduled}</span>
-                          <span className={`w-1/2 text-center ${b.completed > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>{b.completed}</span>
-                        </div>
-
                         <div className="w-full flex items-end justify-center gap-1.5 h-full">
-                          <div
-                            style={{ height: `${schedPct}%` }}
-                            className={`w-1/2 max-w-[24px] sm:max-w-[28px] rounded-t-md transition-all duration-300 ${
-                              b.scheduled > 0 ? "bg-blue-600 hover:bg-blue-500" : "bg-slate-200 dark:bg-slate-800"
-                            }`}
-                          />
-                          <div
-                            style={{ height: `${compPct}%` }}
-                            className={`w-1/2 max-w-[24px] sm:max-w-[28px] rounded-t-md transition-all duration-300 ${
-                              b.completed > 0 ? "bg-emerald-500 hover:bg-emerald-400" : "bg-slate-200 dark:bg-slate-800"
-                            }`}
-                          />
+                          {/* Scheduled Bar Column */}
+                          <div className="w-1/2 max-w-[24px] sm:max-w-[28px] flex flex-col items-center justify-end h-full">
+                            {b.scheduled > 0 && (
+                              <span className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 mb-0.5 leading-none">
+                                {b.scheduled}
+                              </span>
+                            )}
+                            <div
+                              style={{ height: `${schedPct}%` }}
+                              className={`w-full rounded-t-md transition-all duration-300 ${
+                                b.scheduled > 0 ? "bg-blue-600 hover:bg-blue-500 shadow-xs" : "bg-slate-200 dark:bg-slate-800"
+                              }`}
+                            />
+                          </div>
+
+                          {/* Completed Bar Column */}
+                          <div className="w-1/2 max-w-[24px] sm:max-w-[28px] flex flex-col items-center justify-end h-full">
+                            {b.completed > 0 && (
+                              <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 mb-0.5 leading-none">
+                                {b.completed}
+                              </span>
+                            )}
+                            <div
+                              style={{ height: `${compPct}%` }}
+                              className={`w-full rounded-t-md transition-all duration-300 ${
+                                b.completed > 0 ? "bg-emerald-500 hover:bg-emerald-400 shadow-xs" : "bg-slate-200 dark:bg-slate-800"
+                              }`}
+                            />
+                          </div>
                         </div>
 
                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-2.5 text-center truncate max-w-full">
