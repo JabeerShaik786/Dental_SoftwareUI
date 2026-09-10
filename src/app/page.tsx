@@ -2246,8 +2246,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [integrationsState, setIntegrationsState] = useState({
     whatsapp: true,
     email: true,
-    googleCalendar: false,
-    dentalLab: true
+    googleCalendar: false
   });
 
   const [autoBackupEnabled, setAutoBackupEnabled] = useState(true);
@@ -10682,36 +10681,6 @@ Apex Clinic`;
                       >
                         <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
                           integrationsState.googleCalendar ? "translate-x-5" : "translate-x-0"
-                        }`} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Apex Dental Lab API */}
-                  <div className="p-3.5 sm:p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3.5">
-                      <div className="h-10 w-10 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-955/40 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-100 dark:border-purple-900/40">
-                        <Layers className="h-5 w-5" />
-                      </div>
-                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white">Apex Dental Lab API</span>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[12px] font-medium border ${
-                        integrationsState.dentalLab
-                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/40"
-                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700"
-                      }`}>
-                        {integrationsState.dentalLab ? "Enabled" : "Disabled"}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => toggleIntegration("dentalLab")}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          integrationsState.dentalLab ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
-                        }`}
-                      >
-                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                          integrationsState.dentalLab ? "translate-x-5" : "translate-x-0"
                         }`} />
                       </button>
                     </div>
