@@ -335,6 +335,52 @@ export function getTreatmentColorConfig(statusStr?: string): TreatmentColorConfi
   };
 }
 
+export function numberToWords(amount: number): string {
+  if (isNaN(amount) || amount === 0) return "ZERO RUPEES ONLY";
+  const num = Math.floor(Math.abs(amount));
+
+  const single = ["", "ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE"];
+  const double = ["TEN", "ELEVEN", "TWELVE", "THIRTEEN", "FOURTEEN", "FIFTEEN", "SIXTEEN", "SEVENTEEN", "EIGHTEEN", "NINETEEN"];
+  const tens = ["", "", "TWENTY", "THIRTY", "FORTY", "FIFTY", "SIXTY", "SEVENTY", "EIGHTY", "NINETY"];
+
+  function convertChunk(n: number): string {
+    let str = "";
+    if (n >= 100) {
+      str += single[Math.floor(n / 100)] + " HUNDRED ";
+      n %= 100;
+    }
+    if (n >= 10 && n <= 19) {
+      str += double[n - 10] + " ";
+    } else {
+      if (n >= 20) {
+        str += tens[Math.floor(n / 10)] + " ";
+        n %= 10;
+      }
+      if (n > 0) {
+        str += single[n] + " ";
+      }
+    }
+    return str;
+  }
+
+  let words = "";
+  const lakh = Math.floor(num / 100000);
+  const thousand = Math.floor((num % 100000) / 1000);
+  const remainder = num % 1000;
+
+  if (lakh > 0) {
+    words += convertChunk(lakh) + "LAKH ";
+  }
+  if (thousand > 0) {
+    words += convertChunk(thousand) + "THOUSAND ";
+  }
+  if (remainder > 0) {
+    words += convertChunk(remainder);
+  }
+
+  return `${words.trim()} RUPEES ONLY`;
+}
+
 export interface TreatmentVisitNode {
   num: number;
   title: string;
@@ -11938,142 +11984,193 @@ Apex Clinic`;
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden text-xs font-semibold my-8"
+            className="w-full max-w-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden text-xs my-8"
           >
             {/* Header - Not printed */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 no-print">
-              <span className="font-bold text-sm text-slate-900 dark:text-white">Professional Clinical Invoice & Receipt</span>
+              <span className="font-bold text-sm text-slate-900 dark:text-white">Professional Dental Invoice Preview</span>
               <button onClick={() => setLastGeneratedReceipt(null)} className="text-slate-400 hover:text-slate-650 dark:hover:text-slate-200">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Printable Content Section */}
-            <div id="print-area" className="p-8 space-y-6 bg-white dark:bg-slate-955 text-slate-808 dark:text-slate-200">
+            <div id="print-area" className="p-8 space-y-4 bg-white text-slate-900 border border-slate-300">
               
-              {/* Clinic details header */}
-              <div className="flex justify-between items-start border-b pb-4 border-slate-100 dark:border-slate-800">
-                <div>
-                  <span className="text-[18px] font-black text-blue-600 tracking-tight block">APEX DENTAL CLINIC</span>
-                  <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
-                    123, Sector 5, HSR Layout, Bengaluru - 560102<br />
-                    Phone: +91 99000 11000 | Email: billing@apexdental.com
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">INVOICE & RECEIPT</span>
-                  <span className="text-[14px] font-black text-slate-900 dark:text-white block mt-0.5">{lastGeneratedReceipt.id}</span>
-                  <span className="text-[10px] text-slate-400 block mt-1">Date: {lastGeneratedReceipt.paymentDate}</span>
-                </div>
+              {/* Clinic details header (Centered) */}
+              <div className="text-center space-y-1 pb-2">
+                <h1 className="text-xl font-extrabold text-blue-900 tracking-tight">
+                  VR Dental Care Dental Implant Centre
+                </h1>
+                <p className="text-[11px] text-slate-700 font-medium max-w-md mx-auto leading-tight">
+                  3rd Cross St, opp. GMC Balayogi stadium, Zicria Nagar, Yanam, Andhra Pradesh 533464
+                </p>
+                <p className="text-[11px] font-bold text-slate-800">
+                  PH: 09885349798
+                </p>
               </div>
+              <hr className="border-slate-400 my-2" />
 
-              {/* Patient & Doctor details */}
-              <div className="grid grid-cols-2 gap-4 bg-slate-50/50 dark:bg-slate-900/20 p-4 rounded-xl border border-slate-100 dark:border-slate-800/80">
-                <div className="space-y-1">
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">PATIENT DETAILS</span>
-                  <span className="text-xs font-bold text-slate-900 dark:text-white block">{lastGeneratedReceipt.patientName}</span>
-                  <span className="text-[10px] text-slate-450 block">ID: {lastGeneratedReceipt.patientId}</span>
-                </div>
-                <div className="space-y-1 text-right">
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">CLINICAL DETAILS</span>
-                  <span className="text-xs font-bold text-slate-900 dark:text-white block">Dr. {lastGeneratedReceipt.doctor}</span>
-                  <span className="text-[10px] text-slate-455 block">Treatment: {lastGeneratedReceipt.treatment}</span>
-                </div>
-              </div>
+              {/* Invoice Header Information & Patient Info */}
+              {(() => {
+                const patientObj = patients.find(p => p.id === lastGeneratedReceipt.patientId || p.name === lastGeneratedReceipt.patientName);
+                const ageGenderStr = patientObj ? `${patientObj.age} ${patientObj.gender}` : "";
+                const rawDate = lastGeneratedReceipt.paymentDate || new Date().toISOString().split("T")[0];
+                const formattedDate = rawDate.includes("T") ? rawDate.split("T")[0] : rawDate.split(" ")[0];
 
-              {/* Itemized charges table */}
-              <div className="space-y-2">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">TREATMENT CHARGES STATEMENT</span>
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-slate-50/80 dark:bg-slate-900/40 text-slate-400 text-[10px] border-b border-slate-100 dark:border-slate-800 uppercase tracking-wider">
-                        <th className="py-2 px-3 font-bold">Description</th>
-                        <th className="py-2 px-3 font-bold text-right">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                      {lastGeneratedReceipt.items.map((item, idx) => (
-                        <tr key={idx} className="text-slate-700 dark:text-slate-300">
-                          <td className="py-2.5 px-3 font-medium">{item.description}</td>
-                          <td className="py-2.5 px-3 text-right font-bold text-slate-900 dark:text-white font-mono">₹{item.amount.toLocaleString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Calculations and summary */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                {/* Transaction history logs */}
-                <div className="space-y-2">
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">TRANSACTION HISTORY</span>
-                  {lastGeneratedReceipt.paymentLogs && lastGeneratedReceipt.paymentLogs.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {lastGeneratedReceipt.paymentLogs.map((log, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-[10px] bg-slate-50/20 dark:bg-slate-900/10 p-2 rounded-lg border border-slate-100/50 dark:border-slate-850">
-                          <span className="text-slate-500 font-medium">{log.method} Allocation</span>
-                          <span className="text-slate-808 dark:text-slate-200 font-bold font-mono">₹{log.amount.toLocaleString()}</span>
+                return (
+                  <>
+                    <div className="grid grid-cols-2 gap-6 text-xs font-semibold py-1 text-slate-900">
+                      {/* Left column */}
+                      <div className="space-y-1">
+                        <div className="flex">
+                          <span className="w-24 font-bold text-slate-900">Invoice No :</span>
+                          <span className="font-semibold text-slate-800">{lastGeneratedReceipt.id}</span>
                         </div>
-                      ))}
+                        <div className="flex">
+                          <span className="w-24 font-bold text-slate-900">Date :</span>
+                          <span className="font-semibold text-slate-800">{formattedDate}</span>
+                        </div>
+                      </div>
+
+                      {/* Right column */}
+                      <div className="space-y-1">
+                        <div className="flex">
+                          <span className="w-28 font-bold text-slate-900">Patient Name :</span>
+                          <span className="font-semibold text-slate-800">{lastGeneratedReceipt.patientName}</span>
+                        </div>
+                        {ageGenderStr ? (
+                          <div className="flex">
+                            <span className="w-28 font-bold text-slate-900">Age/Gender :</span>
+                            <span className="font-semibold text-slate-800">{ageGenderStr}</span>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
-                  ) : (
-                    <span className="text-[10px] text-slate-450 italic block">No payment records found.</span>
-                  )}
-                </div>
+                    <hr className="border-slate-400 my-2" />
+                  </>
+                );
+              })()}
 
-                {/* Computation blocks */}
-                <div className="space-y-2 bg-slate-50/30 dark:bg-slate-900/10 p-3.5 rounded-xl border border-slate-100 dark:border-slate-850">
-                  <div className="flex justify-between text-[11px] text-slate-500">
-                    <span>Subtotal:</span>
-                    <span className="font-mono">₹{lastGeneratedReceipt.subtotal.toLocaleString()}</span>
+              {/* Treatment Details Table */}
+              <div className="min-h-[140px] pt-1">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b-2 border-slate-400 text-slate-900">
+                      <th className="py-2 px-2 font-bold w-14">Sl No.</th>
+                      <th className="py-2 px-2 font-bold">Treatment Details</th>
+                      <th className="py-2 px-2 font-bold text-right w-32">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {lastGeneratedReceipt.items && lastGeneratedReceipt.items.length > 0 ? (
+                      lastGeneratedReceipt.items.map((item, idx) => (
+                        <tr key={idx} className="text-slate-800">
+                          <td className="py-2.5 px-2 font-bold">{idx + 1}</td>
+                          <td className="py-2.5 px-2 font-medium">{item.description}</td>
+                          <td className="py-2.5 px-2 text-right font-bold font-mono">
+                            {item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr className="text-slate-800">
+                        <td className="py-2.5 px-2 font-bold">1</td>
+                        <td className="py-2.5 px-2 font-medium">{lastGeneratedReceipt.treatment || "Dental Treatment"}</td>
+                        <td className="py-2.5 px-2 text-right font-bold font-mono">
+                          {lastGeneratedReceipt.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <hr className="border-slate-400 my-3" />
+
+              {/* Financial Summary (Right Aligned) */}
+              <div className="flex justify-end my-3">
+                <div className="w-64 space-y-1.5 text-xs font-bold text-slate-900">
+                  <div className="flex justify-between">
+                    <span>Gross amount :</span>
+                    <span className="font-mono">
+                      {lastGeneratedReceipt.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
                   </div>
-                  
-                  {lastGeneratedReceipt.discountValue !== undefined && lastGeneratedReceipt.discountValue > 0 ? (
-                    <div className="flex justify-between text-[11px] text-red-600 dark:text-red-400">
-                      <span>Discount ({lastGeneratedReceipt.discountType === "percentage" ? `${lastGeneratedReceipt.discountValue}%` : `₹${lastGeneratedReceipt.discountValue}`}):</span>
-                      <span className="font-mono">- ₹{Math.round(lastGeneratedReceipt.discountType === "percentage" ? (lastGeneratedReceipt.subtotal * (lastGeneratedReceipt.discountValue / 100)) : lastGeneratedReceipt.discountValue).toLocaleString()}</span>
-                    </div>
-                  ) : lastGeneratedReceipt.discount > 0 ? (
-                    <div className="flex justify-between text-[11px] text-red-600 dark:text-red-400">
-                      <span>Discount ({lastGeneratedReceipt.discount}%):</span>
-                      <span className="font-mono">- ₹{Math.round(lastGeneratedReceipt.subtotal * (lastGeneratedReceipt.discount / 100)).toLocaleString()}</span>
-                    </div>
-                  ) : null}
-
-                  <div className="flex justify-between text-xs font-black pt-1.5 border-t border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
-                    <span>Grand Total:</span>
-                    <span className="font-mono">₹{lastGeneratedReceipt.total.toLocaleString()}</span>
+                  <div className="flex justify-between">
+                    <span>Amount paid :</span>
+                    <span className="font-mono">
+                      {lastGeneratedReceipt.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
                   </div>
-
-                  <div className="flex justify-between text-[11px] text-emerald-600 dark:text-emerald-400 font-extrabold pt-1 border-t border-dashed border-slate-200 dark:border-slate-800">
-                    <span>Paid Amount:</span>
-                    <span className="font-mono">₹{lastGeneratedReceipt.paidAmount.toLocaleString()}</span>
+                  <div className="flex justify-between border-t border-slate-300 pt-1">
+                    <span>Balance :</span>
+                    <span className="font-mono">
+                      {(lastGeneratedReceipt.total - lastGeneratedReceipt.paidAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
                   </div>
-
-                  <div className="flex justify-between text-[11px] font-extrabold border-t border-slate-200 dark:border-slate-800">
-                    <span className="text-slate-500">Status:</span>
-                    <span className={`${
-                      lastGeneratedReceipt.status === "Paid" ? "text-emerald-600 dark:text-emerald-400" :
-                      lastGeneratedReceipt.status === "Partially Paid" ? "text-amber-600 dark:text-amber-400" :
-                      "text-red-600 dark:text-red-400"
-                    }`}>{lastGeneratedReceipt.status}</span>
-                  </div>
-
-                  {lastGeneratedReceipt.total - lastGeneratedReceipt.paidAmount > 0 && (
-                    <div className="flex justify-between text-[11px] text-red-650 dark:text-red-400 font-extrabold">
-                      <span>Outstanding Balance:</span>
-                      <span className="font-mono">₹{(lastGeneratedReceipt.total - lastGeneratedReceipt.paidAmount).toLocaleString()}</span>
-                    </div>
-                  )}
                 </div>
               </div>
 
-              {/* Thank you message */}
-              <div className="text-center pt-4 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-400">
-                <p className="font-bold">Thank you for visiting Apex Dental Clinic!</p>
-                <p className="mt-0.5">Please retain this copy for insurance or future references.</p>
+              {/* Payment Details Section Box */}
+              <div className="border border-slate-400 rounded-none p-0 my-3">
+                <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-400 font-bold text-xs text-slate-900">
+                  Payment Details
+                </div>
+                <table className="w-full text-center border-collapse text-[11px]">
+                  <thead>
+                    <tr className="border-b border-slate-300 bg-slate-50 text-slate-800 font-bold">
+                      <th className="py-1.5 px-2 border-r border-slate-300">Receipt No</th>
+                      <th className="py-1.5 px-2 border-r border-slate-300">Amt Received</th>
+                      <th className="py-1.5 px-2 border-r border-slate-300">Amt.Refund</th>
+                      <th className="py-1.5 px-2 border-r border-slate-300">Mode</th>
+                      <th className="py-1.5 px-2 border-r border-slate-300">Date</th>
+                      <th className="py-1.5 px-2 border-r border-slate-300">NO</th>
+                      <th className="py-1.5 px-2">Bank Name</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lastGeneratedReceipt.paymentLogs && lastGeneratedReceipt.paymentLogs.length > 0 ? (
+                      lastGeneratedReceipt.paymentLogs.map((log, idx) => (
+                        <tr key={idx} className="border-b border-slate-200 text-slate-800 font-medium">
+                          <td className="py-1.5 px-2 border-r border-slate-300 font-mono">10{idx + 1}</td>
+                          <td className="py-1.5 px-2 border-r border-slate-300 font-mono font-bold">
+                            {log.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="py-1.5 px-2 border-r border-slate-300 font-mono">0.00</td>
+                          <td className="py-1.5 px-2 border-r border-slate-300">{log.method}</td>
+                          <td className="py-1.5 px-2 border-r border-slate-300">{log.date || lastGeneratedReceipt.paymentDate}</td>
+                          <td className="py-1.5 px-2 border-r border-slate-300">-</td>
+                          <td className="py-1.5 px-2">-</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr className="text-slate-800 font-medium">
+                        <td className="py-1.5 px-2 border-r border-slate-300 font-mono">101</td>
+                        <td className="py-1.5 px-2 border-r border-slate-300 font-mono font-bold">
+                          {lastGeneratedReceipt.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-1.5 px-2 border-r border-slate-300 font-mono">0.00</td>
+                        <td className="py-1.5 px-2 border-r border-slate-300">Cash</td>
+                        <td className="py-1.5 px-2 border-r border-slate-300">{lastGeneratedReceipt.paymentDate}</td>
+                        <td className="py-1.5 px-2 border-r border-slate-300">-</td>
+                        <td className="py-1.5 px-2">-</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Dynamic Amount in Words & Signatory Block */}
+              <div className="flex justify-between items-end pt-4 my-2 text-xs">
+                <div className="font-extrabold text-slate-900 uppercase tracking-wide max-w-xs">
+                  {numberToWords(lastGeneratedReceipt.paidAmount || lastGeneratedReceipt.total)}
+                </div>
+
+                <div className="text-right space-y-1 text-slate-900">
+                  <div className="font-bold">Authorised Signatory</div>
+                  <div className="text-[11px] font-semibold text-slate-800">VR Dental Care Dental Implant Centre</div>
+                  <div className="text-[10px] font-bold tracking-wider uppercase text-slate-900">PROSTHODONTIST</div>
+                </div>
               </div>
 
             </div>
