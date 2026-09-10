@@ -42,7 +42,6 @@ import {
   UserCheck,
   TrendingUp,
   Shield,
-  Layers,
   Database,
   Trash2,
   DollarSign,
@@ -668,7 +667,7 @@ const moduleSubTabs: Record<string, string[]> = {
   Treatments: ["Active Treatments", "Completed", "Treatment Plans"],
   Billing: ["Invoices", "Payments"],
   Reports: ["Revenue", "Patients", "Treatments", "Appointments"],
-  Settings: ["Clinic", "Doctors", "Staff", "Integrations", "Backup"]
+  Settings: ["Clinic", "Doctors", "Staff", "Backup"]
 };
 
 interface ClinicalMedia {
@@ -2288,12 +2287,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [receptionistUser, setReceptionistUser] = useState("Anjali");
   const [clinicAddress, setClinicAddress] = useState("12, MG Road, Bengaluru");
 
-  const [integrationsState, setIntegrationsState] = useState({
-    whatsapp: true,
-    email: true,
-    googleCalendar: false
-  });
-
   const [autoBackupEnabled, setAutoBackupEnabled] = useState(true);
   const [backupFrequency, setBackupFrequency] = useState("Daily");
   const [backupHistory, setBackupHistory] = useState<BackupHistoryItem[]>([
@@ -2311,9 +2304,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         if (parsed.receptionistUser) setReceptionistUser(parsed.receptionistUser);
         if (parsed.clinicAddress) setClinicAddress(parsed.clinicAddress);
       }
-
-      const savedIntegrations = localStorage.getItem("clinic_integrations");
-      if (savedIntegrations) setIntegrationsState(JSON.parse(savedIntegrations));
 
       const savedAutoBk = localStorage.getItem("clinic_autobackup");
       if (savedAutoBk !== null) setAutoBackupEnabled(savedAutoBk === "true");
@@ -10059,7 +10049,6 @@ ${clinicName}`;
       { name: "Clinic", icon: Building2 },
       { name: "Doctors", icon: Stethoscope },
       { name: "Staff", icon: Users },
-      { name: "Integrations", icon: Layers },
       { name: "Backup", icon: Database },
     ];
     const settingsTabs = settingsNavItems.map(i => i.name);
@@ -10377,15 +10366,7 @@ ${clinicName}`;
       setDeleteStaffConfirm(null);
     };
 
-    // Persistent Handlers for Integrations & Backup
-    const toggleIntegration = (key: keyof typeof integrationsState) => {
-      setIntegrationsState(prev => {
-        const next = { ...prev, [key]: !prev[key] };
-        try { localStorage.setItem("clinic_integrations", JSON.stringify(next)); } catch (e) {}
-        return next;
-      });
-    };
-
+    // Persistent Handlers for Backup
     const handleSetAutoBackup = (enabled: boolean) => {
       setAutoBackupEnabled(enabled);
       try { localStorage.setItem("clinic_autobackup", String(enabled)); } catch (e) {}
@@ -10641,109 +10622,7 @@ ${clinicName}`;
               </div>
             )}
 
-            {/* 4. INTEGRATIONS */}
-            {currentTab === "Integrations" && (
-              <div className="space-y-6">
-                <div className="border-b border-slate-100 dark:border-slate-800/80 pb-4">
-                  <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Integrations</h2>
-                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">Manage the communication and external services.</p>
-                </div>
-
-                <div className="space-y-4">
-                  {/* WhatsApp */}
-                  <div className="p-3.5 sm:p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3.5">
-                      <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-955/40 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-900/40">
-                        <MessageCircle className="h-5 w-5" />
-                      </div>
-                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white">WhatsApp</span>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[12px] font-medium border ${
-                        integrationsState.whatsapp
-                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/40"
-                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700"
-                      }`}>
-                        {integrationsState.whatsapp ? "Enabled" : "Disabled"}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => toggleIntegration("whatsapp")}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          integrationsState.whatsapp ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
-                        }`}
-                      >
-                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                          integrationsState.whatsapp ? "translate-x-5" : "translate-x-0"
-                        }`} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Email */}
-                  <div className="p-3.5 sm:p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3.5">
-                      <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-955/40 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-900/40">
-                        <Mail className="h-5 w-5" />
-                      </div>
-                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white">Email</span>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[12px] font-medium border ${
-                        integrationsState.email
-                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/40"
-                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700"
-                      }`}>
-                        {integrationsState.email ? "Enabled" : "Disabled"}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => toggleIntegration("email")}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          integrationsState.email ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
-                        }`}
-                      >
-                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                          integrationsState.email ? "translate-x-5" : "translate-x-0"
-                        }`} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Google Calendar */}
-                  <div className="p-3.5 sm:p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3.5">
-                      <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-955/40 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-100 dark:border-amber-900/40">
-                        <Calendar className="h-5 w-5" />
-                      </div>
-                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white">Google Calendar</span>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[12px] font-medium border ${
-                        integrationsState.googleCalendar
-                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/40"
-                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700"
-                      }`}>
-                        {integrationsState.googleCalendar ? "Enabled" : "Disabled"}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => toggleIntegration("googleCalendar")}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          integrationsState.googleCalendar ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
-                        }`}
-                      >
-                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                          integrationsState.googleCalendar ? "translate-x-5" : "translate-x-0"
-                        }`} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 5. BACKUP */}
+            {/* 4. BACKUP */}
             {currentTab === "Backup" && (
               <div className="space-y-6">
                 <div className="border-b border-slate-100 dark:border-slate-800/80 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
