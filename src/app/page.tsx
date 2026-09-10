@@ -115,6 +115,7 @@ interface Patient {
   emergencyContactPhone?: string;
   firstVisit?: string;
   preferredDentist?: string;
+  createdAt?: string;
 }
 
 interface Appointment {
@@ -969,7 +970,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         notes: p.notes || [],
         email: p.email || undefined,
         bloodGroup: p.blood_group || undefined,
-        patientType: p.patient_type || undefined
+        patientType: p.patient_type || undefined,
+        createdAt: p.created_at || undefined
       }));
       setPatients(mappedPatients);
     }
@@ -1580,7 +1582,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   // Recently Added Patient list states
   const [patientSearchQuery, setPatientSearchQuery] = useState("");
   const [patientFilterGender, setPatientFilterGender] = useState("All");
-  const [patientSortBy, setPatientSortBy] = useState("Name-ASC");
+  const [patientSortBy, setPatientSortBy] = useState("Recent");
   const [patientVisibleCount, setPatientVisibleCount] = useState(7);
 
   // Redesigned Appointments Hub states
@@ -3739,7 +3741,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       dentalChart: {},
       prescriptions: [],
       files: [],
-      notes: []
+      notes: [],
+      createdAt: insertedPat.created_at || new Date().toISOString()
     };
 
     // Book and check in instantly
@@ -3984,7 +3987,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       notes: insertedPat.notes || [],
       email: insertedPat.email || undefined,
       bloodGroup: insertedPat.blood_group || undefined,
-      patientType: insertedPat.patient_type || undefined
+      patientType: insertedPat.patient_type || undefined,
+      createdAt: insertedPat.created_at || new Date().toISOString()
     };
 
     // Update state only after successful insert
@@ -4520,6 +4524,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         if (patientSortBy === "Name-DESC") return b.name.localeCompare(a.name);
         if (patientSortBy === "ID-ASC") return a.id.localeCompare(b.id);
         if (patientSortBy === "ID-DESC") return b.id.localeCompare(a.id);
+        
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (timeA !== timeB) return timeB - timeA;
         return 0;
       });
 
@@ -5218,6 +5226,7 @@ ${clinicName}`;
                   onChange={e => setPatientSortBy(e.target.value)}
                   className="h-8 w-full appearance-none rounded-lg border border-slate-100 bg-white pl-2.5 pr-7 text-[13px] font-medium focus:outline-none dark:bg-slate-900 dark:border-slate-900/60 text-slate-700 dark:text-slate-200 cursor-pointer"
                 >
+                  <option value="Recent">Most Recent</option>
                   <option value="Name-ASC">Name (A-Z)</option>
                   <option value="Name-DESC">Name (Z-A)</option>
                   <option value="ID-DESC">ID (Desc)</option>
