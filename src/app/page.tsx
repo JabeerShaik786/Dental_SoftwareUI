@@ -5568,54 +5568,57 @@ Apex Clinic`;
                 <CalendarPlus className="h-4 w-4" /> Book Appointment
               </Button>
 
-              <Button 
-                variant="outline"
-                className="w-full h-10 border-slate-200 hover:bg-slate-50 dark:border-slate-800 text-blue-600 font-semibold text-xs rounded-xl flex items-center justify-center gap-2"
-                onClick={() => {
-                  if (goToDateRef.current) {
-                    if ("showPicker" in goToDateRef.current && typeof (goToDateRef.current as any).showPicker === "function") {
-                      (goToDateRef.current as any).showPicker();
-                    } else {
-                      goToDateRef.current.click();
-                    }
-                  }
-                }}
-              >
-                <Calendar className="h-4 w-4" /> Go to Date
-              </Button>
-              <input 
-                ref={goToDateRef}
-                type="date"
-                value={`${apptCalendarDate.getFullYear()}-${String(apptCalendarDate.getMonth() + 1).padStart(2, '0')}-${String(apptCalendarDate.getDate()).padStart(2, '0')}`}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    const rawVal = e.target.value;
-                    const [year, month, day] = rawVal.split("-").map(Number);
-                    if (year && month && day) {
-                      const selectedDate = new Date(year, month - 1, day);
-                      setApptCalendarDate(selectedDate);
+              <div className="relative w-full">
+                <Button 
+                  variant="outline"
+                  type="button"
+                  className="w-full h-10 border-slate-200 hover:bg-slate-50 dark:border-slate-800 text-blue-600 font-semibold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Calendar className="h-4 w-4" /> Go to Date
+                </Button>
+                <input 
+                  ref={goToDateRef}
+                  type="date"
+                  value={`${apptCalendarDate.getFullYear()}-${String(apptCalendarDate.getMonth() + 1).padStart(2, '0')}-${String(apptCalendarDate.getDate()).padStart(2, '0')}`}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      const rawVal = e.target.value;
+                      const [year, month, day] = rawVal.split("-").map(Number);
+                      if (year && month && day) {
+                        const selectedDate = new Date(year, month - 1, day);
+                        setApptCalendarDate(selectedDate);
 
-                      const normalizedDateStr = convertToUiDate(rawVal);
-                      const matchedAppts = appointments.filter(a => a.date === normalizedDateStr);
+                        const normalizedDateStr = convertToUiDate(rawVal);
+                        const matchedAppts = appointments.filter(a => a.date === normalizedDateStr);
 
-                      setHoveredApptDay({
-                        dateStr: normalizedDateStr,
-                        rect: {
-                          top: typeof window !== "undefined" ? window.innerHeight / 2 - 170 : 200,
-                          left: typeof window !== "undefined" ? window.innerWidth / 2 - 160 : 200,
-                          width: 320,
-                          height: 340
-                        },
-                        appointments: matchedAppts,
-                        isPinned: true
-                      });
+                        setHoveredApptDay({
+                          dateStr: normalizedDateStr,
+                          rect: {
+                            top: typeof window !== "undefined" ? window.innerHeight / 2 - 170 : 200,
+                            left: typeof window !== "undefined" ? window.innerWidth / 2 - 160 : 200,
+                            width: 320,
+                            height: 340
+                          },
+                          appointments: matchedAppts,
+                          isPinned: true
+                        });
+                      }
                     }
-                  }
-                }}
-                className="sr-only hidden"
-                tabIndex={-1}
-                aria-hidden="true"
-              />
+                  }}
+                  onClick={(e) => {
+                    if ("showPicker" in e.currentTarget && typeof (e.currentTarget as any).showPicker === "function") {
+                      try {
+                        (e.currentTarget as any).showPicker();
+                      } catch (err) {
+                        // ignore fallback
+                      }
+                    }
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  title="Go to Date"
+                  aria-label="Go to Date"
+                />
+              </div>
 
               <hr className="border-slate-100 dark:border-slate-800" />
 
