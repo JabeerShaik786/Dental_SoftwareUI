@@ -381,62 +381,6 @@ export function numberToWords(amount: number): string {
   return `${words.trim()} RUPEES ONLY`;
 }
 
-export function formatInvoiceDateDDMMYYYY(dateStr?: string): string {
-  if (!dateStr) {
-    const today = new Date();
-    const dd = String(today.getDate()).padStart(2, '0');
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const yyyy = today.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
-  }
-
-  const trimmed = dateStr.trim();
-
-  // If already in DD/MM/YYYY format
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(trimmed)) {
-    return trimmed;
-  }
-
-  // Handle ISO or YYYY-MM-DD format
-  const isoMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
-  if (isoMatch) {
-    const year = isoMatch[1];
-    const month = String(parseInt(isoMatch[2], 10)).padStart(2, '0');
-    const day = String(parseInt(isoMatch[3], 10)).padStart(2, '0');
-    return `${day}/${month}/${year}`;
-  }
-
-  // Handle custom date strings like "12 Aug 2026"
-  const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-  const parts = trimmed.split(/[\s,-/]+/);
-  if (parts.length >= 3) {
-    let day = parseInt(parts[0], 10);
-    let monthIdx = monthNames.indexOf(parts[1].toLowerCase());
-    let year = parseInt(parts[2], 10);
-
-    if (isNaN(day) || monthIdx === -1 || isNaN(year)) {
-      monthIdx = monthNames.indexOf(parts[0].toLowerCase());
-      day = parseInt(parts[1], 10);
-    }
-
-    if (!isNaN(day) && monthIdx !== -1 && !isNaN(year)) {
-      const dd = String(day).padStart(2, '0');
-      const mm = String(monthIdx + 1).padStart(2, '0');
-      return `${dd}/${mm}/${year}`;
-    }
-  }
-
-  const d = new Date(trimmed);
-  if (!isNaN(d.getTime())) {
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
-  }
-
-  return dateStr;
-}
-
 export interface TreatmentVisitNode {
   num: number;
   title: string;
@@ -12040,27 +11984,19 @@ Apex Clinic`;
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden text-xs my-8 relative"
+            className="w-full max-w-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden text-xs my-8"
           >
-            {/* Header Close Button - Not printed */}
-            <div className="flex items-center justify-end px-4 py-2 border-b border-slate-100 dark:border-slate-800 no-print">
-              <button
-                onClick={() => setLastGeneratedReceipt(null)}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                title="Close Preview"
-              >
-                <X className="h-5 w-5" />
+            {/* Header - Not printed */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 no-print">
+              <span className="font-bold text-sm text-slate-900 dark:text-white">Professional Dental Invoice Preview</span>
+              <button onClick={() => setLastGeneratedReceipt(null)} className="text-slate-400 hover:text-slate-650 dark:hover:text-slate-200">
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Printable Content Section */}
-            <div id="print-area" className="p-8 pt-4 space-y-4 bg-white text-slate-900 border border-slate-300">
+            <div id="print-area" className="p-8 space-y-4 bg-white text-slate-900 border border-slate-300">
               
-              {/* Secondary Software Header - TOP RIGHT CORNER */}
-              <div className="flex justify-end text-[10px] text-slate-500 font-medium tracking-tight">
-                <span>Health OS - Dental Practice Management Software</span>
-              </div>
-
               {/* Clinic details header (Centered) */}
               <div className="text-center space-y-1 pb-2">
                 <h1 className="text-xl font-extrabold text-blue-900 tracking-tight">
@@ -12079,7 +12015,8 @@ Apex Clinic`;
               {(() => {
                 const patientObj = patients.find(p => p.id === lastGeneratedReceipt.patientId || p.name === lastGeneratedReceipt.patientName);
                 const ageGenderStr = patientObj ? `${patientObj.age} ${patientObj.gender}` : "";
-                const formattedDate = formatInvoiceDateDDMMYYYY(lastGeneratedReceipt.paymentDate);
+                const rawDate = lastGeneratedReceipt.paymentDate || new Date().toISOString().split("T")[0];
+                const formattedDate = rawDate.includes("T") ? rawDate.split("T")[0] : rawDate.split(" ")[0];
 
                 return (
                   <>
