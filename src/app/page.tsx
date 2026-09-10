@@ -3097,10 +3097,79 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   };
 
   const isDateInRange = (dateStr: string | undefined, start: Date, end: Date): boolean => {
-    if (!dateStr) return true;
+    if (!dateStr) return false;
     const d = parseToDate(dateStr);
-    if (!d) return true;
+    if (!d) return false;
     return d >= start && d <= end;
+  };
+
+  const getReportBuckets = (filter: string, start: Date, end: Date) => {
+    if (filter === "Today") {
+      const d = new Date(start);
+      const y = d.getFullYear();
+      const m = d.getMonth();
+      const dt = d.getDate();
+      return [
+        { label: "9 AM", start: new Date(y, m, dt, 0, 0, 0), end: new Date(y, m, dt, 9, 0, 0) },
+        { label: "12 PM", start: new Date(y, m, dt, 9, 0, 1), end: new Date(y, m, dt, 12, 0, 0) },
+        { label: "3 PM", start: new Date(y, m, dt, 12, 0, 1), end: new Date(y, m, dt, 15, 0, 0) },
+        { label: "6 PM", start: new Date(y, m, dt, 15, 0, 1), end: new Date(y, m, dt, 18, 0, 0) },
+        { label: "9 PM", start: new Date(y, m, dt, 18, 0, 1), end: new Date(y, m, dt, 23, 59, 59) }
+      ];
+    }
+
+    if (filter === "Week") {
+      const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      const curr = new Date(start);
+      return days.map((dayLabel, idx) => {
+        const dayStart = new Date(curr.getFullYear(), curr.getMonth(), curr.getDate() + idx, 0, 0, 0, 0);
+        const dayEnd = new Date(curr.getFullYear(), curr.getMonth(), curr.getDate() + idx, 23, 59, 59, 999);
+        return { label: dayLabel, start: dayStart, end: dayEnd };
+      });
+    }
+
+    if (filter === "Month") {
+      const y = start.getFullYear();
+      const m = start.getMonth();
+      const lastDayOfMonth = new Date(y, m + 1, 0).getDate();
+      return [
+        { label: "W1 (1-7)", start: new Date(y, m, 1, 0, 0, 0), end: new Date(y, m, 7, 23, 59, 59) },
+        { label: "W2 (8-14)", start: new Date(y, m, 8, 0, 0, 0), end: new Date(y, m, 14, 23, 59, 59) },
+        { label: "W3 (15-21)", start: new Date(y, m, 15, 0, 0, 0), end: new Date(y, m, 21, 23, 59, 59) },
+        { label: "W4 (22+)", start: new Date(y, m, 22, 0, 0, 0), end: new Date(y, m, lastDayOfMonth, 23, 59, 59) }
+      ];
+    }
+
+    if (filter === "Year") {
+      const y = start.getFullYear();
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      return months.map((mLabel, idx) => {
+        const mStart = new Date(y, idx, 1, 0, 0, 0, 0);
+        const mEnd = new Date(y, idx + 1, 0, 23, 59, 59, 999);
+        return { label: mLabel, start: mStart, end: mEnd };
+      });
+    }
+
+    const diffDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+    if (diffDays <= 7) {
+      const buckets = [];
+      const curr = new Date(start);
+      for (let i = 0; i < diffDays; i++) {
+        const dStart = new Date(curr.getFullYear(), curr.getMonth(), curr.getDate() + i, 0, 0, 0);
+        const dEnd = new Date(curr.getFullYear(), curr.getMonth(), curr.getDate() + i, 23, 59, 59);
+        const dLabel = dStart.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        buckets.push({ label: dLabel, start: dStart, end: dEnd });
+      }
+      return buckets;
+    } else {
+      const chunkMs = (end.getTime() - start.getTime()) / 4;
+      return [0, 1, 2, 3].map(i => {
+        const bStart = new Date(start.getTime() + i * chunkMs);
+        const bEnd = new Date(start.getTime() + (i + 1) * chunkMs);
+        const bLabel = `${bStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+        return { label: bLabel, start: bStart, end: bEnd };
+      });
+    }
   };
 
   const getFilteredReportStats = () => {
@@ -3114,10 +3183,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const totalRev = filteredInvoices.reduce((sum, inv) => sum + (Number(inv.paidAmount) || Number(inv.total) || 0), 0);
 
     return {
-      revenue: totalRev > 0 ? totalRev : invoices.reduce((sum, inv) => sum + (Number(inv.paidAmount) || Number(inv.total) || 0), 0),
-      patients: filteredPatients.length > 0 ? filteredPatients.length : patients.length,
-      treatments: filteredTreatments.length > 0 ? filteredTreatments.length : treatments.length,
-      appointments: filteredAppts.length > 0 ? filteredAppts.length : appointments.length
+      revenue: totalRev,
+      patients: filteredPatients.length,
+      treatments: filteredTreatments.length,
+      appointments: filteredAppts.length
     };
   };
 
@@ -8822,7 +8891,7 @@ Apex Clinic`;
     const getPatientAnalyticsData = () => {
       const { start, end } = getReportsDateRange(reportsFilter, customStartDate, customEndDate);
       const filteredPatients = patients.filter(p => isDateInRange(p.visit, start, end));
-      const targetPatients = filteredPatients.length > 0 ? filteredPatients : patients;
+      const targetPatients = filteredPatients;
 
       let newCount = 0;
       let returningCount = 0;
@@ -8837,7 +8906,7 @@ Apex Clinic`;
       });
 
       const filteredInvoices = invoices.filter(inv => isDateInRange(inv.paymentDate || (inv.paymentLogs && inv.paymentLogs[0]?.date), start, end));
-      const targetInvoices = filteredInvoices.length > 0 ? filteredInvoices : invoices;
+      const targetInvoices = filteredInvoices;
 
       let newRev = 0;
       let returningRev = 0;
@@ -8860,13 +8929,12 @@ Apex Clinic`;
       const avgRevPerNew = newCount > 0 ? Math.round(newRev / newCount) : 0;
       const avgRevPerReturning = returningCount > 0 ? Math.round(returningRev / returningCount) : 0;
 
-      // Group monthly patient trends dynamically (Jan - Jun)
-      const monthsList = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-      const monthlyPatientTrends = monthsList.map(m => {
-        const monthIndex = monthsList.indexOf(m);
+      // Group patient trends by timeframe buckets
+      const buckets = getReportBuckets(reportsFilter, start, end);
+      const monthlyPatientTrends = buckets.map(b => {
         const mPts = targetPatients.filter(p => {
           const d = parseToDate(p.visit);
-          return d && d.getMonth() === monthIndex;
+          return d && d >= b.start && d <= b.end;
         });
 
         let mNew = 0;
@@ -8878,7 +8946,7 @@ Apex Clinic`;
         });
 
         return {
-          month: m,
+          month: b.label,
           newPts: mNew,
           returningPts: mRet,
           newRev: mNew * (avgRevPerNew || 1000),
@@ -8909,7 +8977,7 @@ Apex Clinic`;
     const getTreatmentAnalyticsData = () => {
       const { start, end } = getReportsDateRange(reportsFilter, customStartDate, customEndDate);
       const filteredTr = treatments.filter(t => isDateInRange(t.date, start, end));
-      const targetTr = filteredTr.length > 0 ? filteredTr : treatments;
+      const targetTr = filteredTr;
 
       const totalTr = targetTr.length;
       const activeTr = targetTr.filter(t => t.stage === "Planned" || t.stage === "In Progress").length;
@@ -8917,18 +8985,17 @@ Apex Clinic`;
       const totalRev = targetTr.reduce((sum, t) => sum + (Number(t.cost) || 0), 0);
       const completionRate = totalTr > 0 ? ((completedTr / totalTr) * 100).toFixed(1) + "%" : "0%";
 
-      // Group monthly performance dynamically (Jan - Jun)
-      const monthsList = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-      const monthlyPerformance = monthsList.map(m => {
-        const monthIndex = monthsList.indexOf(m);
+      // Group performance by timeframe buckets
+      const buckets = getReportBuckets(reportsFilter, start, end);
+      const monthlyPerformance = buckets.map(b => {
         const mTreatments = targetTr.filter(t => {
           const d = parseToDate(t.date);
-          return d && d.getMonth() === monthIndex;
+          return d && d >= b.start && d <= b.end;
         });
 
         const started = mTreatments.length;
         const completed = mTreatments.filter(t => t.stage === "Completed").length;
-        return { month: m, started, completed };
+        return { month: b.label, started, completed };
       });
 
       // Group most performed treatments by treatment name
@@ -8992,7 +9059,7 @@ Apex Clinic`;
     const getAppointmentAnalyticsData = () => {
       const { start, end } = getReportsDateRange(reportsFilter, customStartDate, customEndDate);
       const filteredAppts = appointments.filter(a => isDateInRange(a.date, start, end));
-      const targetAppts = filteredAppts.length > 0 ? filteredAppts : appointments;
+      const targetAppts = filteredAppts;
 
       const totalAppts = targetAppts.length;
       const completedAppts = targetAppts.filter(a => a.status === "Completed").length;
@@ -9001,18 +9068,16 @@ Apex Clinic`;
       const noshowAppts = targetAppts.filter(a => a.status === "No Show" || (a.status as string) === "No-show").length;
       const cancellationRate = totalAppts > 0 ? ((cancelledAppts / totalAppts) * 100).toFixed(1) + "%" : "0%";
 
-      // Performance bars by day of week or month
-      const daysList = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-      const performanceBars = daysList.map(dayStr => {
+      // Performance bars by timeframe buckets
+      const buckets = getReportBuckets(reportsFilter, start, end);
+      const performanceBars = buckets.map(b => {
         const dayAppts = targetAppts.filter(a => {
           const d = parseToDate(a.date);
-          if (!d) return false;
-          const dayMap: Record<number, string> = { 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat" };
-          return dayMap[d.getDay()] === dayStr;
+          return d && d >= b.start && d <= b.end;
         });
 
         return {
-          label: dayStr,
+          label: b.label,
           scheduled: dayAppts.length,
           completed: dayAppts.filter(a => a.status === "Completed").length,
           cancelled: dayAppts.filter(a => a.status === "Cancelled").length
@@ -9239,48 +9304,55 @@ Apex Clinic`;
               ))}
             </section>
 
-            {/* Existing Revenue Performance Chart */}
+            {/* Dynamic Revenue Performance Chart */}
             <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-sm block text-slate-900 dark:text-white">Revenue Performance Chart</span>
-                <span className="text-xs text-slate-400 font-medium">Daily Revenue Breakdown</span>
+                <span className="text-xs text-slate-400 font-medium">
+                  {reportsFilter === "Today" ? "Hourly Breakdown" : reportsFilter === "Week" ? "Daily Breakdown" : reportsFilter === "Month" ? "Weekly Breakdown" : "Monthly Breakdown"}
+                </span>
               </div>
-              <div className="h-48 w-full flex items-end justify-between gap-4 pt-8">
+              <div className="h-56 w-full flex items-end justify-between gap-2 sm:gap-4 pt-10 pb-2">
                 {(() => {
                   const { start, end } = getReportsDateRange(reportsFilter, customStartDate, customEndDate);
                   const filteredInvoices = invoices.filter(inv => isDateInRange(inv.paymentDate || (inv.paymentLogs && inv.paymentLogs[0]?.date), start, end));
-                  const targetInvoices = filteredInvoices.length > 0 ? filteredInvoices : invoices;
+                  const buckets = getReportBuckets(reportsFilter, start, end);
 
-                  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-                  const dayRev: Record<string, number> = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
-
-                  targetInvoices.forEach(inv => {
-                    const d = parseToDate(inv.paymentDate || (inv.paymentLogs && inv.paymentLogs[0]?.date));
-                    if (d) {
-                      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
-                      if (dayRev[dayName] !== undefined) {
-                        dayRev[dayName] += Number(inv.paidAmount) || Number(inv.total) || 0;
+                  const bucketRevs = buckets.map(b => {
+                    return filteredInvoices.reduce((sum, inv) => {
+                      const d = parseToDate(inv.paymentDate || (inv.paymentLogs && inv.paymentLogs[0]?.date));
+                      if (d && d >= b.start && d <= b.end) {
+                        return sum + (Number(inv.paidAmount) || Number(inv.total) || 0);
                       }
-                    }
+                      return sum;
+                    }, 0);
                   });
 
-                  const maxRev = Math.max(...Object.values(dayRev), 1);
-                  return days.map((day, i) => {
-                    const val = dayRev[day] || 0;
-                    const heightPct = val > 0 ? Math.max(12, Math.round((val / maxRev) * 100)) : 10;
+                  const maxRev = Math.max(...bucketRevs, 1);
+
+                  return buckets.map((b, i) => {
+                    const val = bucketRevs[i];
+                    const heightPct = val > 0 ? Math.max(14, Math.round((val / maxRev) * 100)) : 8;
                     return (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative">
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1.5 group relative h-full justify-end">
+                        {/* Tooltip */}
                         <div className="absolute -top-10 z-20 hidden group-hover:flex flex-col items-center pointer-events-none transition-all duration-150">
                           <div className="bg-slate-900 text-white text-[11px] py-1 px-2.5 rounded-lg shadow-lg font-medium whitespace-nowrap">
                             ₹{val.toLocaleString()}
                           </div>
                           <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
                         </div>
+                        {/* Direct Visible Numerical Label */}
+                        <span className={`text-[10px] sm:text-[11px] font-extrabold ${val > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'} whitespace-nowrap`}>
+                          ₹{val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val.toLocaleString()}
+                        </span>
                         <div
                           style={{ height: `${heightPct}%` }}
-                          className="w-full rounded-t-lg bg-blue-600/80 hover:bg-blue-500 transition-all cursor-pointer"
+                          className={`w-full max-w-[36px] rounded-t-lg transition-all cursor-pointer ${
+                            val > 0 ? "bg-blue-600 hover:bg-blue-500 shadow-xs" : "bg-slate-200 dark:bg-slate-800"
+                          }`}
                         />
-                        <span className="text-[10px] text-slate-400 font-bold">{day}</span>
+                        <span className="text-[10px] sm:text-[11px] text-slate-400 font-bold truncate max-w-full text-center mt-1">{b.label}</span>
                       </div>
                     );
                   });
@@ -9468,11 +9540,11 @@ Apex Clinic`;
 
               {/* Grouped Bar Chart */}
               <div className="pt-2">
-                <div className="h-56 w-full flex items-end justify-between gap-3 sm:gap-6 pt-8 px-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                <div className="h-60 w-full flex items-end justify-between gap-3 sm:gap-6 pt-10 px-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
                   {patientStats.monthlyPatientTrends.map((m, i) => {
                     const maxCount = Math.max(...patientStats.monthlyPatientTrends.map(b => Math.max(b.newPts, b.returningPts))) || 1;
-                    const newPct = Math.round((m.newPts / maxCount) * 100);
-                    const returnPct = Math.round((m.returningPts / maxCount) * 100);
+                    const newPct = m.newPts > 0 ? Math.max(14, Math.round((m.newPts / maxCount) * 100)) : 8;
+                    const returnPct = m.returningPts > 0 ? Math.max(14, Math.round((m.returningPts / maxCount) * 100)) : 8;
 
                     return (
                       <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group relative">
@@ -9486,12 +9558,28 @@ Apex Clinic`;
                           <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
                         </div>
 
-                        <div className="w-full flex items-end justify-center gap-1.5 h-full">
-                          <div style={{ height: `${Math.max(newPct, 12)}%` }} className="w-1/2 max-w-[24px] sm:max-w-[28px] bg-blue-600 hover:bg-blue-500 rounded-t-md transition-all duration-300" />
-                          <div style={{ height: `${Math.max(returnPct, 12)}%` }} className="w-1/2 max-w-[24px] sm:max-w-[28px] bg-indigo-600 hover:bg-indigo-500 rounded-t-md transition-all duration-300" />
+                        {/* Direct Visible Value Labels Above Bars */}
+                        <div className="w-full flex justify-center gap-1.5 mb-1 text-[10px] font-bold">
+                          <span className={`w-1/2 text-center ${m.newPts > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>{m.newPts}</span>
+                          <span className={`w-1/2 text-center ${m.returningPts > 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>{m.returningPts}</span>
                         </div>
 
-                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-2.5 text-center">
+                        <div className="w-full flex items-end justify-center gap-1.5 h-full">
+                          <div
+                            style={{ height: `${newPct}%` }}
+                            className={`w-1/2 max-w-[24px] sm:max-w-[28px] rounded-t-md transition-all duration-300 ${
+                              m.newPts > 0 ? "bg-blue-600 hover:bg-blue-500" : "bg-slate-200 dark:bg-slate-800"
+                            }`}
+                          />
+                          <div
+                            style={{ height: `${returnPct}%` }}
+                            className={`w-1/2 max-w-[24px] sm:max-w-[28px] rounded-t-md transition-all duration-300 ${
+                              m.returningPts > 0 ? "bg-indigo-600 hover:bg-indigo-500" : "bg-slate-200 dark:bg-slate-800"
+                            }`}
+                          />
+                        </div>
+
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-2.5 text-center truncate max-w-full">
                           {m.month}
                         </span>
                       </div>
@@ -9595,14 +9683,15 @@ Apex Clinic`;
               </div>
 
               <div className="pt-2">
-                <div className="h-56 w-full flex items-end justify-between gap-3 sm:gap-6 pt-8 px-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                <div className="h-60 w-full flex items-end justify-between gap-3 sm:gap-6 pt-10 px-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
                   {trStats.monthlyPerformance.map((m, i) => {
                     const maxVal = Math.max(...trStats.monthlyPerformance.map(b => Math.max(b.started, b.completed))) || 1;
-                    const startedPct = Math.round((m.started / maxVal) * 100);
-                    const completedPct = Math.round((m.completed / maxVal) * 100);
+                    const startedPct = m.started > 0 ? Math.max(14, Math.round((m.started / maxVal) * 100)) : 8;
+                    const completedPct = m.completed > 0 ? Math.max(14, Math.round((m.completed / maxVal) * 100)) : 8;
 
                     return (
                       <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                        {/* Tooltip */}
                         <div className="absolute -top-12 z-20 hidden group-hover:flex flex-col items-center pointer-events-none transition-all duration-150">
                           <div className="bg-slate-900 text-white text-[11px] py-1.5 px-3 rounded-lg shadow-lg font-medium whitespace-nowrap space-y-0.5">
                             <span className="font-semibold block text-slate-300 border-b border-slate-800 pb-0.5 mb-0.5">{m.month} Procedures</span>
@@ -9612,12 +9701,28 @@ Apex Clinic`;
                           <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
                         </div>
 
-                        <div className="w-full flex items-end justify-center gap-1.5 h-full">
-                          <div style={{ height: `${Math.max(startedPct, 12)}%` }} className="w-1/2 max-w-[24px] sm:max-w-[28px] bg-blue-600 hover:bg-blue-500 rounded-t-md transition-all duration-300" />
-                          <div style={{ height: `${Math.max(completedPct, 12)}%` }} className="w-1/2 max-w-[24px] sm:max-w-[28px] bg-emerald-500 hover:bg-emerald-400 rounded-t-md transition-all duration-300" />
+                        {/* Direct Visible Value Labels Above Bars */}
+                        <div className="w-full flex justify-center gap-1.5 mb-1 text-[10px] font-bold">
+                          <span className={`w-1/2 text-center ${m.started > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>{m.started}</span>
+                          <span className={`w-1/2 text-center ${m.completed > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>{m.completed}</span>
                         </div>
 
-                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-2.5 text-center">
+                        <div className="w-full flex items-end justify-center gap-1.5 h-full">
+                          <div
+                            style={{ height: `${startedPct}%` }}
+                            className={`w-1/2 max-w-[24px] sm:max-w-[28px] rounded-t-md transition-all duration-300 ${
+                              m.started > 0 ? "bg-blue-600 hover:bg-blue-500" : "bg-slate-200 dark:bg-slate-800"
+                            }`}
+                          />
+                          <div
+                            style={{ height: `${completedPct}%` }}
+                            className={`w-1/2 max-w-[24px] sm:max-w-[28px] rounded-t-md transition-all duration-300 ${
+                              m.completed > 0 ? "bg-emerald-500 hover:bg-emerald-400" : "bg-slate-200 dark:bg-slate-800"
+                            }`}
+                          />
+                        </div>
+
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-2.5 text-center truncate max-w-full">
                           {m.month}
                         </span>
                       </div>
@@ -9780,6 +9885,79 @@ Apex Clinic`;
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* 4. APPOINTMENT VOLUME BREAKDOWN */}
+            <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-xs space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+                <div>
+                  <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">
+                    Appointment Volume Breakdown
+                  </h2>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Scheduled vs Completed appointments across the selected period.
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 text-[12px] font-medium shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-blue-600 inline-block" />
+                    <span className="text-slate-700 dark:text-slate-300">Scheduled</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-emerald-500 inline-block" />
+                    <span className="text-slate-700 dark:text-slate-300">Completed</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <div className="h-60 w-full flex items-end justify-between gap-3 sm:gap-6 pt-10 px-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                  {apptStats.performanceBars.map((b, i) => {
+                    const maxVal = Math.max(...apptStats.performanceBars.map(bar => Math.max(bar.scheduled, bar.completed))) || 1;
+                    const schedPct = b.scheduled > 0 ? Math.max(14, Math.round((b.scheduled / maxVal) * 100)) : 8;
+                    const compPct = b.completed > 0 ? Math.max(14, Math.round((b.completed / maxVal) * 100)) : 8;
+
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                        {/* Tooltip */}
+                        <div className="absolute -top-12 z-20 hidden group-hover:flex flex-col items-center pointer-events-none transition-all duration-150">
+                          <div className="bg-slate-900 text-white text-[11px] py-1.5 px-3 rounded-lg shadow-lg font-medium whitespace-nowrap space-y-0.5">
+                            <span className="font-semibold block text-slate-300 border-b border-slate-800 pb-0.5 mb-0.5">{b.label} Appointments</span>
+                            <span className="text-blue-300 block">Scheduled: {b.scheduled}</span>
+                            <span className="text-emerald-300 block">Completed: {b.completed}</span>
+                          </div>
+                          <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
+                        </div>
+
+                        {/* Direct Visible Value Labels Above Bars */}
+                        <div className="w-full flex justify-center gap-1.5 mb-1 text-[10px] font-bold">
+                          <span className={`w-1/2 text-center ${b.scheduled > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>{b.scheduled}</span>
+                          <span className={`w-1/2 text-center ${b.completed > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>{b.completed}</span>
+                        </div>
+
+                        <div className="w-full flex items-end justify-center gap-1.5 h-full">
+                          <div
+                            style={{ height: `${schedPct}%` }}
+                            className={`w-1/2 max-w-[24px] sm:max-w-[28px] rounded-t-md transition-all duration-300 ${
+                              b.scheduled > 0 ? "bg-blue-600 hover:bg-blue-500" : "bg-slate-200 dark:bg-slate-800"
+                            }`}
+                          />
+                          <div
+                            style={{ height: `${compPct}%` }}
+                            className={`w-1/2 max-w-[24px] sm:max-w-[28px] rounded-t-md transition-all duration-300 ${
+                              b.completed > 0 ? "bg-emerald-500 hover:bg-emerald-400" : "bg-slate-200 dark:bg-slate-800"
+                            }`}
+                          />
+                        </div>
+
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-2.5 text-center truncate max-w-full">
+                          {b.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
