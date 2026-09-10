@@ -1,3 +1,5 @@
+"use client";
+
 import SaaSMainDashboard from "../page";
 
 export default function Page() {

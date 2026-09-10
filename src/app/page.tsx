@@ -783,7 +783,7 @@ const DEFAULT_MOCK_PATIENTS = [
   { id: "DS-1015", name: "Rajesh Khanna", phone: "+91 98100 90123", age: 60, gender: "Male", address: "Richmond Town, Bengaluru", visit: "15 Jun 2026", medicalNotes: "Penicillin Allergy", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] }
 ];
 
-const convertToDbDate = (uiDate: string): string => {
+export function convertToDbDate(uiDate: string): string {
   if (!uiDate) return new Date().toISOString().split("T")[0];
   if (/^\d{4}-\d{2}-\d{2}$/.test(uiDate)) return uiDate;
   
@@ -810,9 +810,9 @@ const convertToDbDate = (uiDate: string): string => {
   } catch (e) {}
   
   return uiDate;
-};
+}
 
-const convertToUiDate = (dbDate: string): string => {
+export function convertToUiDate(dbDate: string): string {
   if (!dbDate) return "12 Aug 2026";
   const parts = dbDate.split("-");
   if (parts.length === 3) {
@@ -827,9 +827,42 @@ const convertToUiDate = (dbDate: string): string => {
     return `${day} ${month} ${year}`;
   }
   return dbDate;
-};
+}
 
-const normalizeTimeSlot = (timeStr: string): string => {
+export function parseToDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  const parts = dateStr.split(" ");
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const monthStr = parts[1].substring(0, 3);
+    const year = parseInt(parts[2], 10);
+    const months: Record<string, number> = {
+      Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+      Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11
+    };
+    const month = months[monthStr] ?? 0;
+    if (!isNaN(day) && !isNaN(year)) {
+      return new Date(year, month, day);
+    }
+  }
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export function getMondayOfCurrentWeek(d: Date = new Date()): Date {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(date.setDate(diff));
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+export function normalizeTimeSlot(timeStr: string): string {
   if (!timeStr) return "09:00 AM";
   let cleaned = timeStr.trim().toUpperCase();
   
@@ -1516,16 +1549,17 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [patientsPeriod, setPatientsPeriod] = useState<"Today" | "This Week" | "This Month" | "Last Month" | "This Year" | "Custom Range">("This Month");
 
   // Redesigned dashboard state variables
-  const getMondayOfCurrentWeek = (d: Date = new Date()) => {
-    const date = new Date(d);
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(date.setDate(diff));
+  const getTodayLocalDateStr = (): string => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
   };
 
-  const dynamicTodayUiDate = convertToUiDate(new Date().toISOString().split("T")[0]);
+  const dynamicTodayUiDate = convertToUiDate(getTodayLocalDateStr());
   const [selectedCalendarDay, setSelectedCalendarDay] = useState(dynamicTodayUiDate);
-  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(getMondayOfCurrentWeek());
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => getMondayOfCurrentWeek());
   const [blockedSlots, setBlockedSlots] = useState<Record<string, boolean>>({});
   
   // Add Patient quick panel inputs
@@ -3194,13 +3228,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const activeDashboardDate = selectedCalendarDay || dynamicTodayUiDate;
 
   const kpiCounts = {
-    todayAppointments: appointments.filter(a => (a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026") && a.status !== "Cancelled").length,
-    walkins: appointments.filter(a => (a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026") && (a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in"))).length,
-    waiting: appointments.filter(a => (a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026") && (a.status === "Waiting" || a.status === "Checked In")).length,
-    inTreatment: appointments.filter(a => (a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026") && (a.status === "In Procedure" || a.status === "In Consultation")).length,
-    completedToday: appointments.filter(a => (a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026") && a.status === "Completed").length,
+    todayAppointments: appointments.filter(a => a.date === activeDashboardDate && a.status !== "Cancelled").length,
+    walkins: appointments.filter(a => a.date === activeDashboardDate && (a.notes?.toLowerCase().includes("walk-in") || a.patientName?.toLowerCase().includes("walk-in"))).length,
+    waiting: appointments.filter(a => a.date === activeDashboardDate && (a.status === "Waiting" || a.status === "Checked In")).length,
+    inTreatment: appointments.filter(a => a.date === activeDashboardDate && (a.status === "In Procedure" || a.status === "In Consultation")).length,
+    completedToday: appointments.filter(a => a.date === activeDashboardDate && a.status === "Completed").length,
     pendingBills: invoices.filter(i => i.status !== "Paid").length,
-    revenueToday: invoices.reduce((sum, inv) => sum + (inv.paymentLogs || []).filter(log => log.date === activeDashboardDate || log.date === dynamicTodayUiDate || log.date === "12 Aug 2026").reduce((s, l) => s + (l.amount || 0), 0), 0)
+    revenueToday: invoices.reduce((sum, inv) => sum + (inv.paymentLogs || []).filter(log => log.date === activeDashboardDate).reduce((s, l) => s + (l.amount || 0), 0), 0)
   };
 
   const pushActivity = async (type: ActivityItem["type"], msg: string) => {
@@ -4281,7 +4315,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       </div>
 
       <div className="space-y-4 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
-        {appointments.filter(a => a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026").map((app) => (
+        {appointments.filter(a => a.date === activeDashboardDate).map((app) => (
           <div key={app.id} className="flex gap-4 relative items-start group">
             <div className={`h-9 w-9 rounded-full shrink-0 flex items-center justify-center font-bold text-xs border-2 border-white dark:border-slate-955 shadow-xs z-10 ${
               app.status === "Completed" ? "bg-emerald-500 text-white" :
@@ -4393,7 +4427,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         name,
         fullName,
         date: dateString,
-        isToday: dateString === dynamicTodayUiDate || dateString === "12 Aug 2026"
+        isToday: dateString === dynamicTodayUiDate
       };
     });
 
@@ -4493,11 +4527,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     // Get next scheduled appointment for alert strip
     const nextScheduled = appointments
-      .filter(a => (a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026") && a.status === "Scheduled")
+      .filter(a => a.date === activeDashboardDate && a.status === "Scheduled")
       .sort((a, b) => a.time.localeCompare(b.time))[0];
 
     // Today's appointments filtered list
-    const todayApptsList = appointments.filter(a => (a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026") && a.status !== "Cancelled");
+    const todayApptsList = appointments.filter(a => a.date === activeDashboardDate && a.status !== "Cancelled");
 
     // 15-Day Performance Tracker Data
     const performanceData = [
@@ -4542,7 +4576,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const bezierNewPatients = getBezierPath(newPatientsPoints);
 
     // Dynamic Chair Status Helper
-    const activeProcedures = appointments.filter(a => (a.date === activeDashboardDate || a.date === dynamicTodayUiDate || a.date === "12 Aug 2026") && a.status === "In Procedure");
+    const activeProcedures = appointments.filter(a => a.date === activeDashboardDate && a.status === "In Procedure");
     const chairMap = [
       { id: "Chair 1", doc: "Dr. Sharma", status: activeProcedures[0] ? `Occupied by ${activeProcedures[0].patientName}` : "Available", color: activeProcedures[0] ? "bg-orange-100 text-orange-700" : "bg-emerald-50 text-emerald-700" },
       { id: "Chair 2", doc: "Dr. Priya", status: activeProcedures[1] ? `Occupied by ${activeProcedures[1].patientName}` : "Available", color: activeProcedures[1] ? "bg-orange-100 text-orange-700" : "bg-emerald-50 text-emerald-700" },
@@ -4552,7 +4586,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     // Collections by method today
     const collectionsToday = invoices
       .flatMap(inv => inv.paymentLogs || [])
-      .filter(log => log.date === activeDashboardDate || log.date === dynamicTodayUiDate || log.date === "12 Aug 2026");
+      .filter(log => log.date === activeDashboardDate);
     const cashTotal = collectionsToday.filter(l => l.method === "Cash").reduce((s, l) => s + l.amount, 0);
     const upiTotal = collectionsToday.filter(l => l.method.includes("UPI") || l.method.includes("GPay")).reduce((s, l) => s + l.amount, 0);
     const cardTotal = collectionsToday.filter(l => l.method === "Card").reduce((s, l) => s + l.amount, 0);
