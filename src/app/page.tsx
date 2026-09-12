@@ -3990,8 +3990,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       createdAt: insertedPat.created_at || new Date().toISOString()
     };
 
-    // Update state only after successful insert
-    setPatients(prev => [newPat, ...prev]);
+    // Update state safely without duplicating
+    setPatients(prev => {
+      if (prev.some(p => p.id === newPat.id || p.uuid === newPat.uuid)) {
+        return prev;
+      }
+      return [newPat, ...prev];
+    });
     pushActivity("Register", `Registered patient ${trimmedName} (${patientId}).`);
 
     // Add notification
