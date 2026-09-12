@@ -1,6 +1,4 @@
-"use client";
-
-import SaaSMainDashboard from "../page";
+import SaaSMainDashboard from "@/components/saas-main-dashboard";
 
 export default function Page() {
   return <SaaSMainDashboard initialTab="Settings" />;
