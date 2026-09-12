@@ -59,7 +59,7 @@ export default function PreviewHub() {
             Authentication Module
           </h1>
           <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-            Welcome to the authentication and clinic onboarding prototype for **Health OS**. This module consists of modular, responsive, and validated pages designed for dental practice groups.
+            Welcome to the authentication and clinic onboarding prototype for **DentPro OS**. This module consists of modular, responsive, and validated pages designed for dental practice groups.
           </p>
         </div>
 
@@ -103,7 +103,7 @@ export default function PreviewHub() {
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-6 dark:border-slate-800 dark:bg-slate-950">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} Health OS. All rights reserved. Prototype Preview.</p>
+          <p>© {new Date().getFullYear()} DentPro OS. All rights reserved. Prototype Preview.</p>
         </div>
       </footer>
     </div>

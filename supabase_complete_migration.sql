@@ -1,8 +1,8 @@
 -- ============================================================================
--- HEALTH OS - COMPLETE SCHEMA MIGRATION
+-- DENTPRO OS - COMPLETE SCHEMA MIGRATION
 -- ============================================================================
--- This migration script establishes the final production database architecture
--- for the Health OS dental practice management application.
+-- Complete, single-file DDL script creating all required tables, RLS policies,
+-- functions, and default seed data for the DentPro OS dental practice management application.
 --
 -- Design Principles:
 -- 1. UUID primary keys for all new tables.

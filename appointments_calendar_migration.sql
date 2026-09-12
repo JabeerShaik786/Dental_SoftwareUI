@@ -1,5 +1,5 @@
 -- ============================================================================
--- HEALTH OS - APPOINTMENTS & CALENDAR BLOCKED SLOTS PERSISTENCE MIGRATION
+-- DENTPRO OS - APPOINTMENTS & CALENDAR BLOCKED SLOTS PERSISTENCE MIGRATION
 -- ============================================================================
 -- Safely creates blocked_slots table and configures index/RLS for single-clinic.
 -- Normalizes existing time slots and resolves duplicate appointment conflicts.

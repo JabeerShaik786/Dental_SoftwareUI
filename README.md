@@ -1,6 +1,6 @@
-# Health OS — Dental Practice Management SaaS UI
+# DentPro OS — Dental Practice Management SaaS UI
 
-Health OS is a modern, enterprise-grade Dental Practice Management Software (DPMS) redesigned with clean typography, collapsible navigation systems, and interactive clinic states. Styled with Vanilla CSS and Tailwind, it simulates a production-grade workspace environment.
+DentPro OS is a modern, enterprise-grade Dental Practice Management Software (DPMS) redesigned with clean typography, collapsible navigation systems, and interactive clinic states. Styled with Vanilla CSS and Tailwind, it simulates a production-grade workspace environment.
 
 ## 🚀 Key Features
 

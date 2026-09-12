@@ -115,7 +115,7 @@ export default function LoginPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="doctor@healthos.com"
+                    placeholder="doctor@dentproos.com"
                     className={`h-[56px] pl-[52px] pr-[18px] rounded-[14px] bg-white/22 border text-[17px] font-normal text-[#0F172A] placeholder-[#64748B] ${
                       errors.email
                         ? "border-red-400 focus-visible:ring-4 focus-visible:ring-red-455/10 focus-visible:border-red-400"
@@ -223,7 +223,7 @@ export default function LoginPage() {
             </div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-white">Authentication Successful</h3>
             <p className="text-xs text-slate-500 mt-2 max-w-xs dark:text-slate-400">
-              Redirecting you to the Health OS clinical workspace...
+              Redirecting you to the DentPro OS clinical workspace...
             </p>
           </motion.div>
         )}

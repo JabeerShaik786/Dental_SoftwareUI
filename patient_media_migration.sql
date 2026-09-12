@@ -1,5 +1,5 @@
 -- ============================================================================
--- HEALTH OS - PATIENT MEDIA & FILES PERSISTENCE MIGRATION
+-- DENTPRO OS - PATIENT MEDIA & FILES PERSISTENCE MIGRATION
 -- ============================================================================
 -- Safely adds patient_media table and registers patient-media storage bucket.
 -- Also alters clinical_notes table to add author_name column for robust parsing.

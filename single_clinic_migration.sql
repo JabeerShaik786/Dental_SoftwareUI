@@ -1,5 +1,5 @@
 -- ============================================================================
--- HEALTH OS - REVISED SINGLE CLINIC SIMPLIFICATION MIGRATION
+-- DENTPRO OS - REVISED SINGLE CLINIC SIMPLIFICATION MIGRATION
 -- ============================================================================
 -- Consolidates multi-clinic architecture to a single-clinic model.
 -- Migrates staff data securely without fake auth users, handles clinic_id removal,

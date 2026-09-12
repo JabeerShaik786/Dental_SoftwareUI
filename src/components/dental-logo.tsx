@@ -29,7 +29,7 @@ export function DentalLogo({ className = "", showText = true, collapsed = false 
         showText ? "opacity-100 w-auto min-w-0" : "opacity-0 max-w-0 overflow-hidden pointer-events-none"
       }`}>
         <span className="text-[18px] font-bold tracking-tight text-[#0F172A] dark:text-white leading-none whitespace-nowrap">
-          Health OS
+          DentPro OS
         </span>
       </div>
     </div>

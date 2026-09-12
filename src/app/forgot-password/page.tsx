@@ -103,7 +103,7 @@ export default function ForgotPasswordPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="doctor@healthos.com"
+                    placeholder="doctor@dentproos.com"
                     className={`h-[56px] pl-[52px] pr-[18px] rounded-[14px] bg-white/22 border text-[17px] font-normal text-[#0F172A] placeholder-[#64748B] ${
                       errors.email
                         ? "border-red-400 focus-visible:ring-4 focus-visible:ring-red-455/10 focus-visible:border-red-400"

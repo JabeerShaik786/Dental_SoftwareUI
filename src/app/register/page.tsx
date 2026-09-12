@@ -756,7 +756,7 @@ export default function RegisterPage() {
               </div>
               <h3 className="text-xl font-bold text-slate-900">Clinic Created Successfully!</h3>
               <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                Welcome to **Health OS**! Your practice workspace for <span className="font-bold text-slate-800">{clinicData.clinicName}</span> has been provisioned. We've automatically authenticated your owner credentials.
+                Welcome to **DentPro OS**! Your practice workspace for <span className="font-bold text-slate-800">{clinicData.clinicName}</span> has been provisioned. We've automatically authenticated your owner credentials.
               </p>
               
               <Button

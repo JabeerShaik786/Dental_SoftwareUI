@@ -1,4 +1,4 @@
--- Supabase Schema Migration File for Health OS
+-- Supabase Schema Migration File for DentPro OS
 -- Enables Row Level Security and creates isolated public clinic workspace tables
 
 -- 1. Create Clinics Table

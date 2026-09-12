@@ -11271,7 +11271,7 @@ ${clinicName}`;
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 font-sans">
         <Loader2 className="h-10 w-10 text-blue-600 animate-spin" />
         <p className="text-sm text-slate-505 mt-4 dark:text-slate-400 font-medium">
-          Loading Health OS clinical workspace...
+          Loading DentPro OS clinical workspace...
         </p>
       </div>
     );

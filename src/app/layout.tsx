@@ -15,7 +15,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Health OS - Dental Practice Management Software",
+  title: "DentPro OS - Dental Practice Management Software",
   description: "The modern, all-in-one practice management platform for dental clinics. HIPAA compliant, responsive scheduling, billing, and patient charts.",
 };
 

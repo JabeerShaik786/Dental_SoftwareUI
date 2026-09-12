@@ -1,5 +1,5 @@
 -- ============================================================================
--- HEALTH OS - PATIENT FILES & SCANS PERSISTENCE MIGRATION
+-- DENTPRO OS - PATIENT FILES & SCANS PERSISTENCE MIGRATION
 -- ============================================================================
 -- Safely adds patient_files table and registers patient-files storage bucket.
 -- Compatible with single-clinic architecture (no clinic_id/tenant isolation changes).

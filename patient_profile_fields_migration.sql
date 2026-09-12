@@ -1,5 +1,5 @@
 -- ============================================================================
--- HEALTH OS - PATIENT PROFILE FIELDS PERSISTENCE MIGRATION (UPDATED)
+-- DENTPRO OS - PATIENT PROFILE FIELDS PERSISTENCE MIGRATION (UPDATED)
 -- ============================================================================
 -- Safely adds genuinely missing patient profile columns to public.patients table.
 -- Reuses existing name and address columns to prevent duplicate/redundant data.
