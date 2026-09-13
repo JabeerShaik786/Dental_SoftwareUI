@@ -11312,24 +11312,15 @@ ${clinicName}`;
       >
         <div className={`border-b border-slate-200 dark:border-slate-800 flex items-center shrink-0 transition-all duration-300 ease-in-out h-20 ${
           sidebarCollapsed
-            ? "px-0 justify-center flex-col py-2 gap-1.5"
-            : "px-4 py-5 justify-between flex-row"
+            ? "px-0 justify-center py-2"
+            : "px-4 py-5 justify-start"
         }`}>
-          <div className={`flex items-center transition-all duration-300 ease-in-out ${
-            sidebarCollapsed ? "justify-center w-full" : "justify-start flex-1 min-w-0"
-          }`}>
-            <DentalLogo showText={!sidebarCollapsed} collapsed={sidebarCollapsed} />
-          </div>
-          
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className={`rounded-full flex items-center justify-center hover:bg-[#EFF6FF] hover:text-blue-600 text-slate-500 transition-all duration-250 ease-in-out shrink-0 active:scale-[0.97] ${
-              sidebarCollapsed ? "h-6 w-6 mx-auto" : "h-8 w-8 ml-1"
-            }`}
-            title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          </button>
+          <DentalLogo
+            showText={!sidebarCollapsed}
+            collapsed={sidebarCollapsed}
+            onLogoClick={() => selectTab("Dashboard")}
+            onTextClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
         </div>
 
         <div className="flex flex-col flex-grow overflow-y-auto overflow-x-hidden">
@@ -11741,7 +11732,13 @@ ${clinicName}`;
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                  <DentalLogo showText={true} />
+                  <DentalLogo
+                    showText={true}
+                    onLogoClick={() => {
+                      selectTab("Dashboard");
+                      setMobileMenuOpen(false);
+                    }}
+                  />
                   <button
                     onClick={() => setMobileMenuOpen(false)}
                     className="p-1.5 hover:bg-slate-100 rounded-md dark:hover:bg-slate-800 text-slate-500 cursor-pointer"
