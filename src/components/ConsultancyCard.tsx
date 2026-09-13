@@ -96,8 +96,7 @@ export default function ConsultancyCard() {
                   <div>
                     <input
                       type="email"
-                      required
-                      placeholder="Email*"
+                      placeholder="Email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="w-full h-11 px-4 text-sm rounded-lg bg-[#f4f5f8] border border-transparent focus:border-[#0284c7] focus:bg-white text-slate-800 placeholder:text-slate-400 transition-all outline-none"
