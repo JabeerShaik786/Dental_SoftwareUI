@@ -1,0 +1,30 @@
+{
+  "name": "DentPro OS",
+  "short_name": "DentPro OS",
+  "description": "Dental Practice Management Software",
+  "start_url": "/Dental_SoftwareUI/",
+  "scope": "/Dental_SoftwareUI/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#2563eb",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/Dental_SoftwareUI/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Dental_SoftwareUI/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Dental_SoftwareUI/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

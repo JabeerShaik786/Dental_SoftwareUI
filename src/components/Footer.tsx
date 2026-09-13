@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Mail, MapPin, Phone, MessageSquare, Clock } from "lucide-react";
 import { getAssetPath } from "@/lib/getAssetPath";
+import { PwaInstallButton } from "@/components/pwa-install-button";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -186,6 +187,7 @@ export default function Footer() {
           <span>Designed and Managed by JK & Co.</span>
         </p>
         <div className="flex items-center justify-center gap-6">
+          <PwaInstallButton />
           <Link href="/privacy-policy" className="hover:text-white transition-colors duration-200">
             Privacy Policy
           </Link>

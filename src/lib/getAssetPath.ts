@@ -5,7 +5,9 @@ export const getAssetPath = (path: string): string => {
   }
 
   const envBasePath = process.env.NEXT_PUBLIC_BASE_PATH;
-  const basePath = envBasePath !== undefined ? envBasePath : "/Dental_SoftwareUI";
+  const isProd = process.env.NODE_ENV === "production";
+  const defaultBasePath = isProd ? "/Dental_SoftwareUI" : "";
+  const basePath = envBasePath !== undefined ? envBasePath : defaultBasePath;
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
 
   const encodedPath = cleanPath
