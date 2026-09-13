@@ -11604,8 +11604,8 @@ ${clinicName}`;
               >
                 <div className="relative inline-flex items-center justify-center">
                   <Bell className="h-4 w-4" />
-                  {notifications.some(n => n.unread) && (
-                    <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900 shrink-0" />
+                  {notifications?.some(n => n.unread) && (
+                    <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900 shrink-0" />
                   )}
                 </div>
               </button>
