@@ -4,18 +4,6 @@ import Image from "next/image";
 import { getAssetPath } from "@/lib/getAssetPath";
 
 export default function Hero() {
-  const scrollToContact = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    const target = document.querySelector("#consultancy") || document.querySelector("#contact");
-    if (target) {
-      const targetPosition = target.getBoundingClientRect().top + window.scrollY - 90;
-      window.scrollTo({
-        top: Math.max(0, targetPosition),
-        behavior: "smooth",
-      });
-    }
-  };
-
   return (
     <section
       id="home"
@@ -59,8 +47,7 @@ export default function Hero() {
           {/* Blue Gradient Contact Us Button */}
           <div>
             <a
-              href="#contact"
-              onClick={scrollToContact}
+              href="tel:09885349798"
               className="inline-flex items-center justify-center px-8 py-3 bg-gradient-to-r from-[#0ea5e9] to-[#0284c7] text-white font-semibold text-sm sm:text-base rounded-lg shadow-md hover:shadow-lg hover:opacity-95 active:scale-95 transition-all duration-200"
             >
               Contact Us
