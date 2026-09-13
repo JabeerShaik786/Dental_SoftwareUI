@@ -31,10 +31,19 @@ export function PublicAppointmentForm({ className = "" }: { className?: string }
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const getEndpoint = () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (supabaseUrl && supabaseUrl.startsWith("http")) {
+      return `${supabaseUrl}/functions/v1/public-appointment`;
+    }
+    return "/api/public-appointment";
+  };
+
   useEffect(() => {
     async function fetchDoctors() {
       try {
-        const res = await fetch("/api/public-appointment");
+        const endpoint = getEndpoint();
+        const res = await fetch(endpoint);
         const json = await res.json();
         if (json.success && Array.isArray(json.doctors)) {
           setDoctors(json.doctors);
@@ -78,7 +87,8 @@ export function PublicAppointmentForm({ className = "" }: { className?: string }
     setSubmitting(true);
 
     try {
-      const res = await fetch("/api/public-appointment", {
+      const endpoint = getEndpoint();
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

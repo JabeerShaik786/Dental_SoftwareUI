@@ -10296,9 +10296,20 @@ ${clinicName}`;
         }
 
         try {
-          const res = await fetch("/api/staff", {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+          const staffEndpoint = (supabaseUrl && supabaseUrl.startsWith("http"))
+            ? `${supabaseUrl}/functions/v1/staff`
+            : "/api/staff";
+
+          const { data: { session } } = await supabase.auth.getSession();
+          const authHeaders: Record<string, string> = { "Content-Type": "application/json" };
+          if (session?.access_token) {
+            authHeaders["Authorization"] = `Bearer ${session.access_token}`;
+          }
+
+          const res = await fetch(staffEndpoint, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders,
             body: JSON.stringify({
               email: cleanEmail,
               fullName: cleanName,
@@ -10348,8 +10359,21 @@ ${clinicName}`;
 
       if (deleteStaffConfirm.id && !deleteStaffConfirm.id.startsWith("st-")) {
         try {
-          const res = await fetch(`/api/staff?id=${encodeURIComponent(deleteStaffConfirm.id)}`, {
-            method: "DELETE"
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+          const baseUrl = (supabaseUrl && supabaseUrl.startsWith("http"))
+            ? `${supabaseUrl}/functions/v1/staff`
+            : "/api/staff";
+          const staffEndpoint = `${baseUrl}?id=${encodeURIComponent(deleteStaffConfirm.id)}`;
+
+          const { data: { session } } = await supabase.auth.getSession();
+          const authHeaders: Record<string, string> = {};
+          if (session?.access_token) {
+            authHeaders["Authorization"] = `Bearer ${session.access_token}`;
+          }
+
+          const res = await fetch(staffEndpoint, {
+            method: "DELETE",
+            headers: authHeaders
           });
 
           const resData = await res.json();
