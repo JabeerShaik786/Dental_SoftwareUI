@@ -4,7 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { Mail, MapPin, Phone, MessageSquare, Clock } from "lucide-react";
 import { getAssetPath } from "@/lib/getAssetPath";
-import { PwaInstallButton } from "@/components/pwa-install-button";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -186,20 +185,19 @@ export default function Footer() {
           />
           <span>Designed and Managed by JK & Co.</span>
         </p>
-        <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-5 gap-y-3 sm:gap-6 pr-12 md:pr-0">
-          <PwaInstallButton />
-          <Link href="/privacy-policy" className="hover:text-white transition-colors duration-200">
+        <div className="grid grid-cols-2 md:flex items-center justify-center md:justify-end gap-x-6 gap-y-3.5 text-center md:text-left max-w-xs md:max-w-none mx-auto md:mx-0">
+          <Link href="/privacy-policy" className="hover:text-white transition-colors duration-200 py-1">
             Privacy Policy
           </Link>
-          <Link href="/terms-of-service" className="hover:text-white transition-colors duration-200">
+          <Link href="/terms-of-service" className="hover:text-white transition-colors duration-200 py-1">
             Terms of Service
           </Link>
-          <a href="#" className="hover:text-white transition-colors duration-200">
+          <a href="#" className="hover:text-white transition-colors duration-200 py-1">
             Sitemap
           </a>
           <Link
             href="/login"
-            className="hover:text-white transition-colors duration-200 opacity-70 hover:opacity-100 py-1 px-2.5 rounded-md inline-block touch-manipulation font-medium"
+            className="hover:text-white transition-colors duration-200 opacity-70 hover:opacity-100 py-1"
           >
             Login
           </Link>
