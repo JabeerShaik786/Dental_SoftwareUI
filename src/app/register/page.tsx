@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { getAssetPath } from "@/lib/getAssetPath";
 import { DentalLogo } from "@/components/dental-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -186,7 +187,7 @@ export default function RegisterPage() {
       {/* Background Image Layer */}
       <div 
         className="fixed inset-0 z-0 bg-cover bg-left sm:bg-center bg-no-repeat pointer-events-none" 
-        style={{ backgroundImage: "url('/dental-bg.png')" }}
+        style={{ backgroundImage: `url('${getAssetPath("/dental-bg.png")}')` }}
       />
       {/* White Overlay Gradient Layer */}
       <div className="fixed inset-0 z-0 bg-white/50 pointer-events-none" />

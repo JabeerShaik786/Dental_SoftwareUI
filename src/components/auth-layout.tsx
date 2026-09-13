@@ -1,6 +1,7 @@
 import React from "react";
 import { DentalLogo } from "./dental-logo";
 import { motion } from "framer-motion";
+import { getAssetPath } from "@/lib/getAssetPath";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -16,7 +17,7 @@ export function AuthLayout({ children, title, subtitle, largeCard = false }: Aut
       {/* Background Image Layer */}
       <div 
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none" 
-        style={{ backgroundImage: "url('/dental-bg.png')" }}
+        style={{ backgroundImage: `url('${getAssetPath("/dental-bg.png")}')` }}
       />
       {/* Overlay Layer */}
       <div className="fixed inset-0 z-0 bg-white/50 pointer-events-none" />
