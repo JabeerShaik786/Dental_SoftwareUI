@@ -4,12 +4,5 @@ export const getAssetPath = (path: string): string => {
     return path;
   }
 
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  const basePath = "/VR-Dental-Care-Dental-Implant-Centre.";
-
-  if (cleanPath.startsWith(basePath)) {
-    return cleanPath;
-  }
-
-  return `${basePath}${cleanPath}`;
+  return path.startsWith("/") ? path : `/${path}`;
 };
