@@ -20,6 +20,7 @@ import {
   ChevronDown,
   Building2,
   Menu,
+  PanelLeftOpen,
   Search,
   Plus,
   Bell,
@@ -11312,15 +11313,27 @@ ${clinicName}`;
       >
         <div className={`border-b border-slate-200 dark:border-slate-800 flex items-center shrink-0 transition-all duration-300 ease-in-out h-20 ${
           sidebarCollapsed
-            ? "px-0 justify-center py-2"
-            : "px-4 py-5 justify-start"
+            ? "px-0 justify-center flex-col py-2 gap-1.5"
+            : "px-4 py-5 justify-start flex-row"
         }`}>
           <DentalLogo
             showText={!sidebarCollapsed}
             collapsed={sidebarCollapsed}
             onLogoClick={() => selectTab("Dashboard")}
-            onTextClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            onTextClick={() => setSidebarCollapsed(true)}
           />
+
+          {sidebarCollapsed && (
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(false)}
+              className="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 dark:hover:text-blue-400 transition-all cursor-pointer active:scale-95"
+              title="Expand Sidebar"
+              aria-label="Expand Sidebar"
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         <div className="flex flex-col flex-grow overflow-y-auto overflow-x-hidden">
