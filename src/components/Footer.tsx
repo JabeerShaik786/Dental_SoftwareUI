@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Smile, Mail, MapPin, Phone, MessageSquare, Clock } from "lucide-react";
+import { Mail, MapPin, Phone, MessageSquare, Clock } from "lucide-react";
 import { getAssetPath } from "@/lib/getAssetPath";
 
 export default function Footer() {
@@ -45,10 +45,16 @@ export default function Footer() {
           <a
             href="#home"
             onClick={(e) => handleLinkClick(e, "#home")}
-            className="flex items-center gap-2 group cursor-pointer"
+            className="flex items-center gap-3 group cursor-pointer"
           >
-            <div className="w-10 h-10 rounded-full bg-primary/20 text-accent flex items-center justify-center">
-              <Smile className="w-5 h-5 text-accent" />
+            <div className="relative w-10 h-10 shrink-0">
+              <Image
+                src={getAssetPath("/logo.png")}
+                alt="V.R. Dental Care"
+                fill
+                className="object-contain"
+                unoptimized
+              />
             </div>
             <div className="flex flex-col">
               <span className="font-heading font-extrabold text-sm tracking-tight text-white leading-tight uppercase">
