@@ -34,21 +34,37 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const url = request.nextUrl.clone()
-  const publicPaths = ['/login', '/forgot-password', '/reset-password']
-  const isPublicPath = publicPaths.some(path => url.pathname.startsWith(path))
+  const pathname = url.pathname
 
-  if (!user && !isPublicPath) {
-    // Redirect unauthenticated user to login
+  // Auth paths where authenticated staff should be redirected to /dashboard
+  const authPaths = ['/login', '/forgot-password', '/reset-password']
+  const isAuthPath = authPaths.some(path => pathname === path || pathname.startsWith(`${path}/`))
+
+  // Explicit private/protected clinical workspace routes requiring staff authentication
+  const protectedPaths = [
+    '/dashboard',
+    '/appointments',
+    '/patients',
+    '/treatments',
+    '/billing',
+    '/reports',
+    '/settings'
+  ]
+  const isProtectedPath = protectedPaths.some(path => pathname === path || pathname.startsWith(`${path}/`))
+
+  // 1. Redirect unauthenticated user attempting to access private clinical workspace route to /login
+  if (!user && isProtectedPath) {
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  if (user && isPublicPath) {
-    // Redirect authenticated user to dashboard
-    url.pathname = '/'
+  // 2. Redirect authenticated staff accessing auth pages (/login, /forgot-password, etc.) to /dashboard
+  if (user && isAuthPath) {
+    url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 
+  // Allow all public website routes (/ , /book-appointment, /about, /services, /contact, /privacy-policy, /terms-of-service, /preview-hub, etc.)
   return supabaseResponse
 }
 

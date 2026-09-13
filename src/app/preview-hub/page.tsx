@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { DentalLogo } from "@/components/dental-logo";
-import { LogIn, UserPlus, KeyRound, RefreshCw, CheckCircle, Shield, Sparkles, Smartphone } from "lucide-react";
+import { LogIn, UserPlus, KeyRound, RefreshCw, CheckCircle, Shield, Sparkles, Smartphone, Calendar } from "lucide-react";
 
 export default function PreviewHub() {
   const pages = [
@@ -32,6 +32,13 @@ export default function PreviewHub() {
       href: "/reset-password",
       icon: <RefreshCw className="h-6 w-6 text-purple-600" />,
       features: ["Complexity requirement check", "Visual password strength meter", "Password match validation", "Autoredirect on success"],
+    },
+    {
+      title: "Public Appointment Booking",
+      description: "Public website appointment request form for patient self-service booking.",
+      href: "/book-appointment",
+      icon: <Calendar className="h-6 w-6 text-amber-600" />,
+      features: ["Unauthenticated POST /api/public-appointment", "Phone normalization & patient matching", "Duplicate request prevention", "Direct Supabase synchronization"],
     },
   ];
 
