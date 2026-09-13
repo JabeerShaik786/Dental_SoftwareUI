@@ -256,6 +256,28 @@ const ALL_TEETH: ToothConfig[] = [
   { index: 32, fdi: 48, x: 83, y: 274, rotation: 90, type: 'molar', labelX: 51, labelY: 270 }
 ];
 
+export const formatTo12h = (timeStr: string): string => {
+  if (!timeStr) return "";
+  const trimmed = timeStr.trim();
+  const ampmMatch = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (ampmMatch) {
+    const [_, h, m, p] = ampmMatch;
+    const hr = String(parseInt(h, 10)).padStart(2, "0");
+    return `${hr}:${m} ${p.toUpperCase()}`;
+  }
+  const match24 = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (match24) {
+    const [_, h, m] = match24;
+    let hr = parseInt(h, 10);
+    const period = hr >= 12 ? "PM" : "AM";
+    hr = hr % 12;
+    if (hr === 0) hr = 12;
+    const hrStr = String(hr).padStart(2, "0");
+    return `${hrStr}:${m} ${period}`;
+  }
+  return timeStr;
+};
+
 export interface TreatmentColorConfig {
   name: string;
   dotColor: string;
@@ -1572,6 +1594,17 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [selectedCalendarDay, setSelectedCalendarDay] = useState(dynamicTodayUiDate);
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => getMondayOfCurrentWeek());
   const [blockedSlots, setBlockedSlots] = useState<Record<string, boolean>>({});
+  const [currentHeaderDate, setCurrentHeaderDate] = useState<string>("");
+
+  useEffect(() => {
+    const updateHeaderDate = () => {
+      const d = new Date();
+      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      setCurrentHeaderDate(`${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`);
+    };
+    updateHeaderDate();
+  }, []);
   
   // Add Patient quick panel inputs
   const [quickFirstName, setQuickFirstName] = useState("");
@@ -4486,16 +4519,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       "08:00 PM", "08:15 PM"
     ];
 
-    const formatTo24h = (timeStr: string) => {
-      const match = timeStr.match(/^(\d+):(\d+)\s*(AM|PM)$/i);
-      if (!match) return timeStr;
-      let [_, h, m, p] = match;
-      let hr = parseInt(h, 10);
-      if (p.toUpperCase() === "PM" && hr < 12) hr += 12;
-      if (p.toUpperCase() === "AM" && hr === 12) hr = 0;
-      return `${String(hr).padStart(2, '0')}:${m}`;
-    };
-
     // Slot matcher helper
     const getApptForSlot = (date: string, timeSlot: string) => {
       const cleanT = (t: string) => t.trim().toLowerCase().replace(/^0/, "");
@@ -4792,7 +4815,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       >
                         {appt ? (
                           <>
-                            <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
+                            <span className="slot-time font-bold">{formatTo12h(time)}</span>
                             <div className="w-full mt-1">
                               <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
                                 {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
@@ -4801,13 +4824,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           </>
                         ) : isBlocked ? (
                           <>
-                            <span className="slot-time font-bold">{time.replace(" AM", "")}</span>
+                            <span className="slot-time font-bold">{formatTo12h(time)}</span>
                             <span className="slot-open-label text-[9px] font-bold flex items-center gap-1 mt-1 text-slate-400">
                               🔒 Blocked
                             </span>
                           </>
                         ) : (
-                          <span className="slot-time">{formatTo24h(time)}</span>
+                          <span className="slot-time">{formatTo12h(time)}</span>
                         )}
                       </button>
                     );
@@ -4881,7 +4904,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                       >
                         {appt ? (
                           <>
-                            <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
+                            <span className="slot-time font-bold">{formatTo12h(time)}</span>
                             <div className="w-full mt-1">
                               <span className={`slot-badge px-1.5 py-0.5 rounded text-[8px] font-bold inline-block uppercase tracking-wider ${statusBadge}`}>
                                 {appt?.status === "In Consultation" ? "Consult" : appt?.status === "In Procedure" ? "Procedure" : appt?.status}
@@ -4890,13 +4913,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                           </>
                         ) : isBlocked ? (
                           <>
-                            <span className="slot-time font-bold">{time.replace(" PM", "")}</span>
+                            <span className="slot-time font-bold">{formatTo12h(time)}</span>
                             <span className="slot-open-label text-[9px] font-bold flex items-center gap-1 mt-1 text-slate-400">
                               🔒 Blocked
                             </span>
                           </>
                         ) : (
-                          <span className="slot-time">{formatTo24h(time)}</span>
+                          <span className="slot-time">{formatTo12h(time)}</span>
                         )}
                       </button>
                     );
@@ -4936,7 +4959,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
                             {app.status === "Completed" && <span className="h-2 w-2 rounded-full bg-slate-400 mr-2 shrink-0" title="Completed" />}
                             <span className="font-semibold text-[16px] text-slate-800 dark:text-slate-200 truncate leading-none">{app.patientName}</span>
                           </div>
-                          <span className="text-[13px] font-semibold text-slate-650 dark:text-slate-400 shrink-0 leading-none">{app.time}</span>
+                          <span className="text-[13px] font-semibold text-slate-650 dark:text-slate-400 shrink-0 leading-none">{formatTo12h(app.time)}</span>
                         </div>
 
                         {/* Second Line: Doctor Name */}
@@ -11604,7 +11627,9 @@ ${clinicName}`;
  
             {/* Clinic Date */}
             <div className="hidden lg:block text-right text-[12px] border-r pr-3.5 border-slate-200 dark:border-slate-800 leading-none">
-              <span className="font-semibold text-slate-700 dark:text-slate-300">Wednesday, 12 Aug 2026</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300" suppressHydrationWarning>
+                {currentHeaderDate}
+              </span>
             </div>
 
             {/* Notifications Alert Dropdown */}
@@ -12615,7 +12640,7 @@ ${clinicName}`;
               <div className="flex flex-col text-slate-900 dark:text-white">
                 <span className="text-[18px] font-bold leading-tight">Slot Management:</span>
                 <span className="text-[16px] font-semibold text-slate-500 dark:text-slate-400 mt-1 leading-normal">
-                  {selectedSlotData.date} at {selectedSlotData.time}
+                  {selectedSlotData.date} at {formatTo12h(selectedSlotData.time)}
                 </span>
               </div>
               <button onClick={() => setSelectedSlotData(null)} className="text-slate-400 hover:text-slate-650 shrink-0 mt-0.5">
@@ -13089,7 +13114,7 @@ ${clinicName}`;
             <div className="space-y-1.5 text-[11px] text-slate-600 dark:text-slate-300 font-medium">
               <div className="flex justify-between">
                 <span className="text-slate-400 font-normal">Appt Time:</span>
-                <span className="font-bold text-slate-800 dark:text-slate-200">{app.time}</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{formatTo12h(app.time)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400 font-normal">Doctor:</span>
