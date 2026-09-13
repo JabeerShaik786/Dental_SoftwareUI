@@ -38,7 +38,7 @@ export default function PreviewHub() {
       description: "Public website appointment request form for patient self-service booking.",
       href: "/book-appointment",
       icon: <Calendar className="h-6 w-6 text-amber-600" />,
-      features: ["Unauthenticated POST /api/public-appointment", "Phone normalization & patient matching", "Duplicate request prevention", "Direct Supabase synchronization"],
+      features: ["Supabase Edge Function /functions/v1/public-appointment", "Phone normalization & patient matching", "Duplicate request prevention", "Direct Supabase synchronization"],
     },
   ];
 

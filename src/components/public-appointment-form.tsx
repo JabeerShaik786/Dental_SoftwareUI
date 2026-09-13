@@ -32,11 +32,8 @@ export function PublicAppointmentForm({ className = "" }: { className?: string }
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const getEndpoint = () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (supabaseUrl && supabaseUrl.startsWith("http")) {
-      return `${supabaseUrl}/functions/v1/public-appointment`;
-    }
-    return "/api/public-appointment";
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    return `${supabaseUrl}/functions/v1/public-appointment`;
   };
 
   useEffect(() => {

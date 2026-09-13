@@ -5,6 +5,7 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH !== undefined
   : "/Dental_SoftwareUI";
 
 const nextConfig: NextConfig = {
+  output: "export",
   basePath: basePath || undefined,
   images: {
     unoptimized: true,

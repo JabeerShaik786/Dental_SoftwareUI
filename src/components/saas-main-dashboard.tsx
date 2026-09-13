@@ -10296,10 +10296,8 @@ ${clinicName}`;
         }
 
         try {
-          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-          const staffEndpoint = (supabaseUrl && supabaseUrl.startsWith("http"))
-            ? `${supabaseUrl}/functions/v1/staff`
-            : "/api/staff";
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+          const staffEndpoint = `${supabaseUrl}/functions/v1/staff`;
 
           const { data: { session } } = await supabase.auth.getSession();
           const authHeaders: Record<string, string> = { "Content-Type": "application/json" };
@@ -10359,11 +10357,8 @@ ${clinicName}`;
 
       if (deleteStaffConfirm.id && !deleteStaffConfirm.id.startsWith("st-")) {
         try {
-          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-          const baseUrl = (supabaseUrl && supabaseUrl.startsWith("http"))
-            ? `${supabaseUrl}/functions/v1/staff`
-            : "/api/staff";
-          const staffEndpoint = `${baseUrl}?id=${encodeURIComponent(deleteStaffConfirm.id)}`;
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+          const staffEndpoint = `${supabaseUrl}/functions/v1/staff?id=${encodeURIComponent(deleteStaffConfirm.id)}`;
 
           const { data: { session } } = await supabase.auth.getSession();
           const authHeaders: Record<string, string> = {};
