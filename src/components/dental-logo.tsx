@@ -42,7 +42,7 @@ export function DentalLogo({
       }`}
     >
       <span className="text-[20px] font-bold tracking-tight leading-none whitespace-nowrap select-none">
-        <span className="text-[#0F172A] dark:text-white">DentPro</span>
+        <span className="text-[#0F172A] dark:text-white">DentPro</span>{" "}
         <span className="text-[#0284c7]">OS</span>
       </span>
     </div>
