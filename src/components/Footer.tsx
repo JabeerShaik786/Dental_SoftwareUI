@@ -173,7 +173,7 @@ export default function Footer() {
 
       <hr className="border-white/10 max-w-[1440px] mx-auto px-6 md:px-12" />
 
-      <div className="max-w-[1440px] mx-auto px-6 md:px-12 mt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/40 text-center md:text-left">
+      <div className="max-w-[1440px] mx-auto px-6 md:px-12 mt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/40 text-center md:text-left pb-20 md:pb-0">
         <p>© {currentYear} V.R. Dental Care & Dental Implant Centre. All rights reserved.</p>
         <p className="text-white/40 flex items-center justify-center gap-1.5">
           <Image
@@ -186,7 +186,7 @@ export default function Footer() {
           />
           <span>Designed and Managed by JK & Co.</span>
         </p>
-        <div className="flex items-center justify-center gap-6">
+        <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-5 gap-y-3 sm:gap-6 pr-12 md:pr-0">
           <PwaInstallButton />
           <Link href="/privacy-policy" className="hover:text-white transition-colors duration-200">
             Privacy Policy
@@ -199,7 +199,7 @@ export default function Footer() {
           </a>
           <Link
             href="/login"
-            className="hover:text-white transition-colors duration-200 opacity-70 hover:opacity-100"
+            className="hover:text-white transition-colors duration-200 opacity-70 hover:opacity-100 py-1 px-2.5 rounded-md inline-block touch-manipulation font-medium"
           >
             Login
           </Link>
