@@ -55,7 +55,7 @@ export function DentalLogo({
           type="button"
           onClick={onLogoClick}
           className="cursor-pointer hover:opacity-90 transition-opacity focus:outline-none shrink-0"
-          title="Go to Dashboard"
+          title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
         >
           {logoContent}
         </button>
@@ -75,7 +75,7 @@ export function DentalLogo({
             type="button"
             onClick={onTextClick}
             className="cursor-pointer hover:opacity-85 transition-opacity focus:outline-none text-left"
-            title="Toggle Sidebar"
+            title="Collapse Sidebar"
           >
             {textContent}
           </button>
