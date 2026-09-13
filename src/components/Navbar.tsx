@@ -158,8 +158,7 @@ export default function Navbar() {
           {/* Contact Us Button (Figma style: White bg, blue border, blue text) */}
           <div className="hidden lg:block shrink-0">
             <a
-              href="#contact"
-              onClick={(e) => scrollToSection(e, "#contact")}
+              href="tel:09885349798"
               className="inline-flex items-center justify-center px-6 py-2 text-[15px] font-semibold text-[#0284c7] bg-white border border-[#0284c7] rounded-lg hover:bg-[#0284c7] hover:text-white transition-all duration-200 shadow-2xs hover:shadow-xs active:scale-95"
             >
               Contact Us
@@ -169,8 +168,7 @@ export default function Navbar() {
           {/* Mobile Hamburger Toggle */}
           <div className="flex lg:hidden items-center gap-3">
             <a
-              href="#contact"
-              onClick={(e) => scrollToSection(e, "#contact")}
+              href="tel:09885349798"
               className="px-3.5 py-1.5 text-xs font-semibold text-[#0284c7] border border-[#0284c7] rounded-md"
             >
               Contact Us
