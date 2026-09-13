@@ -9,6 +9,7 @@ interface DentalLogoProps {
   collapsed?: boolean;
   onLogoClick?: () => void;
   onTextClick?: () => void;
+  iconClassName?: string;
 }
 
 export function DentalLogo({
@@ -17,11 +18,12 @@ export function DentalLogo({
   collapsed = false,
   onLogoClick,
   onTextClick,
+  iconClassName = "",
 }: DentalLogoProps) {
   const logoContent = (
     <div
       className={`relative shrink-0 rounded-xl overflow-hidden shadow-md shadow-blue-500/20 transition-all duration-300 ${
-        collapsed ? "h-8 w-8" : "h-10 w-10"
+        iconClassName ? iconClassName : collapsed ? "h-8 w-8" : "h-10 w-10"
       }`}
     >
       <Image

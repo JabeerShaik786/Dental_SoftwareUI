@@ -39,9 +39,9 @@ export function AuthLayout({ children, title, subtitle, largeCard = false }: Aut
       >
         {/* Top Centered Logo (standard card only) */}
         {!largeCard && (
-          <div className="flex flex-col items-center justify-center mb-8">
-            <div className="flex justify-center scale-95">
-              <DentalLogo showText={false} />
+          <div className="flex flex-col items-center justify-center mb-6">
+            <div className="flex justify-center">
+              <DentalLogo showText={false} iconClassName="h-[60px] w-[60px] rounded-[18px] shadow-lg shadow-blue-500/25" />
             </div>
           </div>
         )}

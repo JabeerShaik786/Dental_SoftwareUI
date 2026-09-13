@@ -17,7 +17,6 @@ import {
   Lock,
   Eye,
   EyeOff,
-  CheckCircle2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
@@ -75,7 +74,7 @@ export default function LoginPage() {
         setIsLoading(false);
         setTimeout(() => {
           router.push("/dashboard");
-        }, 1500);
+        }, 1800);
       }
     } catch {
       setApiError("A network error occurred. Please try again later.");
@@ -215,16 +214,53 @@ export default function LoginPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
-            className="flex flex-col items-center justify-center text-center p-4"
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="flex flex-col items-center justify-center text-center py-4 px-2"
           >
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-500 mb-6 dark:bg-emerald-950/30">
-              <CheckCircle2 className="h-8 w-8 animate-bounce" />
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Authentication Successful</h3>
-            <p className="text-xs text-slate-500 mt-2 max-w-xs dark:text-slate-400">
+            {/* Green Success Circle with Smooth Animated SVG Checkmark */}
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+              className="relative flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 mb-6 border border-emerald-500/20 dark:bg-emerald-950/40 dark:border-emerald-500/30"
+            >
+              <svg
+                className="h-10 w-10 text-emerald-600 dark:text-emerald-400 stroke-current"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <motion.path
+                  d="M5 13l4 4L19 7"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 1 }}
+                  transition={{ duration: 0.45, ease: "easeOut", delay: 0.18 }}
+                />
+              </svg>
+            </motion.div>
+
+            {/* Title */}
+            <motion.h3
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.22 }}
+              className="text-[26px] sm:text-[30px] font-bold text-[#0F172A] dark:text-white tracking-[-0.02em] leading-tight"
+            >
+              Authentication Successful
+            </motion.h3>
+
+            {/* Subtitle */}
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.3 }}
+              className="text-[16px] sm:text-[17px] font-normal text-[#64748B] dark:text-slate-400 mt-3 leading-[1.6] max-w-sm"
+            >
               Redirecting you to the DentPro OS clinical workspace...
-            </p>
+            </motion.p>
           </motion.div>
         )}
       </AnimatePresence>
