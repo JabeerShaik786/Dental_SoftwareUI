@@ -182,6 +182,17 @@
     font-family: var(--font-inter), sans-serif !important;
   }
 
+  /* Hide number input spinners (up/down stepper arrows) */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
   /* ==========================================
      Dashboard Page Optimization Overrides
      ========================================== */
