@@ -1539,7 +1539,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   // Form input states (Patient / Appt modals)
   const [newPatName, setNewPatName] = useState("");
   const [newPatPhone, setNewPatPhone] = useState("+91 ");
-  const [newPatAge, setNewPatAge] = useState(30);
+  const [newPatAge, setNewPatAge] = useState<string>("");
   const [newPatGender, setNewPatGender] = useState<"Male" | "Female">("Male");
   const [newPatAddress, setNewPatAddress] = useState("");
   const [newPatAllergies, setNewPatAllergies] = useState("None");
@@ -1611,7 +1611,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [quickLastName, setQuickLastName] = useState("");
   const [quickMobile, setQuickMobile] = useState("+91 ");
   const [quickGender, setQuickGender] = useState<"Male" | "Female">("Male");
-  const [quickAge, setQuickAge] = useState(30);
+  const [quickAge, setQuickAge] = useState<string>("");
   const [quickDOB, setQuickDOB] = useState("");
   const [quickLocation, setQuickLocation] = useState("Bengaluru");
   const [quickEmail, setQuickEmail] = useState("");
@@ -3906,7 +3906,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setQuickLastName("");
     setQuickMobile("+91 ");
     setQuickGender("Male");
-    setQuickAge(30);
+    setQuickAge("");
     setQuickDOB("");
     setQuickLocation("Bengaluru");
     setQuickEmail("");
@@ -3919,7 +3919,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const registerPatient = async (patientData: {
     name: string;
     phone: string;
-    age: number;
+    age: number | string;
     gender: "Male" | "Female";
     address: string;
     medicalNotes: string;
@@ -3930,6 +3930,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   }) => {
     const trimmedName = patientData.name.trim();
     const trimmedPhone = patientData.phone.trim();
+    const parsedAge = typeof patientData.age === "string" ? (parseInt(patientData.age, 10) || 0) : patientData.age;
 
     if (!trimmedName) {
       showToast("Patient name is required.", "error");
@@ -3981,7 +3982,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         patient_id: patientId,
         name: trimmedName,
         phone: trimmedPhone,
-        age: patientData.age,
+        age: parsedAge,
         gender: patientData.gender,
         address: patientData.address || "Bengaluru",
         visit: "12 Aug 2026",
@@ -5121,7 +5122,17 @@ ${clinicName}`;
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <Label htmlFor="qAge" className="form-label-custom">Age</Label>
-                    <Input id="qAge" type="number" min="0" value={quickAge || ""} onChange={e => setQuickAge(parseInt(e.target.value) || 30)} required className="form-field-custom" />
+                    <Input
+                      id="qAge"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="e.g. 30"
+                      value={quickAge}
+                      onChange={e => setQuickAge(e.target.value.replace(/[^0-9]/g, ""))}
+                      onKeyDown={e => { if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault(); }}
+                      className="form-field-custom"
+                    />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="qGender" className="form-label-custom">Gender</Label>
@@ -5195,7 +5206,7 @@ ${clinicName}`;
                     setQuickFirstName("");
                     setQuickLastName("");
                     setQuickMobile("");
-                    setQuickAge(30);
+                    setQuickAge("");
                     setQuickGender("Male");
                     setQuickLocation("");
                     setQuickEmail("");
@@ -8456,6 +8467,7 @@ ${clinicName}`;
                 setNewPatPhone("+91 ");
                 setNewPatAddress("");
                 setNewPatAllergies("None");
+                setNewPatAge("");
                 setActiveSubTab("All Patients");
               }
             }} className="space-y-4">
@@ -8470,7 +8482,16 @@ ${clinicName}`;
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="newPatAge">Age</Label>
-                  <Input id="newPatAge" type="number" value={newPatAge} onChange={e => setNewPatAge(parseInt(e.target.value) || 30)} />
+                  <Input
+                    id="newPatAge"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="e.g. 30"
+                    value={newPatAge}
+                    onChange={e => setNewPatAge(e.target.value.replace(/[^0-9]/g, ""))}
+                    onKeyDown={e => { if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault(); }}
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -11879,6 +11900,7 @@ ${clinicName}`;
                     setNewPatPhone("+91 ");
                     setNewPatAddress("");
                     setNewPatAllergies("None");
+                    setNewPatAge("");
                     setActiveModal(null);
                   }
                 }} className="flex flex-col min-h-0 h-full">
@@ -11894,7 +11916,16 @@ ${clinicName}`;
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="newPatAge">Age</Label>
-                        <Input id="newPatAge" type="number" value={newPatAge} onChange={e => setNewPatAge(parseInt(e.target.value) || 30)} />
+                        <Input
+                          id="newPatAge"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          placeholder="e.g. 30"
+                          value={newPatAge}
+                          onChange={e => setNewPatAge(e.target.value.replace(/[^0-9]/g, ""))}
+                          onKeyDown={e => { if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault(); }}
+                        />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
