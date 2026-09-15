@@ -2160,6 +2160,15 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [editLastVisit, setEditLastVisit] = useState("");
   const [editPreferredDentist, setEditPreferredDentist] = useState("");
   const [editNotes, setEditNotes] = useState("");
+  const [isEditingCaseSheet, setIsEditingCaseSheet] = useState(false);
+  const [editAgeStr, setEditAgeStr] = useState<string>("");
+  const [editRefDoctor, setEditRefDoctor] = useState("");
+  const [editMedicalHistoryConditions, setEditMedicalHistoryConditions] = useState<string[]>([]);
+  const [editMedicalHistoryOthers, setEditMedicalHistoryOthers] = useState("");
+  const [editChiefComplaint, setEditChiefComplaint] = useState("");
+  const [editIntraOralExam, setEditIntraOralExam] = useState("");
+  const [editProvisionalDiagnosis, setEditProvisionalDiagnosis] = useState("");
+  const [editTreatmentAdvised, setEditTreatmentAdvised] = useState("");
 
   // --- TOOTH TREATMENT FORM STATE ---
   const [chartSelectedTooth, setChartSelectedTooth] = useState<number | null>(null);
@@ -2414,10 +2423,50 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         setEditFirstVisit(p.firstVisit || p.visit || "");
         setEditLastVisit(p.visit || "");
         setEditPreferredDentist(p.preferredDentist || "");
+        setEditRefDoctor(p.preferredDentist || "");
         setEditNotes(p.notes?.join("\n") || "");
+
+        // Medical History conditions checkboxes
+        const medNotesStr = (p.medicalConditions || p.medicalNotes || "").toLowerCase();
+        const initialConds: string[] = [];
+        if (medNotesStr.includes("diabetes")) initialConds.push("Diabetes");
+        if (medNotesStr.includes("b.p.") || medNotesStr.includes("bp") || medNotesStr.includes("hypertension")) initialConds.push("B.P.");
+        if (medNotesStr.includes("heart")) initialConds.push("Heart Complaint");
+        if (medNotesStr.includes("allergies") || (p.allergies && p.allergies !== "None")) initialConds.push("Allergies");
+        if (medNotesStr.includes("bleeding")) initialConds.push("Bleeding Disorders");
+        if (medNotesStr.includes("pregnancy")) initialConds.push("Pregnancy");
+        if (medNotesStr.includes("thyroid")) initialConds.push("Thyroid");
+        setEditMedicalHistoryConditions(initialConds);
+
+        // Clinical Case Details (CC, IOE, PD from p.notes)
+        let cc = "";
+        let io = "";
+        let pd = "";
+
+        if (p.notes && Array.isArray(p.notes)) {
+          p.notes.forEach(n => {
+            if (n.startsWith("CC:")) cc = n.replace("CC:", "").trim();
+            else if (n.startsWith("IOE:")) io = n.replace("IOE:", "").trim();
+            else if (n.startsWith("PD:")) pd = n.replace("PD:", "").trim();
+          });
+        }
+        setEditChiefComplaint(cc);
+        setEditIntraOralExam(io);
+        setEditProvisionalDiagnosis(pd);
+
+        // Treatment Advised from Treatments Module (treatments array) - WITHOUT status text
+        const patTreatments = treatments.filter(t => t.patient === p.name);
+        const taLines: string[] = [];
+        if (patTreatments.length > 0) {
+          patTreatments.forEach(t => {
+            const toothInfo = t.tooth ? ` — Tooth #${t.tooth}` : "";
+            taLines.push(`• ${t.name}${toothInfo}`);
+          });
+        }
+        setEditTreatmentAdvised(taLines.join("\n"));
       }
     }
-  }, [selectedPatientId, patients]);
+  }, [selectedPatientId, patients, treatments]);
 
   const handleDobChange = (dobStr: string) => {
     setEditDob(dobStr);
@@ -2449,14 +2498,28 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }
     
     const fullName = `${editFirstName.trim()} ${editLastName.trim()}`.trim();
-    const fullAddress = `${editAddressLine.trim()}${editCity ? ', ' + editCity.trim() : ''}${editState ? ', ' + editState.trim() : ''}${editPincode ? ' - ' + editPincode.trim() : ''}`;
+    const fullAddress = editAddressLine.trim() ? `${editAddressLine.trim()}${editCity ? ', ' + editCity.trim() : ''}${editState ? ', ' + editState.trim() : ''}${editPincode ? ' - ' + editPincode.trim() : ''}` : editAddressLine;
+
+    // Save medical history
+    const selectedCondsStr = editMedicalHistoryConditions.join(", ");
+    const fullMedConds = editMedicalHistoryOthers ? `${selectedCondsStr}${selectedCondsStr ? ', ' : ''}Others: ${editMedicalHistoryOthers}` : selectedCondsStr;
+
     const mergedMedicalNotes = [
       editAllergies ? `Allergies: ${editAllergies}` : "",
-      editMedicalConditions ? `Conditions: ${editMedicalConditions}` : "",
+      fullMedConds ? `Conditions: ${fullMedConds}` : "",
       editCurrentMedications ? `Meds: ${editCurrentMedications}` : ""
     ].filter(Boolean).join(" | ") || "None";
 
-    const parsedNotes = editNotes ? editNotes.split("\n").filter(Boolean) : [];
+    // Build clinical case notes array (Chief Complaint, Intra Oral Exam, Provisional Diagnosis)
+    const clinicalNotes: string[] = [];
+    if (editChiefComplaint.trim()) clinicalNotes.push(`CC: ${editChiefComplaint.trim()}`);
+    if (editIntraOralExam.trim()) clinicalNotes.push(`IOE: ${editIntraOralExam.trim()}`);
+    if (editProvisionalDiagnosis.trim()) clinicalNotes.push(`PD: ${editProvisionalDiagnosis.trim()}`);
+    if (editNotes && editNotes.trim()) {
+      editNotes.split("\n").filter(n => !n.startsWith("CC:") && !n.startsWith("IOE:") && !n.startsWith("PD:") && !n.startsWith("TA:") && n.trim()).forEach(n => clinicalNotes.push(n.trim()));
+    }
+
+    const oldPatientItem = patients.find(p => p.id === selectedPatientId);
 
     const { error } = await supabase
       .from("patients")
@@ -2469,7 +2532,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         medical_notes: mergedMedicalNotes,
         email: editEmail.trim() || null,
         blood_group: editBloodGroup.trim() || null,
-        notes: parsedNotes
+        notes: clinicalNotes
       })
       .eq("patient_id", selectedPatientId);
 
@@ -2477,6 +2540,54 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       console.error("Patient profile update failed:", error.message, error.code);
       showToast("Failed to update patient profile in database.", "error");
       return;
+    }
+
+    // Save Treatment Advised directly to Treatments module data source
+    const patTreatments = treatments.filter(t => t.patient === fullName || t.patient === oldPatientItem?.name);
+    if (patTreatments.length > 0) {
+      const primaryTreat = patTreatments[0];
+      const { error: treatUpdateErr } = await supabase
+        .from("treatments")
+        .update({
+          notes: editTreatmentAdvised.trim(),
+          name: editTreatmentAdvised.trim().split("\n")[0]?.replace(/^[•\-\*\s]+/, "").split("—")[0]?.trim() || primaryTreat.name
+        })
+        .eq("id", primaryTreat.id);
+
+      if (!treatUpdateErr) {
+        setTreatments(prev => prev.map(tr => tr.id === primaryTreat.id ? {
+          ...tr,
+          notes: editTreatmentAdvised.trim(),
+          name: editTreatmentAdvised.trim().split("\n")[0]?.replace(/^[•\-\*\s]+/, "").split("—")[0]?.trim() || tr.name
+        } : tr));
+      }
+    } else if (editTreatmentAdvised.trim()) {
+      const dbInsertRow = {
+        patient_id: oldPatientItem?.uuid || selectedPatientId,
+        name: editTreatmentAdvised.trim().split("\n")[0]?.replace(/^[•\-\*\s]+/, "").split("—")[0]?.trim() || "Consultation & Treatment Plan",
+        stage: "Planned",
+        notes: editTreatmentAdvised.trim()
+      };
+      const { data: insertedTreat, error: treatInsErr } = await supabase
+        .from("treatments")
+        .insert(dbInsertRow)
+        .select()
+        .single();
+
+      if (insertedTreat && !treatInsErr) {
+        const newTreatObj: TreatmentItem = {
+          id: insertedTreat.id,
+          name: insertedTreat.name,
+          patient: fullName,
+          doctor: editPreferredDentist || "Dr. Deepa Kodali",
+          stage: "Planned",
+          notes: editTreatmentAdvised.trim(),
+          nextVisit: "",
+          prescription: "",
+          date: new Date().toISOString().split("T")[0]
+        };
+        setTreatments(prev => [...prev, newTreatObj]);
+      }
     }
 
     setPatients(prev => prev.map(p => {
@@ -2507,21 +2618,21 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           visit: editLastVisit || p.visit,
           preferredDentist: editPreferredDentist,
           medicalNotes: mergedMedicalNotes,
-          notes: parsedNotes
+          notes: clinicalNotes
         };
       }
       return p;
     }));
 
     // Update patient name in appointments, invoices, treatments, etc.
-    const oldPatientItem = patients.find(p => p.id === selectedPatientId);
     if (oldPatientItem && oldPatientItem.name !== fullName) {
       setAppointments(prev => prev.map(a => a.patientId === selectedPatientId ? { ...a, patientName: fullName } : a));
       setInvoices(prev => prev.map(inv => inv.patientId === selectedPatientId ? { ...inv, patientName: fullName } : inv));
       setTreatments(prev => prev.map(tr => tr.patient === oldPatientItem.name ? { ...tr, patient: fullName } : tr));
     }
 
-    showToast("Patient profile updated successfully.", "success");
+    setIsEditingCaseSheet(false);
+    showToast("Patient case sheet updated successfully.", "success");
   };
 
   const handleChartToothSelect = (toothIndex: number) => {
@@ -6565,192 +6676,392 @@ ${clinicName}`;
           <div className="space-y-6">
             {profileSubTab === "Overview" && (
               <div className="space-y-6">
-                {/* Patient Summary Cards */}
-                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 animate-fadeIn">
-                  <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-3 text-xs font-semibold">
-                    <span className="font-bold text-sm block mb-1">Personal Details</span>
-                    <p className="text-slate-505">Address: <strong className="text-slate-800 dark:text-slate-200">{patientItem.address}</strong></p>
-                    <p className="text-slate-550">Contact: <strong className="text-slate-800 dark:text-slate-200">{patientItem.phone}</strong></p>
-                    <p className="text-slate-550">Outstanding Balance: <strong className="text-slate-800 text-red-650">{patientItem.balance}</strong></p>
-                    <p className="text-slate-550">Last Visited: <strong className="text-slate-800">{patientItem.visit}</strong></p>
+                {/* Case Sheet Actions Header */}
+                <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 mb-1">
+                      <span>Patients</span>
+                      <ChevronRight className="h-3 w-3" />
+                      <span className="text-blue-600 font-bold">Patient Overview</span>
+                    </div>
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">Patient Overview</h2>
+                    <p className="text-xs text-slate-500">View and manage the patient's dental case sheet.</p>
                   </div>
-                  <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs">
-                    <span className="font-bold text-sm block mb-3">Clinical Alert Profile</span>
-                    {patientItem.medicalNotes && patientItem.medicalNotes !== "None" ? (
-                      <div className="flex gap-2 p-3 bg-red-50 text-red-705 border border-red-100 rounded-xl font-semibold">
-                        <Shield className="h-4 w-4 shrink-0 text-red-650" />
-                        <div>
-                          <span className="font-bold block text-red-800">Medical Warning Logs</span>
-                          <p className="text-[10px] mt-0.5">{patientItem.medicalNotes}</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-slate-500 font-bold">No active clinical warning logs.</p>
+
+                  <div className="flex items-center gap-2.5 shrink-0 no-print">
+                    <Button
+                      type="button"
+                      onClick={() => window.print()}
+                      variant="outline"
+                      className="h-9 px-3.5 text-xs font-semibold border-slate-300 text-slate-700 hover:bg-slate-50 flex items-center gap-1.5"
+                    >
+                      <Printer className="h-4 w-4 text-slate-500" />
+                      Print
+                    </Button>
+                    {!isReceptionist && (
+                      <Button
+                        type="button"
+                        onClick={() => setIsEditingCaseSheet(!isEditingCaseSheet)}
+                        variant="outline"
+                        className={`h-9 px-3.5 text-xs font-semibold flex items-center gap-1.5 ${
+                          isEditingCaseSheet
+                            ? "bg-blue-50 border-blue-300 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300"
+                            : "border-slate-300 text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        {isEditingCaseSheet ? "Editing Mode" : "Edit"}
+                      </Button>
+                    )}
+                    {isEditingCaseSheet && !isReceptionist && (
+                      <Button
+                        type="button"
+                        onClick={handleSavePatientProfile}
+                        className="h-9 px-4 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 shadow-xs"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        Save
+                      </Button>
                     )}
                   </div>
                 </div>
 
-                {/* Editable Profile Form */}
-                <form onSubmit={handleSavePatientProfile} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6 shadow-xs space-y-6 text-xs animate-fadeIn">
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 mb-5 sm:mb-6">Edit Patient Profile</h3>
-                    
-                    {/* Basic Info */}
-                    <div className="space-y-3.5 sm:space-y-4">
-                      <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400 mb-3.5">Basic Information</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4.5 sm:gap-5">
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Patient ID</Label>
-                          <Input value={patientItem.id} disabled className="bg-slate-50 dark:bg-slate-900 border-slate-200" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">First Name</Label>
-                          <Input value={editFirstName} onChange={e => setEditFirstName(e.target.value)} required />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Last Name</Label>
-                          <Input value={editLastName} onChange={e => setEditLastName(e.target.value)} />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Mobile Number</Label>
-                          <Input value={editMobile} onChange={e => setEditMobile(formatPhoneInput(e.target.value))} required />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Email</Label>
-                          <Input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Date of Birth</Label>
-                          <Input type="date" value={editDob} onChange={e => handleDobChange(e.target.value)} />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Age (Auto-calculated)</Label>
-                          <Input type="number" value={editAge} disabled className="bg-slate-50 dark:bg-slate-900 border-slate-200" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Gender</Label>
-                          <select 
-                            className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
-                            value={editGender} 
-                            onChange={e => setEditGender(e.target.value as "Male" | "Female")}
-                          >
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                          </select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Blood Group</Label>
-                          <select 
-                            className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
-                            value={editBloodGroup} 
-                            onChange={e => setEditBloodGroup(e.target.value)}
-                          >
-                            <option value="">-- Choose --</option>
-                            <option value="A+">A+</option>
-                            <option value="A-">A-</option>
-                            <option value="B+">B+</option>
-                            <option value="B-">B-</option>
-                            <option value="AB+">AB+</option>
-                            <option value="AB-">AB-</option>
-                            <option value="O+">O+</option>
-                            <option value="O-">O-</option>
-                          </select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Occupation</Label>
-                          <Input value={editOccupation} onChange={e => setEditOccupation(e.target.value)} />
+                {/* Digital Dental Case Sheet Container */}
+                <div id="print-area" className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-7 shadow-xs space-y-6 print:space-y-3 print:p-2 print:border-none print:shadow-none text-xs animate-fadeIn">
+                  {/* PRINT-ONLY CLINIC HEADER */}
+                  <div className="hidden print:block border-b-2 border-slate-800 pb-3 mb-3">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <DentalLogo showText={false} iconClassName="h-10 w-10" />
+                        <div>
+                          <h1 className="text-xl font-bold text-slate-900 tracking-tight">{clinicName || "VR Dental Clinic"}</h1>
+                          <p className="text-xs font-semibold text-slate-600">Dental Clinic / Comprehensive Dental Care</p>
+                          <p className="text-[11px] text-slate-500 font-medium">Phone: +91 98853 49798</p>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Address Section */}
-                    <div className="space-y-3.5 sm:space-y-4 mt-7 sm:mt-8 pt-4 border-t border-slate-100 dark:border-slate-800/60">
-                      <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400 mb-3.5">Address Details</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4.5 sm:gap-5">
-                        <div className="sm:col-span-2 space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Address Line</Label>
-                          <Input value={editAddressLine} onChange={e => setEditAddressLine(e.target.value)} />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">City</Label>
-                          <Input value={editCity} onChange={e => setEditCity(e.target.value)} />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">State</Label>
-                          <Input value={editState} onChange={e => setEditState(e.target.value)} />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Pincode</Label>
-                          <Input value={editPincode} onChange={e => setEditPincode(e.target.value)} />
-                        </div>
+                      <div className="text-right space-y-0.5">
+                        <span className="text-sm font-extrabold text-blue-700 block tracking-wider uppercase">DENTAL CASE SHEET</span>
+                        <p className="text-xs font-bold text-slate-800">ID: {patientItem.id}</p>
+                        <p className="text-xs text-slate-600">Date: {patientItem.visit || patientItem.firstVisit || new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</p>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Medical Section */}
-                    <div className="space-y-3.5 sm:space-y-4 mt-7 sm:mt-8 pt-4 border-t border-slate-100 dark:border-slate-800/60">
-                      <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400 mb-3.5">Medical History & Emergency Contact</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4.5 sm:gap-5">
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Allergies</Label>
-                          <Input value={editAllergies} onChange={e => setEditAllergies(e.target.value)} placeholder="e.g. Penicillin, Latex" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Medical Conditions</Label>
-                          <Input value={editMedicalConditions} onChange={e => setEditMedicalConditions(e.target.value)} placeholder="e.g. Hypertension, Diabetes" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Current Medications</Label>
-                          <Input value={editCurrentMedications} onChange={e => setEditCurrentMedications(e.target.value)} placeholder="e.g. Metformin, Lisinopril" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Emergency Contact Person</Label>
-                          <Input value={editEmergencyContactName} onChange={e => setEditEmergencyContactName(e.target.value)} />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Emergency Contact Phone</Label>
-                          <Input value={editEmergencyContactPhone} onChange={e => setEditEmergencyContactPhone(formatPhoneInput(e.target.value))} />
-                        </div>
-                      </div>
+                  {/* Top Header Row with Date (Screen Only) */}
+                  <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3 print:hidden">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-blue-600" />
+                      <span className="font-bold text-sm tracking-wide text-slate-900 dark:text-white uppercase">DENTAL CASE SHEET</span>
+                    </div>
+                    <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      <span className="text-slate-400 font-medium">Date: </span>
+                      <strong>{patientItem.visit || patientItem.firstVisit || new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</strong>
+                    </div>
+                  </div>
+
+                  {/* SECTION 1 — PATIENT / CONTACT INFORMATION */}
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+                    <div className="bg-sky-50/80 dark:bg-slate-900 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                      <h3 className="font-bold text-xs text-slate-900 dark:text-blue-300 uppercase tracking-wider">
+                        PATIENT / CONTACT INFORMATION
+                      </h3>
+                      <span className="text-[11px] font-bold text-slate-500">ID: {patientItem.id}</span>
                     </div>
 
-                    {/* Dental Info */}
-                    <div className="space-y-3.5 sm:space-y-4 mt-7 sm:mt-8 pt-4 border-t border-slate-100 dark:border-slate-800/60">
-                      <h4 className="font-bold text-xs text-blue-600 dark:text-blue-400 mb-3.5">Dental Preferences</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4.5 sm:gap-5">
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">First Visit Date</Label>
-                          <Input type="date" value={editFirstVisit} onChange={e => setEditFirstVisit(e.target.value)} />
+                    <div className="p-4 sm:p-5 print:p-3 grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-x-8 gap-y-4 print:gap-y-2">
+                      {/* LEFT COLUMN */}
+                      <div className="space-y-3.5 print:space-y-2">
+                        <div className="grid grid-cols-3 items-center gap-2">
+                          <Label className="font-bold text-slate-800 dark:text-slate-200">Name:</Label>
+                          <div className="col-span-2">
+                            {isEditingCaseSheet ? (
+                              <div className="flex gap-2">
+                                <Input value={editFirstName} onChange={e => setEditFirstName(e.target.value)} placeholder="First Name" className="h-8 text-xs" />
+                                <Input value={editLastName} onChange={e => setEditLastName(e.target.value)} placeholder="Last Name" className="h-8 text-xs" />
+                              </div>
+                            ) : (
+                              <span className="font-bold text-slate-900 dark:text-white text-sm">{patientItem.name}</span>
+                            )}
+                          </div>
                         </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Last Visit Date</Label>
-                          <Input type="date" value={editLastVisit} onChange={e => setEditLastVisit(e.target.value)} />
+
+                        <div className="grid grid-cols-3 items-center gap-2">
+                          <Label className="font-bold text-slate-800 dark:text-slate-200">Age:</Label>
+                          <div className="col-span-2">
+                            {isEditingCaseSheet ? (
+                              <Input
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={editAge === 0 && !editAgeStr ? "" : (editAgeStr !== undefined ? editAgeStr : String(editAge))}
+                                onChange={e => {
+                                  const val = e.target.value.replace(/[^0-9]/g, "");
+                                  setEditAgeStr(val);
+                                  setEditAge(val ? parseInt(val, 10) : 0);
+                                }}
+                                onKeyDown={e => { if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault(); }}
+                                placeholder="e.g. 30"
+                                className="h-8 text-xs"
+                              />
+                            ) : (
+                              <span className="font-semibold text-slate-900 dark:text-white">{patientItem.age} Years</span>
+                            )}
+                          </div>
                         </div>
-                        <div className="space-y-1.5">
-                          <Label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Preferred Dentist</Label>
-                          <select 
-                            className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
-                            value={editPreferredDentist} 
-                            onChange={e => setEditPreferredDentist(e.target.value)}
-                          >
-                            <option value="">-- Choose Dentist --</option>
-                            {doctors.map(d => (
-                              <option key={d.name} value={d.name}>{d.name}</option>
-                            ))}
-                          </select>
+
+                        <div className="grid grid-cols-3 items-center gap-2">
+                          <Label className="font-bold text-slate-800 dark:text-slate-200">Gender:</Label>
+                          <div className="col-span-2">
+                            {isEditingCaseSheet ? (
+                              <select
+                                value={editGender}
+                                onChange={e => setEditGender(e.target.value as "Male" | "Female")}
+                                className="h-8 w-full rounded-md border border-slate-200 bg-white px-2.5 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                              >
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                              </select>
+                            ) : (
+                              <span className="font-semibold text-slate-900 dark:text-white">{patientItem.gender}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 items-center gap-2">
+                          <Label className="font-bold text-slate-800 dark:text-slate-200">Tel No.:</Label>
+                          <div className="col-span-2">
+                            {isEditingCaseSheet ? (
+                              <Input
+                                value={editMobile}
+                                onChange={e => setEditMobile(formatPhoneInput(e.target.value))}
+                                className="h-8 text-xs"
+                              />
+                            ) : (
+                              <span className="font-semibold text-slate-900 dark:text-white">{patientItem.phone}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* RIGHT COLUMN */}
+                      <div className="space-y-3.5 print:space-y-2">
+                        <div className="grid grid-cols-3 items-start gap-2">
+                          <Label className="font-bold text-slate-800 dark:text-slate-200 pt-1.5">Ref.:</Label>
+                          <div className="col-span-2">
+                            {isEditingCaseSheet ? (
+                              <Input
+                                value={editRefDoctor}
+                                onChange={e => setEditRefDoctor(e.target.value)}
+                                placeholder="e.g. Doctor Name / Patient Name"
+                                className="h-8 text-xs"
+                              />
+                            ) : (
+                              <span className="font-semibold text-slate-900 dark:text-white">{editRefDoctor || "N/A"}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 items-start gap-2">
+                          <Label className="font-bold text-slate-800 dark:text-slate-200 pt-1.5">Address:</Label>
+                          <div className="col-span-2">
+                            {isEditingCaseSheet ? (
+                              <textarea
+                                value={editAddressLine}
+                                onChange={e => setEditAddressLine(e.target.value)}
+                                placeholder="Enter address..."
+                                rows={2}
+                                className="w-full rounded-md border border-slate-200 p-2 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                              />
+                            ) : (
+                              <span className="font-semibold text-slate-900 dark:text-white leading-relaxed">{patientItem.address || "N/A"}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 items-center gap-2">
+                          <Label className="font-bold text-slate-800 dark:text-slate-200">Email:</Label>
+                          <div className="col-span-2">
+                            {isEditingCaseSheet ? (
+                              <Input
+                                type="email"
+                                value={editEmail}
+                                onChange={e => setEditEmail(e.target.value)}
+                                placeholder="Optional email..."
+                                className="h-8 text-xs"
+                              />
+                            ) : (
+                              <span className="font-semibold text-slate-900 dark:text-white">{patientItem.email || "N/A"}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex gap-3 justify-end pt-5 mt-7 border-t border-slate-100 dark:border-slate-800">
-                    <Button type="button" onClick={() => setSelectedPatientId(null)} className="h-9 px-4 rounded border font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">
-                      Cancel
-                    </Button>
-                    <Button type="submit" className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold">
-                      Save Changes
-                    </Button>
+                  {/* SECTION 2 — MEDICAL HISTORY */}
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+                    <div className="bg-sky-50/80 dark:bg-slate-900 px-4 py-2 border-b border-slate-200 dark:border-slate-800">
+                      <h3 className="font-bold text-xs text-slate-900 dark:text-blue-300 uppercase tracking-wider">
+                        MEDICAL HISTORY
+                      </h3>
+                    </div>
+
+                    <div className="p-4 sm:p-5 print:p-3 space-y-4 print:space-y-2">
+                      {/* Multi-column Checkbox Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 print:grid-cols-4 gap-3.5 print:gap-2">
+                        {[
+                          "Diabetes",
+                          "B.P.",
+                          "Heart Complaint",
+                          "Allergies",
+                          "Bleeding Disorders",
+                          "Pregnancy",
+                          "Thyroid",
+                          "Others"
+                        ].map((cond) => {
+                          const checked = editMedicalHistoryConditions.includes(cond);
+                          return (
+                            <div key={cond} className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id={`med-cond-${cond}`}
+                                checked={checked}
+                                disabled={!isEditingCaseSheet}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setEditMedicalHistoryConditions([...editMedicalHistoryConditions, cond]);
+                                  } else {
+                                    setEditMedicalHistoryConditions(editMedicalHistoryConditions.filter(c => c !== cond));
+                                  }
+                                }}
+                                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer disabled:opacity-70"
+                              />
+                              <label htmlFor={`med-cond-${cond}`} className="font-semibold text-slate-800 dark:text-slate-200 cursor-pointer text-xs">
+                                {cond}
+                              </label>
+                              {cond === "Others" && (checked || isEditingCaseSheet) && (
+                                <input
+                                  type="text"
+                                  value={editMedicalHistoryOthers}
+                                  disabled={!isEditingCaseSheet}
+                                  onChange={e => setEditMedicalHistoryOthers(e.target.value)}
+                                  placeholder="Specify..."
+                                  className="h-7 w-24 text-[11px] px-1.5 rounded border border-slate-200 focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Medications if any */}
+                      <div className="pt-3 print:pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center print:flex-row print:items-center gap-2">
+                        <Label className="font-bold text-slate-800 dark:text-slate-200 shrink-0">Medications if any:</Label>
+                        {isEditingCaseSheet ? (
+                          <Input
+                            value={editCurrentMedications}
+                            onChange={e => setEditCurrentMedications(e.target.value)}
+                            placeholder="e.g. Aspirin, Metformin..."
+                            className="h-8 text-xs flex-1"
+                          />
+                        ) : (
+                          <span className="font-semibold text-slate-800 dark:text-slate-200 italic">{editCurrentMedications || "None"}</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </form>
+
+                  {/* SECTION 3 — CLINICAL CASE DETAILS */}
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+                    <div className="bg-sky-50/80 dark:bg-slate-900 px-4 py-2 border-b border-slate-200 dark:border-slate-800">
+                      <h3 className="font-bold text-xs text-slate-900 dark:text-blue-300 uppercase tracking-wider">
+                        CLINICAL CASE DETAILS
+                      </h3>
+                    </div>
+
+                    <div className="p-4 sm:p-5 print:p-3 space-y-4 print:space-y-2 divide-y divide-slate-100 dark:divide-slate-800">
+                      {/* ROW 1: Chief Complaint & Past Dental History */}
+                      <div className="pt-3 print:pt-1.5 first:pt-0 space-y-1.5 print:space-y-1">
+                        <Label className="font-bold text-slate-900 dark:text-slate-100 text-xs block">
+                          Chief Complaint & Past Dental History
+                        </Label>
+                        {isEditingCaseSheet ? (
+                          <textarea
+                            value={editChiefComplaint}
+                            onChange={e => setEditChiefComplaint(e.target.value)}
+                            placeholder="Enter chief complaint and past dental history..."
+                            rows={3}
+                            className="w-full rounded-md border border-slate-200 p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900"
+                          />
+                        ) : (
+                          <div className="min-h-[48px] print:min-h-0 p-2.5 print:p-2 bg-slate-50/60 dark:bg-slate-900/60 rounded border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-normal">
+                            {editChiefComplaint || <span className="text-slate-400 italic">No chief complaint recorded.</span>}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ROW 2: Intra Oral Examination */}
+                      <div className="pt-3 print:pt-1.5 space-y-1.5 print:space-y-1">
+                        <Label className="font-bold text-slate-900 dark:text-slate-100 text-xs block">
+                          Intra Oral Examination
+                        </Label>
+                        {isEditingCaseSheet ? (
+                          <textarea
+                            value={editIntraOralExam}
+                            onChange={e => setEditIntraOralExam(e.target.value)}
+                            placeholder="Enter intra oral examination findings..."
+                            rows={3}
+                            className="w-full rounded-md border border-slate-200 p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900"
+                          />
+                        ) : (
+                          <div className="min-h-[48px] print:min-h-0 p-2.5 print:p-2 bg-slate-50/60 dark:bg-slate-900/60 rounded border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-normal">
+                            {editIntraOralExam || <span className="text-slate-400 italic">No intra oral examination notes recorded.</span>}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ROW 3: Provisional Diagnosis */}
+                      <div className="pt-3 print:pt-1.5 space-y-1.5 print:space-y-1">
+                        <Label className="font-bold text-slate-900 dark:text-slate-100 text-xs block">
+                          Provisional Diagnosis
+                        </Label>
+                        {isEditingCaseSheet ? (
+                          <textarea
+                            value={editProvisionalDiagnosis}
+                            onChange={e => setEditProvisionalDiagnosis(e.target.value)}
+                            placeholder="Enter provisional diagnosis..."
+                            rows={3}
+                            className="w-full rounded-md border border-slate-200 p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900"
+                          />
+                        ) : (
+                          <div className="min-h-[48px] print:min-h-0 p-2.5 print:p-2 bg-slate-50/60 dark:bg-slate-900/60 rounded border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-normal">
+                            {editProvisionalDiagnosis || <span className="text-slate-400 italic">No provisional diagnosis recorded.</span>}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ROW 4: Treatment Advised */}
+                      <div className="pt-3 print:pt-1.5 space-y-1.5 print:space-y-1">
+                        <Label className="font-bold text-slate-900 dark:text-slate-100 text-xs block">
+                          Treatment Advised
+                        </Label>
+                        {isEditingCaseSheet ? (
+                          <textarea
+                            value={editTreatmentAdvised}
+                            onChange={e => setEditTreatmentAdvised(e.target.value)}
+                            placeholder="Enter treatment advised..."
+                            rows={3}
+                            className="w-full rounded-md border border-slate-200 p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900"
+                          />
+                        ) : (
+                          <div className="min-h-[48px] print:min-h-0 p-2.5 print:p-2 bg-slate-50/60 dark:bg-slate-900/60 rounded border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-normal">
+                            {editTreatmentAdvised || <span className="text-slate-400 italic">No treatment advised recorded.</span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 

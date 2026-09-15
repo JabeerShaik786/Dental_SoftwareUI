@@ -481,9 +481,23 @@
   animation: scaleIn 0.15s ease-out forwards;
 }
 
+@page {
+  size: A4 portrait;
+  margin: 6mm 8mm;
+}
+
 @media print {
+  html, body {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
   body * {
     visibility: hidden;
+  }
+  .no-print {
+    display: none !important;
   }
   #print-area, #print-area * {
     visibility: visible;
