@@ -2173,6 +2173,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   // --- TOOTH TREATMENT FORM STATE ---
   const [chartSelectedTooth, setChartSelectedTooth] = useState<number | null>(null);
   const [activeTreatment, setActiveTreatment] = useState<string | null>(null);
+  const [scalingMode, setScalingMode] = useState<"Custom Select" | "Select All">("Custom Select");
+  const [bracesMode, setBracesMode] = useState<"Custom Select" | "Select All">("Custom Select");
   const [chartTreatmentName, setChartTreatmentName] = useState("");
   const [chartDiagnosis, setChartDiagnosis] = useState("");
   const [chartStatus, setChartStatus] = useState<"Planned" | "In Progress" | "Completed">("Planned");
@@ -2724,6 +2726,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       }
       return p;
     }));
+
+    if (treatmentName === "Scaling") setScalingMode("Select All");
+    if (treatmentName === "Braces") setBracesMode("Select All");
 
     setActiveTreatment(treatmentName);
     showToast(`Assigned ${treatmentName} to all 32 teeth.`, "success");
@@ -7485,40 +7490,53 @@ ${clinicName}`;
                             {Object.entries(TREATMENT_COLORS).map(([tKey, cfg]) => {
                               const isActive = activeTreatment === cfg.name;
                               const isSelectAllAvailable = cfg.name === "Scaling" || cfg.name === "Braces";
+                              const currentMode = cfg.name === "Scaling" ? scalingMode : cfg.name === "Braces" ? bracesMode : null;
 
                               return (
                                 <div
                                   key={tKey}
                                   onClick={() => setActiveTreatment(isActive ? null : cfg.name)}
-                                  className={`flex items-center justify-between p-2.5 rounded-lg transition-all duration-150 cursor-pointer ${
+                                  className={`flex items-center justify-between p-2 rounded-lg transition-all duration-150 cursor-pointer ${
                                     isActive
                                       ? 'bg-blue-50/90 dark:bg-blue-950/60 border-2 border-blue-500 shadow-xs ring-1 ring-blue-400/40 scale-[1.01]'
                                       : 'bg-white dark:bg-slate-955 border border-slate-200/60 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700'
                                   }`}
                                 >
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 min-w-0">
                                     <span className={`w-3.5 h-3.5 rounded-full ${cfg.dotColor} shrink-0`}></span>
-                                    <span className={`text-[12px] ${isActive ? 'font-bold text-blue-900 dark:text-blue-200' : 'font-semibold text-slate-700 dark:text-slate-300'}`}>
+                                    <span className={`text-[12px] truncate ${isActive ? 'font-bold text-blue-900 dark:text-blue-200' : 'font-semibold text-slate-700 dark:text-slate-300'}`}>
                                       {cfg.name}
                                     </span>
-                                    {isActive && (
-                                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-blue-600 text-white tracking-wider">
+                                    {isActive && !isSelectAllAvailable && (
+                                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-blue-600 text-white tracking-wider shrink-0">
                                         Active
                                       </span>
                                     )}
                                   </div>
 
                                   {isSelectAllAvailable && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSelectAllTeeth(cfg.name as "Scaling" | "Braces");
-                                      }}
-                                      className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white transition-all shadow-2xs shrink-0 active:scale-95 cursor-pointer"
-                                    >
-                                      Select All
-                                    </button>
+                                    <div onClick={(e) => e.stopPropagation()} className="shrink-0 ml-1">
+                                      <select
+                                        value={currentMode || "Custom Select"}
+                                        onChange={(e) => {
+                                          e.stopPropagation();
+                                          const selectedOption = e.target.value as "Custom Select" | "Select All";
+                                          if (cfg.name === "Scaling") setScalingMode(selectedOption);
+                                          if (cfg.name === "Braces") setBracesMode(selectedOption);
+
+                                          if (selectedOption === "Select All") {
+                                            handleSelectAllTeeth(cfg.name as "Scaling" | "Braces");
+                                          } else {
+                                            setActiveTreatment(cfg.name);
+                                            showToast(`Switched ${cfg.name} to Custom Select mode.`, "success");
+                                          }
+                                        }}
+                                        className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 dark:bg-slate-700 text-white border border-slate-700 dark:border-slate-600 cursor-pointer focus:outline-none"
+                                      >
+                                        <option value="Custom Select">Custom Select</option>
+                                        <option value="Select All">Select All</option>
+                                      </select>
+                                    </div>
                                   )}
                                 </div>
                               );
@@ -7539,12 +7557,12 @@ ${clinicName}`;
 
                           {(() => {
                             const chartMap = patientItem.dentalChart || {};
-                            const activeToothEntries = Object.entries(chartMap).filter(([_, status]) => status && status !== "Healthy");
+                            const activeEntries = Object.entries(chartMap).filter(([_, status]) => status && status !== "Healthy");
                             
-                            if (activeToothEntries.length === 0) {
+                            if (activeEntries.length === 0) {
                               return (
                                 <div className="flex-grow flex flex-col items-center justify-center text-center p-6 text-slate-400 dark:text-slate-550 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl min-h-[160px]">
-                                  <div className="bg-slate-50 dark:bg-slate-900/60 p-2.5 rounded-full mb-2 text-slate-400 dark:text-slate-500 shrink-0">
+                                  <div className="bg-slate-50 dark:bg-slate-900/60 p-2.5 rounded-full mb-2 text-slate-400 dark:text-slate-550 shrink-0">
                                     <Activity className="h-5 w-5" />
                                   </div>
                                   <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs mb-0.5">No Active Conditions</span>
@@ -7555,15 +7573,58 @@ ${clinicName}`;
                               );
                             }
 
+                            // Group entries by procedure name and status
+                            interface TreatmentGroup {
+                              key: string;
+                              procedure: string;
+                              status: string;
+                              teeth: Array<{ index: number; fdi: number }>;
+                            }
+
+                            const groupMap: Record<string, TreatmentGroup> = {};
+
+                            activeEntries.forEach(([toothIdxStr, statusStr]) => {
+                              const toothNum = Number(toothIdxStr);
+                              const toothObj = ALL_TEETH.find(t => t.index === toothNum);
+                              const fdi = toothObj?.fdi || toothNum;
+
+                              const colorConfig = getTreatmentColorConfig(statusStr);
+                              const procedure = colorConfig?.name || statusStr.split(" (")[0].trim();
+
+                              let status = "Planned";
+                              if (String(statusStr).includes("Completed")) status = "Completed";
+                              else if (String(statusStr).includes("In Progress")) status = "In Progress";
+                              else if (String(statusStr).includes("Planned")) status = "Planned";
+
+                              const groupKey = `${procedure}__${status}`;
+
+                              if (!groupMap[groupKey]) {
+                                groupMap[groupKey] = {
+                                  key: groupKey,
+                                  procedure,
+                                  status,
+                                  teeth: []
+                                };
+                              }
+                              groupMap[groupKey].teeth.push({ index: toothNum, fdi });
+                            });
+
+                            const groups = Object.values(groupMap).map(g => ({
+                              ...g,
+                              teeth: g.teeth.sort((a, b) => a.fdi - b.fdi)
+                            }));
+
                             return (
-                              <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
-                                {activeToothEntries.map(([toothIdxStr, statusStr]) => {
-                                  const toothNum = Number(toothIdxStr);
-                                  const toothObj = ALL_TEETH.find(t => t.index === toothNum);
-                                  const fdi = toothObj?.fdi || toothNum;
-                                  const isCompleted = String(statusStr).includes("Completed");
-                                  const isInProgress = String(statusStr).includes("In Progress");
-                                  const isPlanned = String(statusStr).includes("Planned");
+                              <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
+                                {groups.map((group) => {
+                                  const colorConfig = TREATMENT_COLORS[group.procedure] || {
+                                    dotColor: "bg-blue-500 border-blue-600",
+                                    badgeBg: "bg-blue-50 border-blue-200 text-blue-800"
+                                  };
+
+                                  const isCompleted = group.status === "Completed";
+                                  const isInProgress = group.status === "In Progress";
+                                  const isPlanned = group.status === "Planned";
 
                                   let badgeStyle = "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400";
                                   if (isCompleted) badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400";
@@ -7572,55 +7633,67 @@ ${clinicName}`;
 
                                   return (
                                     <div
-                                      key={toothIdxStr}
-                                      onClick={() => handleChartToothSelect(toothNum)}
-                                      className="flex items-center justify-between p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/40 dark:hover:bg-blue-950/20 cursor-pointer transition-all duration-150 group"
+                                      key={group.key}
+                                      className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-955 space-y-2 group transition-all duration-150"
                                     >
-                                      <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-blue-100/70 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold text-xs flex items-center justify-center border border-blue-300 dark:border-blue-700 group-hover:scale-105 transition-transform">
-                                          #{fdi}
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                          <span className={`w-3.5 h-3.5 rounded-full ${colorConfig.dotColor} shrink-0`}></span>
+                                          <span className="text-[13px] font-bold text-slate-900 dark:text-white tracking-wide uppercase">
+                                            {group.procedure}
+                                          </span>
                                         </div>
-                                        <div>
-                                          <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200 block group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                                            Tooth #{fdi} ({toothObj?.type || 'Tooth'})
+                                        <div className="flex items-center gap-2">
+                                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badgeStyle}`}>
+                                            {group.status}
                                           </span>
-                                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block">
-                                            {statusStr}
-                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={async () => {
+                                              const patientItem = patients.find(p => p.id === selectedPatientId);
+                                              if (!patientItem) return;
+
+                                              const currentChart = { ...(patientItem.dentalChart || {}) };
+                                              group.teeth.forEach(t => delete currentChart[t.index]);
+
+                                              await supabase
+                                                .from("patients")
+                                                .update({ dental_chart: currentChart })
+                                                .eq("patient_id", selectedPatientId);
+
+                                              setPatients(prev => prev.map(p => {
+                                                if (p.id === selectedPatientId) {
+                                                  return { ...p, dentalChart: currentChart };
+                                                }
+                                                return p;
+                                              }));
+                                              showToast(`Removed ${group.procedure} record.`, "success");
+                                            }}
+                                            className="p-1 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                                            title="Remove this treatment group"
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </button>
                                         </div>
                                       </div>
-                                      <div className="flex items-center gap-2">
-                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${badgeStyle}`}>
-                                          {isCompleted ? "Completed" : isInProgress ? "In Progress" : isPlanned ? "Planned" : "Diagnosed"}
-                                        </span>
-                                        <button
-                                          type="button"
-                                          onClick={async (e) => {
-                                            e.stopPropagation();
-                                            const patientItem = patients.find(p => p.id === selectedPatientId);
-                                            if (!patientItem) return;
 
-                                            const currentChart = { ...(patientItem.dentalChart || {}) };
-                                            delete currentChart[toothNum];
-
-                                            await supabase
-                                              .from("patients")
-                                              .update({ dental_chart: currentChart })
-                                              .eq("patient_id", selectedPatientId);
-
-                                            setPatients(prev => prev.map(p => {
-                                              if (p.id === selectedPatientId) {
-                                                return { ...p, dentalChart: currentChart };
-                                              }
-                                              return p;
-                                            }));
-                                            showToast(`Removed treatment for Tooth #${fdi}.`, "success");
-                                          }}
-                                          className="p-1 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
-                                          title="Remove treatment from tooth"
-                                        >
-                                          <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
+                                      {/* Teeth List */}
+                                      <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Teeth:</span>
+                                        {group.teeth.map((t, idx) => (
+                                          <span key={t.index} className="inline-flex items-center">
+                                            <span
+                                              onClick={() => handleChartToothSelect(t.index)}
+                                              className="text-[11px] font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-900 px-1.5 py-0.5 rounded hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 cursor-pointer transition-colors"
+                                              title={`Tooth #${t.fdi} — Click to toggle/edit`}
+                                            >
+                                              #{t.fdi}
+                                            </span>
+                                            {idx < group.teeth.length - 1 && (
+                                              <span className="text-slate-300 dark:text-slate-700 mx-0.5 font-bold">·</span>
+                                            )}
+                                          </span>
+                                        ))}
                                       </div>
                                     </div>
                                   );
