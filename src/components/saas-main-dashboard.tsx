@@ -7091,7 +7091,7 @@ ${clinicName}`;
                       setSelectedApptDetail(null);
                     }}
                     disabled={selectedApptDetail.status === "Cancelled" || selectedApptDetail.status === "Completed"}
-                    className="h-10 text-[11px] font-bold bg-red-650 hover:bg-red-500 text-white rounded-lg col-span-2"
+                    className="h-10 text-[11px] font-bold bg-red-600 hover:bg-red-500 text-white rounded-lg col-span-2"
                   >
                     Cancel Appointment
                   </Button>
@@ -8410,7 +8410,7 @@ ${clinicName}`;
                                             setAppointments(prev => prev.map(a => a.id === app.id ? { ...a, status: "Cancelled" } : a));
                                             showToast("Appointment cancelled.", "success");
                                           }}
-                                          className="h-7 px-2.5 rounded border border-red-200 text-red-655 hover:bg-red-50 font-semibold text-[10px]"
+                                          className="h-7 px-2.5 rounded border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 font-semibold text-[10px]"
                                         >
                                           Cancel
                                         </button>
