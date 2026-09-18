@@ -65,9 +65,9 @@ export function PublicFooter() {
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
+        <div className="mt-10 pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4 pb-20 sm:pb-6">
           <p>© {new Date().getFullYear()} DentPro OS. All rights reserved.</p>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-4 sm:pr-24 lg:pr-28">
             <Link href="/privacy-policy" className="hover:text-slate-400">Privacy Policy</Link>
             <Link href="/terms-of-service" className="hover:text-slate-400">Terms of Service</Link>
             <Link href="/login" className="hover:text-slate-400">Staff Sign In</Link>

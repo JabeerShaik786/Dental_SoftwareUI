@@ -172,7 +172,7 @@ export default function Footer() {
 
       <hr className="border-white/10 max-w-[1440px] mx-auto px-6 md:px-12" />
 
-      <div className="max-w-[1440px] mx-auto px-6 md:px-12 mt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/40 text-center md:text-left pb-20 md:pb-0">
+      <div className="max-w-[1440px] mx-auto px-6 md:px-12 mt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/40 text-center md:text-left pb-24 md:pb-8">
         <p>© {currentYear} V.R. Dental Care & Dental Implant Centre. All rights reserved.</p>
         <p className="text-white/40 flex items-center justify-center gap-1.5">
           <Image
@@ -185,7 +185,7 @@ export default function Footer() {
           />
           <span>Designed and Managed by JK & Co.</span>
         </p>
-        <div className="grid grid-cols-2 md:flex items-center justify-center md:justify-end gap-x-6 gap-y-3.5 text-center md:text-left max-w-xs md:max-w-none mx-auto md:mx-0">
+        <div className="grid grid-cols-2 md:flex md:flex-wrap items-center justify-center md:justify-end gap-x-6 gap-y-3.5 text-center md:text-left max-w-xs md:max-w-none mx-auto md:mx-0 md:pr-24 lg:pr-28">
           <Link href="/privacy-policy" className="hover:text-white transition-colors duration-200 py-1">
             Privacy Policy
           </Link>
