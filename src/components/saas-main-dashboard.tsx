@@ -593,6 +593,53 @@ export function getPatientVisitsList(
   return nodes;
 }
 
+export interface StructuredDosage {
+  morning: boolean;
+  afternoon: boolean;
+  night: boolean;
+  beforeMeals: boolean;
+  afterMeals: boolean;
+}
+
+export function formatDosageString(dosageObj: StructuredDosage): string {
+  const times: string[] = [];
+  if (dosageObj.morning) times.push("Morning");
+  if (dosageObj.afternoon) times.push("Afternoon");
+  if (dosageObj.night) times.push("Night");
+
+  const timeStr = times.join(", ");
+
+  let mealStr = "";
+  if (dosageObj.beforeMeals) mealStr = "Before Meals";
+  else if (dosageObj.afterMeals) mealStr = "After Meals";
+
+  if (timeStr && mealStr) {
+    return `${timeStr} — ${mealStr}`;
+  }
+  return timeStr || mealStr || "";
+}
+
+export function parseDosageString(str: string | undefined | null): StructuredDosage {
+  if (!str) {
+    return { morning: false, afternoon: false, night: false, beforeMeals: false, afterMeals: false };
+  }
+  const lower = String(str).toLowerCase();
+
+  const morning = lower.includes("morning");
+  const afternoon = lower.includes("afternoon");
+  const night = lower.includes("night");
+
+  let beforeMeals = lower.includes("before meal") || lower.includes("before meals");
+  let afterMeals = lower.includes("after meal") || lower.includes("after meals");
+
+  if (beforeMeals && afterMeals) {
+    if (lower.includes("before meals")) afterMeals = false;
+    else beforeMeals = false;
+  }
+
+  return { morning, afternoon, night, beforeMeals, afterMeals };
+}
+
 export function parseToothTreatments(val: string | string[] | undefined | null): string[] {
   if (!val) return [];
   if (Array.isArray(val)) {
@@ -3224,12 +3271,27 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       showToast("All medicines must have a name.", "error");
       return;
     }
+
+    const missingDosageTime = prescMeds.some(m => {
+      const parsed = parseDosageString(m.dosage);
+      return !parsed.morning && !parsed.afternoon && !parsed.night;
+    });
+
+    if (missingDosageTime) {
+      showToast("Please select at least one dosage time (Morning, Afternoon, or Night) for all medicines.", "error");
+      return;
+    }
+
     const patientItem = patients.find(p => p.id === selectedPatientId);
     if (!patientItem) return;
 
-    const formattedList = prescMeds.map(m => 
-      `${m.name} (${m.dosage}) - ${m.freq} for ${m.duration} [${m.instructions}]`
-    );
+    const formattedList = prescMeds.map(m => {
+      const nameStr = m.name.trim();
+      const dosageStr = m.dosage.trim();
+      const durationStr = m.duration.trim() ? ` for ${m.duration.trim()}` : "";
+      const instructionsStr = m.instructions.trim() ? ` [${m.instructions.trim()}]` : "";
+      return `${nameStr} (${dosageStr})${durationStr}${instructionsStr}`;
+    });
 
     let updatedNotes = [...(patientItem.notes || [])];
     if (noteTitle.trim() && noteContent.trim()) {
@@ -8271,68 +8333,161 @@ ${clinicName}`;
 
                   <div className="space-y-3">
                     <span className="font-bold text-[11px] text-blue-605 block">Medicines Directory</span>
-                    {prescMeds.map((med, idx) => (
-                      <div key={idx} className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-end border-b pb-2 sm:border-b-0 sm:pb-0">
-                        <div className="sm:col-span-2">
-                          <Label>Medicine Name</Label>
-                          <Input 
-                            value={med.name} 
-                            onChange={e => {
-                              const copy = [...prescMeds];
-                              copy[idx].name = e.target.value;
-                              setPrescMeds(copy);
-                            }} 
-                            placeholder="Amoxicillin 500mg, Ibuprofen 400mg..."
-                            required
-                          />
+                    {prescMeds.map((med, idx) => {
+                      const parsedDosage = parseDosageString(med.dosage);
+
+                      const handleToggleTime = (timeKey: "morning" | "afternoon" | "night") => {
+                        const updated = {
+                          ...parsedDosage,
+                          [timeKey]: !parsedDosage[timeKey]
+                        };
+                        const newDosageStr = formatDosageString(updated);
+                        const copy = [...prescMeds];
+                        copy[idx].dosage = newDosageStr;
+                        setPrescMeds(copy);
+                      };
+
+                      const handleToggleMeal = (mealKey: "beforeMeals" | "afterMeals") => {
+                        const isCurrentlyChecked = parsedDosage[mealKey];
+                        const updated = {
+                          ...parsedDosage,
+                          beforeMeals: mealKey === "beforeMeals" ? !isCurrentlyChecked : false,
+                          afterMeals: mealKey === "afterMeals" ? !isCurrentlyChecked : false
+                        };
+                        const newDosageStr = formatDosageString(updated);
+                        const copy = [...prescMeds];
+                        copy[idx].dosage = newDosageStr;
+                        setPrescMeds(copy);
+                      };
+
+                      return (
+                        <div key={idx} className="p-3 bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 rounded-xl space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
+                            {/* Medicine Name */}
+                            <div className="md:col-span-4">
+                              <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Medicine Name</Label>
+                              <Input
+                                value={med.name}
+                                onChange={e => {
+                                  const copy = [...prescMeds];
+                                  copy[idx].name = e.target.value;
+                                  setPrescMeds(copy);
+                                }}
+                                placeholder="e.g. Amoxicillin 500mg, Paracetamol 650mg"
+                                required
+                                className="mt-1 bg-white dark:bg-slate-955"
+                              />
+                            </div>
+
+                            {/* Dosage / Frequency Checkboxes */}
+                            <div className="md:col-span-5 bg-white dark:bg-slate-955 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 space-y-1.5">
+                              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block leading-none">
+                                Dosage / Frequency
+                              </span>
+
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                                <span className="font-semibold text-slate-500 dark:text-slate-400 shrink-0">Time:</span>
+                                <label className="inline-flex items-center gap-1 cursor-pointer select-none text-slate-800 dark:text-slate-200 font-medium hover:text-blue-600 transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={parsedDosage.morning}
+                                    onChange={() => handleToggleTime("morning")}
+                                    className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer"
+                                  />
+                                  Morning
+                                </label>
+
+                                <label className="inline-flex items-center gap-1 cursor-pointer select-none text-slate-800 dark:text-slate-200 font-medium hover:text-blue-600 transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={parsedDosage.afternoon}
+                                    onChange={() => handleToggleTime("afternoon")}
+                                    className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer"
+                                  />
+                                  Afternoon
+                                </label>
+
+                                <label className="inline-flex items-center gap-1 cursor-pointer select-none text-slate-800 dark:text-slate-200 font-medium hover:text-blue-600 transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={parsedDosage.night}
+                                    onChange={() => handleToggleTime("night")}
+                                    className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer"
+                                  />
+                                  Night
+                                </label>
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] border-t border-slate-100 dark:border-slate-800 pt-1">
+                                <span className="font-semibold text-slate-500 dark:text-slate-400 shrink-0">Meal:</span>
+                                <label className="inline-flex items-center gap-1 cursor-pointer select-none text-slate-800 dark:text-slate-200 font-medium hover:text-blue-600 transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={parsedDosage.beforeMeals}
+                                    onChange={() => handleToggleMeal("beforeMeals")}
+                                    className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer"
+                                  />
+                                  Before Meals
+                                </label>
+
+                                <label className="inline-flex items-center gap-1 cursor-pointer select-none text-slate-800 dark:text-slate-200 font-medium hover:text-blue-600 transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={parsedDosage.afterMeals}
+                                    onChange={() => handleToggleMeal("afterMeals")}
+                                    className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer"
+                                  />
+                                  After Meals
+                                </label>
+                              </div>
+                            </div>
+
+                            {/* Duration & Special Advice */}
+                            <div className="md:col-span-3 space-y-2">
+                              <div>
+                                <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Duration</Label>
+                                <Input
+                                  value={med.duration}
+                                  onChange={e => {
+                                    const copy = [...prescMeds];
+                                    copy[idx].duration = e.target.value;
+                                    setPrescMeds(copy);
+                                  }}
+                                  placeholder="e.g. 5 days, 1 week"
+                                  className="mt-1 bg-white dark:bg-slate-955"
+                                />
+                              </div>
+
+                              <div className="flex gap-2 items-end">
+                                <div className="flex-1">
+                                  <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Special Advice</Label>
+                                  <Input
+                                    value={med.instructions}
+                                    onChange={e => {
+                                      const copy = [...prescMeds];
+                                      copy[idx].instructions = e.target.value;
+                                      setPrescMeds(copy);
+                                    }}
+                                    placeholder="e.g. Take with water"
+                                    className="mt-1 bg-white dark:bg-slate-955"
+                                  />
+                                </div>
+                                {prescMeds.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setPrescMeds(prev => prev.filter((_, i) => i !== idx))}
+                                    className="h-9 px-2 text-red-500 hover:text-red-700 font-bold border border-slate-200 dark:border-slate-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer shrink-0"
+                                    title="Remove this medicine"
+                                  >
+                                    Remove
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <Label>Dosage / Freq</Label>
-                          <Input 
-                            value={med.dosage} 
-                            onChange={e => {
-                              const copy = [...prescMeds];
-                              copy[idx].dosage = e.target.value;
-                              setPrescMeds(copy);
-                            }} 
-                            placeholder="3x daily, after meals..."
-                          />
-                        </div>
-                        <div>
-                          <Label>Duration</Label>
-                          <Input 
-                            value={med.duration} 
-                            onChange={e => {
-                              const copy = [...prescMeds];
-                              copy[idx].duration = e.target.value;
-                              setPrescMeds(copy);
-                            }} 
-                            placeholder="5 days, 1 week..."
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <Input 
-                            value={med.instructions} 
-                            onChange={e => {
-                              const copy = [...prescMeds];
-                              copy[idx].instructions = e.target.value;
-                              setPrescMeds(copy);
-                            }} 
-                            placeholder="Special advice..." 
-                            className="flex-1"
-                          />
-                          {prescMeds.length > 1 && (
-                            <button 
-                              type="button" 
-                              onClick={() => setPrescMeds(prev => prev.filter((_, i) => i !== idx))} 
-                              className="h-9 px-2 text-red-500 hover:text-red-750 font-bold border border-slate-200 rounded"
-                            >
-                              Remove
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     <button 
                       type="button" 
                       onClick={() => prescMeds.length < 10 && setPrescMeds(prev => [...prev, { name: "", dosage: "", freq: "", duration: "", instructions: "" }])} 
