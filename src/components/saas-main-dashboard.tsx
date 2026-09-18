@@ -73,6 +73,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DentalLogo } from "@/components/dental-logo";
 import { createClient } from "@/lib/supabase/client";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // Interfaces
 interface FileAttachment {
@@ -3346,6 +3348,265 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setNoteCategory("General");
 
     showToast("Prescription generated and saved.", "success");
+  };
+
+  const handleGeneratePrescriptionPDF = () => {
+    const patientItem = patients.find(p => p.id === selectedPatientId);
+    if (!patientItem) {
+      showToast("Please select a patient before generating a prescription.", "error");
+      return;
+    }
+
+    if (prescMeds.length === 0 || prescMeds.some(m => !m.name.trim())) {
+      showToast("All medicines must have a name.", "error");
+      return;
+    }
+
+    const missingDosageTime = prescMeds.some(m => {
+      const parsed = parseDosageString(m.dosage);
+      return !parsed.morning && !parsed.afternoon && !parsed.night;
+    });
+
+    if (missingDosageTime) {
+      showToast("Please select at least one dosage time (Morning, Afternoon, or Night) for all medicines.", "error");
+      return;
+    }
+
+    try {
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4"
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 14;
+
+      // Clinic Header
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.setTextColor(30, 58, 138);
+      doc.text("VR Dental Care Dental Implant Centre", pageWidth / 2, 18, { align: "center" });
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.text(
+        "3rd Cross St, opp. GMC Balayogi stadium, Zicria Nagar, Yanam, Andhra Pradesh 533464",
+        pageWidth / 2,
+        24,
+        { align: "center" }
+      );
+      doc.setFont("helvetica", "bold");
+      doc.text("PH: 09885349798", pageWidth / 2, 29, { align: "center" });
+
+      // Divider
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.5);
+      doc.line(margin, 33, pageWidth - margin, 33);
+
+      // Document Title
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(15, 23, 42);
+      doc.text("PRESCRIPTION", pageWidth / 2, 41, { align: "center" });
+
+      // Patient & Doctor Metadata Box
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(margin, 46, pageWidth - margin * 2, 26, 2, 2, "FD");
+
+      doc.setFontSize(9);
+      const doctorName = prescDoctor || (doctors[0]?.name || "Dr. Durga Praveen");
+      const rawDate = prescDate || new Date().toISOString().split("T")[0];
+      const patientDisplayId = patientItem.id || "1042";
+      const ageGender = `${patientItem.age || ""} ${patientItem.gender || ""}`.trim();
+
+      // Left Column Info
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(51, 65, 85);
+      doc.text("Patient Name:", margin + 4, 52);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(15, 23, 42);
+      doc.text(patientItem.name, margin + 28, 52);
+
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(51, 65, 85);
+      doc.text("Patient ID:", margin + 4, 58);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(15, 23, 42);
+      doc.text(patientDisplayId, margin + 28, 58);
+
+      if (ageGender) {
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(51, 65, 85);
+        doc.text("Age / Gender:", margin + 4, 64);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(15, 23, 42);
+        doc.text(ageGender, margin + 28, 64);
+      }
+
+      // Right Column Info
+      const rightColX = pageWidth / 2 + 10;
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(51, 65, 85);
+      doc.text("Prescription Date:", rightColX, 52);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(15, 23, 42);
+      doc.text(rawDate, rightColX + 30, 52);
+
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(51, 65, 85);
+      doc.text("Doctor:", rightColX, 58);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(15, 23, 42);
+      doc.text(doctorName, rightColX + 30, 58);
+
+      if (patientItem.phone) {
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(51, 65, 85);
+        doc.text("Contact:", rightColX, 64);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(15, 23, 42);
+        doc.text(patientItem.phone, rightColX + 30, 64);
+      }
+
+      let currentY = 78;
+
+      // Diagnosis Notes Section
+      if (prescDiagnosis.trim()) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(30, 58, 138);
+        doc.text("DIAGNOSIS / CLINICAL NOTES", margin, currentY);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(51, 65, 85);
+        const diagLines = doc.splitTextToSize(prescDiagnosis.trim(), pageWidth - margin * 2);
+        doc.text(diagLines, margin, currentY + 5);
+
+        currentY += 6 + diagLines.length * 4.5;
+      }
+
+      // Medicines Table Section
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(30, 58, 138);
+      doc.text("MEDICINES PRESCRIBED", margin, currentY);
+      currentY += 4;
+
+      const tableBody = prescMeds.map((med, index) => {
+        const parsed = parseDosageString(med.dosage);
+        const times: string[] = [];
+        if (parsed.morning) times.push("Morning");
+        if (parsed.afternoon) times.push("Afternoon");
+        if (parsed.night) times.push("Night");
+
+        const timeStr = times.join(", ") || "-";
+        let mealStr = "-";
+        if (parsed.beforeMeals) mealStr = "Before Meals";
+        else if (parsed.afterMeals) mealStr = "After Meals";
+
+        return [
+          String(index + 1),
+          med.name.trim(),
+          timeStr,
+          mealStr,
+          med.duration.trim() || "-",
+          med.instructions.trim() || "-"
+        ];
+      });
+
+      autoTable(doc, {
+        startY: currentY,
+        margin: { left: margin, right: margin },
+        head: [["#", "Medicine Name", "Dosage / Frequency", "Meal Timing", "Duration", "Special Advice"]],
+        body: tableBody,
+        theme: "grid",
+        headStyles: {
+          fillColor: [30, 58, 138],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          fontSize: 8.5,
+          halign: "left"
+        },
+        bodyStyles: {
+          fontSize: 8.5,
+          textColor: [30, 41, 59]
+        },
+        columnStyles: {
+          0: { cellWidth: 10, halign: "center" },
+          1: { cellWidth: 45, fontStyle: "bold" },
+          2: { cellWidth: 40 },
+          3: { cellWidth: 26 },
+          4: { cellWidth: 22 },
+          5: { cellWidth: 39 }
+        },
+        styles: {
+          cellPadding: 2.5,
+          overflow: "linebreak"
+        }
+      });
+
+      const finalY = (doc as any).lastAutoTable.finalY + 8;
+      let nextY = finalY;
+
+      // Doctor Advice / Instructions Section
+      if (prescAdvice.trim()) {
+        if (nextY > pageHeight - 50) {
+          doc.addPage();
+          nextY = 20;
+        }
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(30, 58, 138);
+        doc.text("DOCTOR ADVICE / INSTRUCTIONS", margin, nextY);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(51, 65, 85);
+        const adviceLines = doc.splitTextToSize(prescAdvice.trim(), pageWidth - margin * 2);
+        doc.text(adviceLines, margin, nextY + 5);
+
+        nextY += 6 + adviceLines.length * 4.5;
+      }
+
+      // Signature Block
+      if (nextY > pageHeight - 40) {
+        doc.addPage();
+        nextY = 20;
+      }
+
+      const sigX = pageWidth - margin - 60;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(30, 41, 59);
+      doc.text(`Doctor: ${doctorName}`, sigX, nextY + 15);
+      doc.text("Signature: __________________________", sigX, nextY + 25);
+
+      // Save File
+      const cleanId = String(patientDisplayId).replace(/[^a-zA-Z0-9]/g, "_");
+      const cleanDate = rawDate.replace(/[^a-zA-Z0-9-]/g, "_");
+      const fileName = `DentPro_Prescription_${cleanId}_${cleanDate}.pdf`;
+
+      doc.save(fileName);
+
+      // Open Print Blob Window
+      const pdfBlob = doc.output("blob");
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      const printWin = window.open(blobUrl, "_blank");
+      if (printWin) {
+        printWin.focus();
+      }
+
+      showToast(`Prescription PDF generated and downloaded as ${fileName}`, "success");
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      showToast("Failed to generate PDF.", "error");
+    }
   };
 
   const handleSaveClinicalNote = async (e: React.FormEvent) => {
@@ -8503,11 +8764,9 @@ ${clinicName}`;
                   </div>
 
                   <div className="flex gap-3 justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <Button 
-                      type="button" 
-                      onClick={() => {
-                        alert("PDF format initialized. Prescription downloaded successfully.");
-                      }} 
+                    <Button
+                      type="button"
+                      onClick={handleGeneratePrescriptionPDF}
                       className="h-9 px-4 rounded border font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
                     >
                       Generate PDF
