@@ -202,6 +202,32 @@ interface ActivityItem {
   time: string;
 }
 
+const TIME_SLOTS = [
+  "09:00 AM",
+  "09:30 AM",
+  "10:00 AM",
+  "10:30 AM",
+  "11:00 AM",
+  "11:30 AM",
+  "12:00 PM",
+  "12:30 PM",
+  "01:00 PM",
+  "01:30 PM",
+  "02:00 PM",
+  "02:30 PM",
+  "03:00 PM",
+  "03:30 PM",
+  "04:00 PM",
+  "04:30 PM",
+  "05:00 PM",
+  "05:30 PM",
+  "06:00 PM",
+  "06:30 PM",
+  "07:00 PM",
+  "07:30 PM",
+  "08:00 PM"
+];
+
 // Odontogram Component Type Definitions & Config
 interface ToothConfig {
   index: number;
@@ -7905,7 +7931,17 @@ ${clinicName}`;
                         </div>
                         <div>
                           <Label>Time Slot</Label>
-                          <Input value={patApptTime} onChange={e => setPatApptTime(e.target.value)} placeholder="e.g. 09:30 AM" required />
+                          <select
+                            className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
+                            value={patApptTime}
+                            onChange={e => setPatApptTime(e.target.value)}
+                            required
+                          >
+                            <option value="">-- Select Time Slot --</option>
+                            {TIME_SLOTS.map(t => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                          </select>
                         </div>
                       </div>
                       <div>
@@ -12670,7 +12706,7 @@ ${clinicName}`;
                         </select>
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="apptTime">Time Block</Label>
+                        <Label htmlFor="apptTime">Time Slot</Label>
                         <select
                           id="apptTime"
                           className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-808 focus:outline-none dark:bg-slate-950 dark:border-slate-800"
@@ -12678,8 +12714,8 @@ ${clinicName}`;
                           onChange={e => setApptTime(e.target.value)}
                           required
                         >
-                          <option value="">-- Pick Time Slot --</option>
-                          {["09:00 AM", "09:15 AM", "09:30 AM", "09:45 AM", "10:00 AM", "10:15 AM", "10:30 AM", "10:45 AM", "11:00 AM", "11:15 AM", "11:30 AM", "11:45 AM", "12:00 PM", "12:15 PM", "12:30 PM", "12:45 PM", "01:00 PM", "01:15 PM", "01:30 PM", "01:45 PM", "02:00 PM", "02:15 PM", "02:30 PM", "02:45 PM", "03:00 PM", "03:15 PM", "03:30 PM", "03:45 PM", "04:00 PM", "04:15 PM", "04:30 PM", "04:45 PM", "05:00 PM"].map(t => (
+                          <option value="">-- Select Time Slot --</option>
+                          {TIME_SLOTS.map(t => (
                             <option key={t} value={t}>{t}</option>
                           ))}
                         </select>
