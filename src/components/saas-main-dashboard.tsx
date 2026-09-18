@@ -7814,23 +7814,31 @@ ${clinicName}`;
                                       </div>
 
                                       {/* Teeth List */}
-                                      <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Teeth:</span>
-                                        {group.teeth.map((t, idx) => (
-                                          <span key={t.index} className="inline-flex items-center">
-                                            <span
-                                              onClick={() => handleChartToothSelect(t.index)}
-                                              className="text-[11px] font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-900 px-1.5 py-0.5 rounded hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 cursor-pointer transition-colors"
-                                              title={`Tooth #${t.fdi} — Click to toggle/edit`}
-                                            >
-                                              #{t.fdi}
-                                            </span>
-                                            {idx < group.teeth.length - 1 && (
-                                              <span className="text-slate-300 dark:text-slate-700 mx-0.5 font-bold">·</span>
-                                            )}
+                                      {group.teeth.length >= ALL_TEETH.length ? (
+                                        <div className="pt-0.5">
+                                          <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
+                                            All Teeth
                                           </span>
-                                        ))}
-                                      </div>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                                          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Teeth:</span>
+                                          {group.teeth.map((t, idx) => (
+                                            <span key={t.index} className="inline-flex items-center">
+                                              <span
+                                                onClick={() => handleChartToothSelect(t.index)}
+                                                className="text-[11px] font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-900 px-1.5 py-0.5 rounded hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 cursor-pointer transition-colors"
+                                                title={`Tooth #${t.fdi} — Click to toggle/edit`}
+                                              >
+                                                #{t.fdi}
+                                              </span>
+                                              {idx < group.teeth.length - 1 && (
+                                                <span className="text-slate-300 dark:text-slate-700 mx-0.5 font-bold">·</span>
+                                              )}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
                                     </div>
                                   );
                                 })}
