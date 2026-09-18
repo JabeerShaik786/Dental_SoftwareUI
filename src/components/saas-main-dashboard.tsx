@@ -1469,6 +1469,24 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [globalSearchQuery, setGlobalSearchQuery] = useState("");
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [openTreatmentMenu, setOpenTreatmentMenu] = useState<string | null>(null);
+
+  useEffect(() => {
+    function handleClickOutsideMenu(event: MouseEvent | TouchEvent) {
+      const target = event.target as HTMLElement | null;
+      if (target && !target.closest(".treatment-menu-container")) {
+        setOpenTreatmentMenu(null);
+      }
+    }
+    if (openTreatmentMenu) {
+      document.addEventListener("mousedown", handleClickOutsideMenu);
+      document.addEventListener("touchstart", handleClickOutsideMenu);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutsideMenu);
+      document.removeEventListener("touchstart", handleClickOutsideMenu);
+    };
+  }, [openTreatmentMenu]);
 
   // Workflow tracking states
   const [activeConsultationApptId, setActiveConsultationApptId] = useState<string | null>(null);
@@ -7970,12 +7988,20 @@ ${clinicName}`;
                             {Object.entries(TREATMENT_COLORS).map(([tKey, cfg]) => {
                               const isActive = activeTreatment === cfg.name;
                               const isHoverMenuAvailable = cfg.name === "Scaling" || cfg.name === "Braces";
+                              const isMenuOpen = openTreatmentMenu === cfg.name;
 
                               return (
                                 <div
                                   key={tKey}
-                                  onClick={() => setActiveTreatment(isActive ? null : cfg.name)}
-                                  className={`group relative flex items-center justify-between p-2.5 rounded-lg transition-all duration-150 cursor-pointer ${
+                                  onClick={(e) => {
+                                    if (isHoverMenuAvailable) {
+                                      e.stopPropagation();
+                                      setOpenTreatmentMenu(prev => prev === cfg.name ? null : cfg.name);
+                                    } else {
+                                      setActiveTreatment(isActive ? null : cfg.name);
+                                    }
+                                  }}
+                                  className={`group relative flex items-center justify-between p-2.5 rounded-lg transition-all duration-150 cursor-pointer treatment-menu-container ${
                                     isActive
                                       ? 'bg-blue-50/90 dark:bg-blue-950/60 border-2 border-blue-500 shadow-xs ring-1 ring-blue-400/40 scale-[1.01]'
                                       : 'bg-white dark:bg-slate-955 border border-slate-200/60 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700'
@@ -7996,15 +8022,18 @@ ${clinicName}`;
                                   {isHoverMenuAvailable && (
                                     <div
                                       onClick={(e) => e.stopPropagation()}
-                                      className="hidden group-hover:flex items-center gap-1 shrink-0 ml-1 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 p-1 rounded-md shadow-xs transition-all"
+                                      className={`items-center gap-1 shrink-0 ml-1 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 p-1 rounded-md shadow-xs transition-all ${
+                                        isMenuOpen ? 'flex' : 'hidden group-hover:flex'
+                                      }`}
                                     >
                                       <button
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleSelectAllTeeth(cfg.name as "Scaling" | "Braces");
+                                          setOpenTreatmentMenu(null);
                                         }}
-                                        className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition-colors cursor-pointer"
+                                        className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-955/60 dark:hover:bg-blue-900/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition-colors cursor-pointer"
                                       >
                                         Select All
                                       </button>
@@ -8013,9 +8042,10 @@ ${clinicName}`;
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           setActiveTreatment(cfg.name);
+                                          setOpenTreatmentMenu(null);
                                           showToast(`Activated ${cfg.name} Custom Select mode. Click teeth to add/remove.`, "success");
                                         }}
-                                        className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition-colors cursor-pointer"
+                                        className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-955/60 dark:hover:bg-blue-900/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition-colors cursor-pointer"
                                       >
                                         Custom Select
                                       </button>
