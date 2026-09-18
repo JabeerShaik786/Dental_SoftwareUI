@@ -2172,6 +2172,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
   // --- TOOTH TREATMENT FORM STATE ---
   const [chartSelectedTooth, setChartSelectedTooth] = useState<number | null>(null);
+  const [activeTreatment, setActiveTreatment] = useState<string | null>(null);
   const [chartTreatmentName, setChartTreatmentName] = useState("");
   const [chartDiagnosis, setChartDiagnosis] = useState("");
   const [chartStatus, setChartStatus] = useState<"Planned" | "In Progress" | "Completed">("Planned");
@@ -2635,7 +2636,56 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     showToast("Patient case sheet updated successfully.", "success");
   };
 
-  const handleChartToothSelect = (toothIndex: number) => {
+  const handleChartToothSelect = async (toothIndex: number) => {
+    if (activeTreatment) {
+      const patientItem = patients.find(p => p.id === selectedPatientId);
+      if (!patientItem) return;
+
+      const currentChart = { ...(patientItem.dentalChart || {}) };
+      const existingStatus = currentChart[toothIndex];
+      const toothObj = ALL_TEETH.find(t => t.index === toothIndex);
+      const fdi = toothObj?.fdi || toothIndex;
+
+      const isSameTreatment = existingStatus && existingStatus.toLowerCase().startsWith(activeTreatment.toLowerCase());
+
+      let updatedChart: Record<number, string>;
+      if (isSameTreatment) {
+        updatedChart = { ...currentChart };
+        delete updatedChart[toothIndex];
+        showToast(`Cleared treatment from Tooth #${fdi}.`, "success");
+      } else {
+        updatedChart = {
+          ...currentChart,
+          [toothIndex]: `${activeTreatment} (Planned)`
+        };
+        showToast(`Assigned ${activeTreatment} to Tooth #${fdi}.`, "success");
+      }
+
+      // Persist to Supabase
+      const { error: patChartErr } = await supabase
+        .from("patients")
+        .update({ dental_chart: updatedChart })
+        .eq("patient_id", selectedPatientId);
+
+      if (patChartErr) {
+        console.error("Failed to update dental chart in database:", patChartErr.message);
+        showToast("Failed to save tooth treatment to database.", "error");
+        return;
+      }
+
+      // Update state immediately
+      setPatients(prev => prev.map(p => {
+        if (p.id === selectedPatientId) {
+          return {
+            ...p,
+            dentalChart: updatedChart
+          };
+        }
+        return p;
+      }));
+      return;
+    }
+
     setChartSelectedTooth(toothIndex);
     if (!chartDoctor && doctors.length > 0) {
       setChartDoctor(doctors[0].name);
@@ -2643,6 +2693,40 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     if (!chartDate) {
       setChartDate(new Date().toISOString().split("T")[0]);
     }
+  };
+
+  const handleSelectAllTeeth = async (treatmentName: "Scaling" | "Braces") => {
+    const patientItem = patients.find(p => p.id === selectedPatientId);
+    if (!patientItem) return;
+
+    const currentChart = { ...(patientItem.dentalChart || {}) };
+    ALL_TEETH.forEach(tooth => {
+      currentChart[tooth.index] = `${treatmentName} (Planned)`;
+    });
+
+    const { error: patChartErr } = await supabase
+      .from("patients")
+      .update({ dental_chart: currentChart })
+      .eq("patient_id", selectedPatientId);
+
+    if (patChartErr) {
+      console.error("Failed to update dental chart in database:", patChartErr.message);
+      showToast(`Failed to save ${treatmentName} for all teeth to database.`, "error");
+      return;
+    }
+
+    setPatients(prev => prev.map(p => {
+      if (p.id === selectedPatientId) {
+        return {
+          ...p,
+          dentalChart: currentChart
+        };
+      }
+      return p;
+    }));
+
+    setActiveTreatment(treatmentName);
+    showToast(`Assigned ${treatmentName} to all 32 teeth.`, "success");
   };
 
   const handleSaveToothTreatment = async (e: React.FormEvent) => {
@@ -7383,16 +7467,62 @@ ${clinicName}`;
 
                         {/* Color Legend Section */}
                         <div className="bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 rounded-xl p-4 space-y-3">
-                          <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200 block uppercase tracking-wider">
-                            Tooth Treatment Indications
-                          </span>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200 block uppercase tracking-wider">
+                              Tooth Treatment Indications
+                            </span>
+                            {activeTreatment && (
+                              <button
+                                type="button"
+                                onClick={() => setActiveTreatment(null)}
+                                className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                              >
+                                Clear Selection Mode
+                              </button>
+                            )}
+                          </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            {Object.entries(TREATMENT_COLORS).map(([tKey, cfg]) => (
-                              <div key={tKey} className="flex items-center gap-2.5 p-2 rounded-lg bg-white dark:bg-slate-955 border border-slate-200/60 dark:border-slate-800">
-                                <span className={`w-3.5 h-3.5 rounded-full ${cfg.dotColor} shrink-0`}></span>
-                                <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">{cfg.name}</span>
-                              </div>
-                            ))}
+                            {Object.entries(TREATMENT_COLORS).map(([tKey, cfg]) => {
+                              const isActive = activeTreatment === cfg.name;
+                              const isSelectAllAvailable = cfg.name === "Scaling" || cfg.name === "Braces";
+
+                              return (
+                                <div
+                                  key={tKey}
+                                  onClick={() => setActiveTreatment(isActive ? null : cfg.name)}
+                                  className={`flex items-center justify-between p-2.5 rounded-lg transition-all duration-150 cursor-pointer ${
+                                    isActive
+                                      ? 'bg-blue-50/90 dark:bg-blue-950/60 border-2 border-blue-500 shadow-xs ring-1 ring-blue-400/40 scale-[1.01]'
+                                      : 'bg-white dark:bg-slate-955 border border-slate-200/60 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className={`w-3.5 h-3.5 rounded-full ${cfg.dotColor} shrink-0`}></span>
+                                    <span className={`text-[12px] ${isActive ? 'font-bold text-blue-900 dark:text-blue-200' : 'font-semibold text-slate-700 dark:text-slate-300'}`}>
+                                      {cfg.name}
+                                    </span>
+                                    {isActive && (
+                                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-blue-600 text-white tracking-wider">
+                                        Active
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {isSelectAllAvailable && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSelectAllTeeth(cfg.name as "Scaling" | "Braces");
+                                      }}
+                                      className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white transition-all shadow-2xs shrink-0 active:scale-95 cursor-pointer"
+                                    >
+                                      Select All
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
 
@@ -7403,7 +7533,7 @@ ${clinicName}`;
                               Active Teeth & Clinical Log
                             </span>
                             <span className="text-[11px] text-slate-400 font-medium">
-                              Select tooth to update
+                              {activeTreatment ? `Active: ${activeTreatment}` : 'Select treatment to assign teeth'}
                             </span>
                           </div>
 
@@ -7419,7 +7549,7 @@ ${clinicName}`;
                                   </div>
                                   <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs mb-0.5">No Active Conditions</span>
                                   <p className="max-w-[240px] text-[11px] font-medium leading-normal text-slate-450 dark:text-slate-400">
-                                    Click any tooth on the Odontogram to add diagnoses or treatment records.
+                                    Click a treatment procedure above, then click teeth on the Odontogram to assign records.
                                   </p>
                                 </div>
                               );
@@ -7459,9 +7589,39 @@ ${clinicName}`;
                                           </span>
                                         </div>
                                       </div>
-                                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${badgeStyle}`}>
-                                        {isCompleted ? "Completed" : isInProgress ? "In Progress" : isPlanned ? "Planned" : "Diagnosed"}
-                                      </span>
+                                      <div className="flex items-center gap-2">
+                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${badgeStyle}`}>
+                                          {isCompleted ? "Completed" : isInProgress ? "In Progress" : isPlanned ? "Planned" : "Diagnosed"}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={async (e) => {
+                                            e.stopPropagation();
+                                            const patientItem = patients.find(p => p.id === selectedPatientId);
+                                            if (!patientItem) return;
+
+                                            const currentChart = { ...(patientItem.dentalChart || {}) };
+                                            delete currentChart[toothNum];
+
+                                            await supabase
+                                              .from("patients")
+                                              .update({ dental_chart: currentChart })
+                                              .eq("patient_id", selectedPatientId);
+
+                                            setPatients(prev => prev.map(p => {
+                                              if (p.id === selectedPatientId) {
+                                                return { ...p, dentalChart: currentChart };
+                                              }
+                                              return p;
+                                            }));
+                                            showToast(`Removed treatment for Tooth #${fdi}.`, "success");
+                                          }}
+                                          className="p-1 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                                          title="Remove treatment from tooth"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                      </div>
                                     </div>
                                   );
                                 })}
