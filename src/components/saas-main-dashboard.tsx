@@ -1475,6 +1475,17 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<InvoiceItem | null>(null);
   const [lastGeneratedReceipt, setLastGeneratedReceipt] = useState<InvoiceItem | null>(null);
 
+  useEffect(() => {
+    if (lastGeneratedReceipt) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [lastGeneratedReceipt]);
+
   // Billing Edit Modal states & handlers
   const [editingInvoice, setEditingInvoice] = useState<InvoiceItem | null>(null);
   const [editInvoicePatientName, setEditInvoicePatientName] = useState("");
@@ -13314,22 +13325,22 @@ ${clinicName}`;
 
       {/* Receipt Modal (Design printer-friendly print logs) */}
       {lastGeneratedReceipt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/50 backdrop-blur-xs p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/50 backdrop-blur-xs p-3 sm:p-6 overflow-hidden">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden text-xs my-8"
+            className="w-full max-w-2xl max-h-[calc(100dvh-24px)] sm:max-h-[calc(100vh-48px)] flex flex-col bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden text-xs my-auto"
           >
             {/* Header - Not printed */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 no-print">
+            <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 shrink-0 no-print bg-white dark:bg-slate-950">
               <span className="font-bold text-sm text-slate-900 dark:text-white">Professional Dental Invoice Preview</span>
-              <button onClick={() => setLastGeneratedReceipt(null)} className="text-slate-400 hover:text-slate-650 dark:hover:text-slate-200">
+              <button onClick={() => setLastGeneratedReceipt(null)} className="text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 cursor-pointer p-1">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Printable Content Section */}
-            <div id="print-area" className="p-8 space-y-4 bg-white text-slate-900 border border-slate-300">
+            <div id="print-area" className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-4 bg-white text-slate-900 border-x border-slate-300 print:overflow-visible print:p-0 print:border-none scrollbar-thin">
               
               {/* Clinic details header (Centered) */}
               <div className="text-center space-y-1 pb-2">
@@ -13354,28 +13365,28 @@ ${clinicName}`;
 
                 return (
                   <>
-                    <div className="grid grid-cols-2 gap-6 text-xs font-semibold py-1 text-slate-900">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-3 sm:gap-6 print:gap-6 text-xs font-semibold py-1 text-slate-900">
                       {/* Left column */}
                       <div className="space-y-1">
-                        <div className="flex">
-                          <span className="w-24 font-bold text-slate-900">Invoice No :</span>
+                        <div className="flex flex-wrap items-baseline gap-x-2">
+                          <span className="w-24 sm:w-28 print:w-28 shrink-0 font-bold text-slate-900">Invoice No :</span>
                           <span className="font-semibold text-slate-800">{lastGeneratedReceipt.id}</span>
                         </div>
-                        <div className="flex">
-                          <span className="w-24 font-bold text-slate-900">Date :</span>
+                        <div className="flex flex-wrap items-baseline gap-x-2">
+                          <span className="w-24 sm:w-28 print:w-28 shrink-0 font-bold text-slate-900">Date :</span>
                           <span className="font-semibold text-slate-800">{formattedDate}</span>
                         </div>
                       </div>
 
                       {/* Right column */}
                       <div className="space-y-1">
-                        <div className="flex">
-                          <span className="w-28 font-bold text-slate-900">Patient Name :</span>
+                        <div className="flex flex-wrap items-baseline gap-x-2">
+                          <span className="w-24 sm:w-28 print:w-28 shrink-0 font-bold text-slate-900">Patient Name :</span>
                           <span className="font-semibold text-slate-800">{lastGeneratedReceipt.patientName}</span>
                         </div>
                         {ageGenderStr ? (
-                          <div className="flex">
-                            <span className="w-28 font-bold text-slate-900">Age/Gender :</span>
+                          <div className="flex flex-wrap items-baseline gap-x-2">
+                            <span className="w-24 sm:w-28 print:w-28 shrink-0 font-bold text-slate-900">Age/Gender :</span>
                             <span className="font-semibold text-slate-800">{ageGenderStr}</span>
                           </div>
                         ) : null}
@@ -13387,7 +13398,7 @@ ${clinicName}`;
               })()}
 
               {/* Treatment Details Table */}
-              <div className="min-h-[140px] pt-1">
+              <div className="min-h-[140px] pt-1 overflow-x-auto print:overflow-visible scrollbar-thin">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="border-b-2 border-slate-400 text-slate-900">
@@ -13401,7 +13412,7 @@ ${clinicName}`;
                       lastGeneratedReceipt.items.map((item, idx) => (
                         <tr key={idx} className="text-slate-800">
                           <td className="py-2.5 px-2 font-bold">{idx + 1}</td>
-                          <td className="py-2.5 px-2 font-medium">{item.description}</td>
+                          <td className="py-2.5 px-2 font-medium break-words">{item.description}</td>
                           <td className="py-2.5 px-2 text-right font-bold font-mono">
                             {item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
@@ -13410,7 +13421,7 @@ ${clinicName}`;
                     ) : (
                       <tr className="text-slate-800">
                         <td className="py-2.5 px-2 font-bold">1</td>
-                        <td className="py-2.5 px-2 font-medium">{lastGeneratedReceipt.treatment || "Dental Treatment"}</td>
+                        <td className="py-2.5 px-2 font-medium break-words">{lastGeneratedReceipt.treatment || "Dental Treatment"}</td>
                         <td className="py-2.5 px-2 text-right font-bold font-mono">
                           {lastGeneratedReceipt.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
@@ -13423,7 +13434,7 @@ ${clinicName}`;
 
               {/* Financial Summary (Right Aligned) */}
               <div className="flex justify-end my-3">
-                <div className="w-64 space-y-1.5 text-xs font-bold text-slate-900">
+                <div className="w-full sm:w-64 print:w-64 space-y-1.5 text-xs font-bold text-slate-900">
                   <div className="flex justify-between">
                     <span>Gross amount :</span>
                     <span className="font-mono">
@@ -13446,61 +13457,63 @@ ${clinicName}`;
               </div>
 
               {/* Payment Details Section Box */}
-              <div className="border border-slate-400 rounded-none p-0 my-3">
+              <div className="border border-slate-400 rounded-none p-0 my-3 overflow-hidden">
                 <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-400 font-bold text-xs text-slate-900">
                   Payment Details
                 </div>
-                <table className="w-full text-center border-collapse text-[11px]">
-                  <thead>
-                    <tr className="border-b border-slate-300 bg-slate-50 text-slate-800 font-bold">
-                      <th className="py-1.5 px-2 border-r border-slate-300">Receipt No</th>
-                      <th className="py-1.5 px-2 border-r border-slate-300">Amt Received</th>
-                      <th className="py-1.5 px-2 border-r border-slate-300">Amt.Refund</th>
-                      <th className="py-1.5 px-2 border-r border-slate-300">Mode</th>
-                      <th className="py-1.5 px-2 border-r border-slate-300">Date</th>
-                      <th className="py-1.5 px-2 border-r border-slate-300">NO</th>
-                      <th className="py-1.5 px-2">Bank Name</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lastGeneratedReceipt.paymentLogs && lastGeneratedReceipt.paymentLogs.length > 0 ? (
-                      lastGeneratedReceipt.paymentLogs.map((log, idx) => (
-                        <tr key={idx} className="border-b border-slate-200 text-slate-800 font-medium">
-                          <td className="py-1.5 px-2 border-r border-slate-300 font-mono">10{idx + 1}</td>
+                <div className="overflow-x-auto print:overflow-visible scrollbar-thin">
+                  <table className="w-full min-w-[500px] sm:min-w-full print:min-w-full text-center border-collapse text-[11px]">
+                    <thead>
+                      <tr className="border-b border-slate-300 bg-slate-50 text-slate-800 font-bold">
+                        <th className="py-1.5 px-2 border-r border-slate-300">Receipt No</th>
+                        <th className="py-1.5 px-2 border-r border-slate-300">Amt Received</th>
+                        <th className="py-1.5 px-2 border-r border-slate-300">Amt.Refund</th>
+                        <th className="py-1.5 px-2 border-r border-slate-300">Mode</th>
+                        <th className="py-1.5 px-2 border-r border-slate-300">Date</th>
+                        <th className="py-1.5 px-2 border-r border-slate-300">NO</th>
+                        <th className="py-1.5 px-2">Bank Name</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lastGeneratedReceipt.paymentLogs && lastGeneratedReceipt.paymentLogs.length > 0 ? (
+                        lastGeneratedReceipt.paymentLogs.map((log, idx) => (
+                          <tr key={idx} className="border-b border-slate-200 text-slate-800 font-medium">
+                            <td className="py-1.5 px-2 border-r border-slate-300 font-mono">10{idx + 1}</td>
+                            <td className="py-1.5 px-2 border-r border-slate-300 font-mono font-bold">
+                              {log.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td className="py-1.5 px-2 border-r border-slate-300 font-mono">0.00</td>
+                            <td className="py-1.5 px-2 border-r border-slate-300">{log.method}</td>
+                            <td className="py-1.5 px-2 border-r border-slate-300">{log.date || lastGeneratedReceipt.paymentDate}</td>
+                            <td className="py-1.5 px-2 border-r border-slate-300">-</td>
+                            <td className="py-1.5 px-2">-</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr className="text-slate-800 font-medium">
+                          <td className="py-1.5 px-2 border-r border-slate-300 font-mono">101</td>
                           <td className="py-1.5 px-2 border-r border-slate-300 font-mono font-bold">
-                            {log.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {lastGeneratedReceipt.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
                           <td className="py-1.5 px-2 border-r border-slate-300 font-mono">0.00</td>
-                          <td className="py-1.5 px-2 border-r border-slate-300">{log.method}</td>
-                          <td className="py-1.5 px-2 border-r border-slate-300">{log.date || lastGeneratedReceipt.paymentDate}</td>
+                          <td className="py-1.5 px-2 border-r border-slate-300">Cash</td>
+                          <td className="py-1.5 px-2 border-r border-slate-300">{lastGeneratedReceipt.paymentDate}</td>
                           <td className="py-1.5 px-2 border-r border-slate-300">-</td>
                           <td className="py-1.5 px-2">-</td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr className="text-slate-800 font-medium">
-                        <td className="py-1.5 px-2 border-r border-slate-300 font-mono">101</td>
-                        <td className="py-1.5 px-2 border-r border-slate-300 font-mono font-bold">
-                          {lastGeneratedReceipt.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                        <td className="py-1.5 px-2 border-r border-slate-300 font-mono">0.00</td>
-                        <td className="py-1.5 px-2 border-r border-slate-300">Cash</td>
-                        <td className="py-1.5 px-2 border-r border-slate-300">{lastGeneratedReceipt.paymentDate}</td>
-                        <td className="py-1.5 px-2 border-r border-slate-300">-</td>
-                        <td className="py-1.5 px-2">-</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               {/* Dynamic Amount in Words & Signatory Block */}
-              <div className="flex justify-between items-end pt-4 my-2 text-xs">
-                <div className="font-extrabold text-slate-900 uppercase tracking-wide max-w-xs">
+              <div className="flex flex-col sm:flex-row print:flex-row justify-between items-start sm:items-end print:items-end gap-4 sm:gap-0 pt-4 my-2 text-xs">
+                <div className="font-extrabold text-slate-900 uppercase tracking-wide max-w-full sm:max-w-xs print:max-w-xs break-words">
                   {numberToWords(lastGeneratedReceipt.paidAmount || lastGeneratedReceipt.total)}
                 </div>
 
-                <div className="text-right space-y-1 text-slate-900">
+                <div className="text-left sm:text-right print:text-right space-y-1 text-slate-900 shrink-0 self-end sm:self-auto">
                   <div className="font-bold">Authorised Signatory</div>
                   <div className="text-[11px] font-semibold text-slate-800">VR Dental Care Dental Implant Centre</div>
                   <div className="text-[10px] font-bold tracking-wider uppercase text-slate-900">PROSTHODONTIST</div>
@@ -13510,7 +13523,7 @@ ${clinicName}`;
             </div>
 
             {/* Action buttons footer - Not printed */}
-            <div className="p-5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2.5 no-print">
+            <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-2.5 shrink-0 no-print">
               <button
                 onClick={() => {
                   window.print();
@@ -13521,7 +13534,7 @@ ${clinicName}`;
               </button>
               <button
                 onClick={() => setLastGeneratedReceipt(null)}
-                className="h-10 rounded-xl bg-white hover:bg-slate-55 border border-slate-200 dark:bg-slate-950 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-808 dark:text-slate-200 flex items-center justify-center font-bold cursor-pointer"
+                className="h-10 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-800 dark:text-slate-200 flex items-center justify-center font-bold cursor-pointer"
               >
                 Close Preview
               </button>
