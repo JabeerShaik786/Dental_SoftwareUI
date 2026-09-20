@@ -1,0 +1,75 @@
+name: DentPro OS Database Backup Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  backup:
+    name: Create Logical Database Backup
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Create PostgreSQL database backup
+        id: create-backup
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+
+          # Verify secret is provided
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "Error: SUPABASE_DB_URL secret is not set or empty." >&2
+            exit 1
+          fi
+
+          # Create a secure temporary directory outside the repository working tree
+          TEMP_DIR=$(mktemp -d -p "${{ runner.temp }}" dentpro-backup-XXXXXX)
+
+          # Generate timestamped filename (dentpro-db-YYYY-MM-DD-HH-mm-ss.sql.gz)
+          TIMESTAMP=$(date -u +'%Y-%m-%d-%H-%M-%S')
+          FILENAME="dentpro-db-${TIMESTAMP}.sql.gz"
+          FILEPATH="${TEMP_DIR}/${FILENAME}"
+
+          # Create a logical PostgreSQL backup using pg_dump targeting application public schema.
+          # Excludes Supabase-managed internal schemas (e.g. auth, storage) to avoid backing up system internals as application data.
+          pg_dump "$SUPABASE_DB_URL" \
+            --schema=public \
+            --no-subscriptions \
+            --no-owner \
+            --no-privileges | gzip -9 > "$FILEPATH"
+
+          # Verify that the backup file exists and is non-empty
+          if [ ! -s "$FILEPATH" ]; then
+            echo "Error: Database backup file was not created or is empty." >&2
+            exit 1
+          fi
+
+          # Display safe metadata (filename and size) without printing file contents or secrets
+          FILE_SIZE=$(du -h "$FILEPATH" | cut -f1)
+          echo "Database backup generated successfully."
+          echo "Filename: ${FILENAME}"
+          echo "File Size: ${FILE_SIZE}"
+
+          # Set step outputs for temporary artifact upload
+          echo "backup_path=${FILEPATH}" >> "$GITHUB_OUTPUT"
+          echo "backup_filename=${FILENAME}" >> "$GITHUB_OUTPUT"
+
+      # TEMPORARY TEST VERIFICATION:
+      # The artifact upload step below is TEMPORARY and used strictly for initial Phase 12E testing
+      # to verify database dump creation. In future phases, artifact storage will be removed
+      # and replaced by direct encrypted off-site storage in Google Drive.
+      - name: Upload temporary backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.create-backup.outputs.backup_filename }}
+          path: ${{ steps.create-backup.outputs.backup_path }}
+          retention-days: 3
