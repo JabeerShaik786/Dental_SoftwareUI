@@ -111,7 +111,7 @@ jobs:
           MAGIC_HEADER = b"DENTPRO1"
           VERSION = b"\x01"
           HEADER = MAGIC_HEADER + VERSION
-          DRIVE_FOLDER_ID = "1IDB5zY8gTepz95mNb1D-MWQFsNMUG_wy"
+          FOLDER_NAME = "DentPro OS Backups"
 
           plain_filepath = sys.argv[1]
           enc_filepath = sys.argv[2]
@@ -191,22 +191,48 @@ jobs:
 
               headers = {"Authorization": f"Bearer {access_token}"}
 
-              # 6. Verify Google Drive Backup Folder Accessibility
-              print("Verifying Google Drive backup folder...")
-              folder_url = f"https://www.googleapis.com/drive/v3/files/{DRIVE_FOLDER_ID}?fields=id,name,mimeType,trashed"
-              folder_resp = requests.get(folder_url, headers=headers, timeout=30)
+              # 6. Locate or Create Application-Owned Google Drive Backup Folder
+              print(f"Verifying Google Drive backup folder '{FOLDER_NAME}'...")
+              search_q = f"mimeType = 'application/vnd.google-apps.folder' and name = '{FOLDER_NAME}' and trashed = false"
+              search_url = "https://www.googleapis.com/drive/v3/files"
+              search_params = {
+                  "q": search_q,
+                  "fields": "files(id, name, mimeType, trashed)",
+                  "spaces": "drive",
+              }
 
-              if folder_resp.status_code != 200:
+              search_resp = requests.get(search_url, headers=headers, params=search_params, timeout=30)
+
+              if search_resp.status_code != 200:
                   raise RuntimeError(
-                      f"Google Drive backup folder ID '{DRIVE_FOLDER_ID}' is inaccessible (HTTP {folder_resp.status_code}). "
-                      "The existing OAuth authorization cannot access this manually-created folder under the current drive.file scope."
+                      f"Google Drive folder search failed (HTTP {search_resp.status_code})."
                   )
 
-              folder_meta = folder_resp.json()
-              if folder_meta.get("mimeType") != "application/vnd.google-apps.folder" or folder_meta.get("trashed"):
-                  raise RuntimeError(
-                      f"Target Google Drive ID '{DRIVE_FOLDER_ID}' is not an active folder under the current drive.file authorization scope."
-                  )
+              search_data = search_resp.json()
+              matching_files = search_data.get("files", [])
+
+              folder_id = None
+              if matching_files:
+                  folder_id = matching_files[0].get("id")
+                  print(f"Found existing application-owned backup folder (ID: {folder_id}).")
+              else:
+                  print(f"No existing folder found under drive.file scope. Creating application-owned folder '{FOLDER_NAME}'...")
+                  create_url = "https://www.googleapis.com/drive/v3/files?fields=id,name,mimeType"
+                  create_body = {
+                      "name": FOLDER_NAME,
+                      "mimeType": "application/vnd.google-apps.folder",
+                  }
+                  create_resp = requests.post(create_url, headers=headers, json=create_body, timeout=30)
+
+                  if create_resp.status_code not in (200, 201):
+                      raise RuntimeError(
+                          f"Failed to create Google Drive folder '{FOLDER_NAME}' (HTTP {create_resp.status_code})."
+                      )
+
+                  folder_id = create_resp.json().get("id")
+                  if not folder_id:
+                      raise RuntimeError("Google Drive folder creation response missing folder ID.")
+                  print(f"Created application-owned backup folder (ID: {folder_id}).")
 
               # 7. Upload Encrypted Backup to Google Drive using RFC 2387 Multipart Upload
               print("Uploading encrypted backup...")
@@ -214,7 +240,7 @@ jobs:
 
               metadata = {
                   "name": enc_filename,
-                  "parents": [DRIVE_FOLDER_ID],
+                  "parents": [folder_id],
               }
 
               boundary = f"DentProBackupBoundary{os.urandom(8).hex()}"
@@ -240,24 +266,47 @@ jobs:
               upload_resp = requests.post(upload_url, headers=multipart_headers, data=body, timeout=300)
 
               if upload_resp.status_code not in (200, 201):
-                  raise RuntimeError(f"Google Drive upload failed (HTTP {upload_resp.status_code}): {upload_resp.text}")
+                  raise RuntimeError(f"Google Drive upload failed (HTTP {upload_resp.status_code}).")
 
               drive_file = upload_resp.json()
               drive_file_id = drive_file.get("id")
-              drive_file_size = int(drive_file.get("size", 0))
 
-              # 8. Post-Upload Verification
+              # 8. Independent Post-Upload Verification via Separate GET Request
               if not drive_file_id:
                   raise RuntimeError("Google Drive upload response missing file ID.")
 
-              if drive_file_size != enc_size:
-                  raise RuntimeError(
-                      f"Uploaded file size mismatch! Local size: {enc_size} bytes, Drive reported size: {drive_file_size} bytes."
-                  )
+              print("Verifying uploaded file in Google Drive...")
+              verify_url = f"https://www.googleapis.com/drive/v3/files/{drive_file_id}?fields=id,name,mimeType,size,parents,trashed"
+              verify_resp = requests.get(verify_url, headers=headers, timeout=30)
 
-              print("Google Drive upload successful.")
-              print(f"Drive file ID: {drive_file_id}")
-              print(f"Drive file size: {drive_file_size} bytes")
+              if verify_resp.status_code != 200:
+                  raise RuntimeError(f"Google Drive file verification failed (HTTP {verify_resp.status_code}).")
+
+              verify_data = verify_resp.json()
+              v_id = verify_data.get("id")
+              v_name = verify_data.get("name")
+              v_size = int(verify_data.get("size", 0))
+              v_trashed = verify_data.get("trashed", True)
+              v_parents = verify_data.get("parents", [])
+
+              if v_id != drive_file_id:
+                  raise RuntimeError("Uploaded file ID mismatch during verification.")
+              if v_name != enc_filename:
+                  raise RuntimeError("Uploaded filename mismatch during verification.")
+              if v_size != enc_size:
+                  raise RuntimeError(
+                      f"Uploaded file size mismatch! Local size: {enc_size} bytes, Drive reported size: {v_size} bytes."
+                  )
+              if v_trashed:
+                  raise RuntimeError("Uploaded file is marked as trashed in Google Drive.")
+              if folder_id not in v_parents:
+                  raise RuntimeError("Uploaded file parent folder ID mismatch during verification.")
+
+              print("Google Drive upload and verification successful.")
+              print(f"Drive file ID: {v_id}")
+              print(f"Drive file name: {v_name}")
+              print(f"Drive file size: {v_size} bytes")
+              print(f"Parent folder ID: {folder_id}")
               print("Backup completed successfully.")
 
           except Exception as e:
