@@ -2473,13 +2473,51 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [receptionistUser, setReceptionistUser] = useState("Anjali");
   const [clinicAddress, setClinicAddress] = useState("12, MG Road, Bengaluru");
 
-  const [autoBackupEnabled, setAutoBackupEnabled] = useState(true);
-  const [backupFrequency, setBackupFrequency] = useState("Daily");
-  const [backupHistory, setBackupHistory] = useState<BackupHistoryItem[]>([
-    { id: "bk-1", date: "13 Aug 2026", time: "03:00 AM", size: "24.8 MB", status: "Completed" },
-    { id: "bk-2", date: "12 Aug 2026", time: "03:00 AM", size: "24.2 MB", status: "Completed" },
-    { id: "bk-3", date: "11 Aug 2026", time: "03:00 AM", size: "23.9 MB", status: "Completed" }
-  ]);
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [backupHistory, setBackupHistory] = useState<BackupHistoryItem[]>([]);
+
+  const fetchBackupHistory = React.useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("backup_history")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        const formattedItems: BackupHistoryItem[] = data.map((row: any) => {
+          const d = new Date(row.created_at);
+          const dateStr = d.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' });
+          const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+          let formattedSize = "--";
+          if (row.backup_size) {
+            formattedSize = `${(row.backup_size / (1024 * 1024)).toFixed(1)} MB`;
+          }
+
+          const statusStr = row.status
+            ? row.status.charAt(0).toUpperCase() + row.status.slice(1)
+            : "Triggered";
+
+          return {
+            id: row.id,
+            date: dateStr,
+            time: timeStr,
+            size: formattedSize,
+            status: statusStr,
+          };
+        });
+
+        setBackupHistory(formattedItems);
+      }
+    } catch (err) {
+      console.error("Error fetching backup history:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBackupHistory();
+  }, [fetchBackupHistory]);
 
   useEffect(() => {
     try {
@@ -2490,12 +2528,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         if (parsed.receptionistUser) setReceptionistUser(parsed.receptionistUser);
         if (parsed.clinicAddress) setClinicAddress(parsed.clinicAddress);
       }
-
-      const savedAutoBk = localStorage.getItem("clinic_autobackup");
-      if (savedAutoBk !== null) setAutoBackupEnabled(savedAutoBk === "true");
-
-      const savedBkFreq = localStorage.getItem("clinic_bkfreq");
-      if (savedBkFreq) setBackupFrequency(savedBkFreq);
     } catch (e) {}
   }, []);
 
@@ -11614,30 +11646,28 @@ ${clinicName}`;
       setDeleteStaffConfirm(null);
     };
 
-    // Persistent Handlers for Backup
-    const handleSetAutoBackup = (enabled: boolean) => {
-      setAutoBackupEnabled(enabled);
-      try { localStorage.setItem("clinic_autobackup", String(enabled)); } catch (e) {}
-    };
-
-    const handleSetBackupFrequency = (freq: string) => {
-      setBackupFrequency(freq);
-      try { localStorage.setItem("clinic_bkfreq", freq); } catch (e) {}
-    };
-
     // Backup Action
-    const handleBackupNow = () => {
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const newEntry: BackupHistoryItem = {
-        id: `bk-${Date.now()}`,
-        date: "Today",
-        time: timeStr,
-        size: "25.1 MB",
-        status: "Completed"
-      };
-      setBackupHistory(prev => [newEntry, ...prev]);
-      showToast("Clinic database backup compiled & secured.", "success");
+    const handleBackupNow = async () => {
+      if (isBackingUp) return;
+      setIsBackingUp(true);
+
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase.functions.invoke("backup", {
+          body: {},
+        });
+
+        if (error || !data?.success) {
+          showToast("Unable to start backup. Please try again.", "error");
+        } else {
+          showToast("Backup started successfully.", "success");
+          await fetchBackupHistory();
+        }
+      } catch (_err) {
+        showToast("Unable to start backup. Please try again.", "error");
+      } finally {
+        setIsBackingUp(false);
+      }
     };
 
     const handleRestoreBackup = () => {
@@ -11887,71 +11917,72 @@ ${clinicName}`;
                   {/* Primary Action Button */}
                   <Button
                     onClick={handleBackupNow}
-                    className="bg-blue-600 hover:bg-blue-500 text-white font-semibold h-10 px-5 rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-xs shrink-0"
+                    disabled={isBackingUp}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-semibold h-10 px-5 rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-xs shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Database className="h-4 w-4" /> Backup Now
+                    {isBackingUp ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> Starting Backup...
+                      </>
+                    ) : (
+                      <>
+                        <Database className="h-4 w-4" /> Backup Now
+                      </>
+                    )}
                   </Button>
                 </div>
 
-                {/* Backup Settings Grid (Auto Backup & Frequency) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between">
-                    <div>
-                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white block">Automatic Backups</span>
-                      <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">Automatically compile system snapshots.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleSetAutoBackup(!autoBackupEnabled)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        autoBackupEnabled ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"
-                      }`}
-                    >
-                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                        autoBackupEnabled ? "translate-x-5" : "translate-x-0"
-                      }`} />
-                    </button>
-                  </div>
-
-                  <div className="p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 flex items-center justify-between">
-                    <div>
-                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white block">Backup Frequency</span>
-                      <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">Set automated cloud schedule.</p>
-                    </div>
-                    <select
-                      value={backupFrequency}
-                      onChange={(e) => handleSetBackupFrequency(e.target.value)}
-                      className="h-9 px-3 text-[13px] font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none"
-                    >
-                      <option value="Daily">Daily</option>
-                      <option value="Weekly">Weekly</option>
-                      <option value="Monthly">Monthly</option>
-                    </select>
-                  </div>
-                </div>
-
                 {/* Backup Information Stats */}
-                <div className="space-y-2">
-                  <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Backup Information</span>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
-                      <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 block">Last Backup</span>
-                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white block mt-1">{backupHistory[0]?.date || "13 Aug 2026"}</span>
+                {(() => {
+                  const latestBackup = backupHistory[0];
+                  const latestStatusLower = latestBackup?.status?.toLowerCase() || "";
+
+                  let displayLastBackup = "--";
+                  let displayBackupSize = "--";
+                  let displayBackupStatus = "--";
+                  let statusTextColor = "text-slate-900 dark:text-white";
+
+                  if (latestBackup) {
+                    displayLastBackup = latestBackup.date;
+
+                    if (latestStatusLower === "triggered") {
+                      displayBackupStatus = "Triggered";
+                      displayBackupSize = "--";
+                      statusTextColor = "text-amber-600 dark:text-amber-400";
+                    } else if (latestStatusLower === "completed") {
+                      displayBackupStatus = "Encrypted";
+                      displayBackupSize = latestBackup.size || "--";
+                      statusTextColor = "text-emerald-600 dark:text-emerald-400";
+                    } else if (latestStatusLower === "failed") {
+                      displayBackupStatus = "Failed";
+                      displayBackupSize = "--";
+                      statusTextColor = "text-rose-600 dark:text-rose-400";
+                    } else {
+                      displayBackupStatus = latestBackup.status;
+                      displayBackupSize = latestBackup.size || "--";
+                    }
+                  }
+
+                  return (
+                    <div className="space-y-2">
+                      <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Backup Information</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
+                          <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 block">Last Backup</span>
+                          <span className="text-[14px] font-semibold text-slate-900 dark:text-white block mt-1">{displayLastBackup}</span>
+                        </div>
+                        <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
+                          <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 block">Backup Size</span>
+                          <span className="text-[14px] font-semibold text-slate-900 dark:text-white block mt-1">{displayBackupSize}</span>
+                        </div>
+                        <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
+                          <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 block">Backup Status</span>
+                          <span className={`text-[14px] font-semibold block mt-1 ${statusTextColor}`}>{displayBackupStatus}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
-                      <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 block">Next Scheduled</span>
-                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white block mt-1">Tomorrow, 03:00 AM</span>
-                    </div>
-                    <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
-                      <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 block">Backup Size</span>
-                      <span className="text-[14px] font-semibold text-slate-900 dark:text-white block mt-1">{backupHistory[0]?.size || "24.8 MB"}</span>
-                    </div>
-                    <div className="p-3.5 border border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
-                      <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 block">Backup Status</span>
-                      <span className="text-[14px] font-semibold text-emerald-600 dark:text-emerald-400 block mt-1">Encrypted</span>
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()}
 
                 {/* Backup History Table */}
                 <div className="space-y-3 pt-2">
@@ -11967,37 +11998,52 @@ ${clinicName}`;
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                        {backupHistory.map(item => (
-                          <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40">
-                            <td className="py-3 px-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">
-                              {item.date} • {item.time}
-                            </td>
-                            <td className="py-3 px-4 text-slate-600 dark:text-slate-400 whitespace-nowrap">{item.size}</td>
-                            <td className="py-3 px-4 whitespace-nowrap">
-                              <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-955/40 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 rounded-full text-[11px] font-medium inline-block">
-                                {item.status}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-right whitespace-nowrap">
-                              <div className="flex items-center justify-end gap-2 shrink-0">
-                                <Button
-                                  variant="outline"
-                                  onClick={() => setRestoreBackupConfirm(item)}
-                                  className="h-7 px-2.5 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 cursor-pointer shrink-0"
-                                >
-                                  <RotateCcw className="h-3 w-3 text-slate-600 dark:text-slate-300" /> Restore
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  onClick={() => showToast(`Downloading backup snapshot (${item.size})...`, "success")}
-                                  className="h-7 px-2.5 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 cursor-pointer shrink-0"
-                                >
-                                  <Download className="h-3 w-3 text-slate-600 dark:text-slate-300" /> Download
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                        {backupHistory.map(item => {
+                          const statusLower = item.status?.toLowerCase() || "";
+                          const isCompleted = statusLower === "completed";
+                          const isDisabled = !isCompleted;
+
+                          const badgeStyle =
+                            statusLower === "triggered"
+                              ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-100 dark:border-amber-900/40"
+                              : statusLower === "failed"
+                              ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border-rose-100 dark:border-rose-900/40"
+                              : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/40";
+
+                          return (
+                            <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40">
+                              <td className="py-3 px-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">
+                                {item.date} • {item.time}
+                              </td>
+                              <td className="py-3 px-4 text-slate-600 dark:text-slate-400 whitespace-nowrap">{item.size}</td>
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                <span className={`px-2.5 py-0.5 border rounded-full text-[11px] font-medium inline-block ${badgeStyle}`}>
+                                  {item.status}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-right whitespace-nowrap">
+                                <div className="flex items-center justify-end gap-2 shrink-0">
+                                  <Button
+                                    variant="outline"
+                                    disabled={isDisabled}
+                                    onClick={() => setRestoreBackupConfirm(item)}
+                                    className="h-7 px-2.5 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+                                  >
+                                    <RotateCcw className="h-3 w-3 text-slate-600 dark:text-slate-300" /> Restore
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    disabled={isDisabled}
+                                    onClick={() => showToast(`Downloading backup snapshot (${item.size})...`, "success")}
+                                    className="h-7 px-2.5 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+                                  >
+                                    <Download className="h-3 w-3 text-slate-600 dark:text-slate-300" /> Download
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

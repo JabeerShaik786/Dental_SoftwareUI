@@ -2,6 +2,11 @@ name: DentPro OS Database Backup Test
 
 on:
   workflow_dispatch:
+    inputs:
+      backup_id:
+        description: 'Supabase backup_history UUID'
+        required: false
+        type: string
 
 jobs:
   backup:
@@ -37,6 +42,9 @@ jobs:
           GOOGLE_DRIVE_CLIENT_ID: ${{ secrets.GOOGLE_DRIVE_CLIENT_ID }}
           GOOGLE_DRIVE_CLIENT_SECRET: ${{ secrets.GOOGLE_DRIVE_CLIENT_SECRET }}
           GOOGLE_DRIVE_REFRESH_TOKEN: ${{ secrets.GOOGLE_DRIVE_REFRESH_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          BACKUP_CALLBACK_SECRET: ${{ secrets.BACKUP_CALLBACK_SECRET }}
+          BACKUP_ID: ${{ github.event.inputs.backup_id }}
         run: |
           set -euo pipefail
 
@@ -309,6 +317,33 @@ jobs:
               print(f"Parent folder ID: {folder_id}")
               print("Backup completed successfully.")
 
+              # 9. Notify Supabase backup-callback Endpoint of Completion
+              backup_id = os.environ.get("BACKUP_ID", "")
+              supabase_url = os.environ.get("SUPABASE_URL", "")
+              callback_secret = os.environ.get("BACKUP_CALLBACK_SECRET", "")
+
+              if backup_id and supabase_url and callback_secret:
+                  print("Sending completion status to Supabase backup-callback...")
+                  cb_url = f"{supabase_url.rstrip('/')}/functions/v1/backup-callback"
+                  try:
+                      cb_resp = requests.post(
+                          cb_url,
+                          headers={
+                              "x-callback-secret": callback_secret,
+                              "Content-Type": "application/json",
+                          },
+                          json={
+                              "backup_id": backup_id,
+                              "status": "completed",
+                              "backup_size": v_size,
+                              "file_name": v_name,
+                          },
+                          timeout=30,
+                      )
+                      print(f"Callback response: HTTP {cb_resp.status_code}")
+                  except Exception as cb_err:
+                      print(f"Warning: Failed to reach backup-callback: {cb_err}", file=sys.stderr)
+
           except Exception as e:
               print(f"Error: {e}", file=sys.stderr)
               # Clean up plaintext dump if error occurs
@@ -319,3 +354,19 @@ jobs:
                       pass
               sys.exit(1)
           EOF
+
+      - name: Notify Supabase on Backup Failure
+        if: failure() && github.event.inputs.backup_id != ''
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          BACKUP_CALLBACK_SECRET: ${{ secrets.BACKUP_CALLBACK_SECRET }}
+          BACKUP_ID: ${{ github.event.inputs.backup_id }}
+        run: |
+          set -euo pipefail
+          if [ -n "${SUPABASE_URL:-}" ] && [ -n "${BACKUP_CALLBACK_SECRET:-}" ] && [ -n "${BACKUP_ID:-}" ]; then
+            echo "Reporting backup failure to Supabase backup-callback..."
+            curl -s -X POST "${SUPABASE_URL%/}/functions/v1/backup-callback" \
+              -H "x-callback-secret: ${BACKUP_CALLBACK_SECRET}" \
+              -H "Content-Type: application/json" \
+              -d "{\"backup_id\": \"${BACKUP_ID}\", \"status\": \"failed\"}" || true
+          fi
