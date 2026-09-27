@@ -10,6 +10,7 @@ interface TestimonialCardData {
   name: string;
   avatar: string;
   quote: string;
+  objectPosition?: string;
 }
 
 const TESTIMONIALS_DATA: TestimonialCardData[] = [
@@ -37,21 +38,21 @@ const TESTIMONIALS_DATA: TestimonialCardData[] = [
   {
     id: 4,
     name: "K. Satyanarayana",
-    avatar: "/figma/avatar_test1.png",
+    avatar: "/figma/avatar_satyanarayana.jpg",
     quote:
       "Got dental implant treatment done by Dr. Praveen. The procedure was completed with utmost precision and care. Very hygienic clinic with state-of-the-art equipment. Truly the top dental clinic in Yanam!",
   },
   {
     id: 5,
     name: "M. Durga Prasad",
-    avatar: "/figma/avatar_test2.png",
+    avatar: "/figma/avatar_durgaprasad.jpg",
     quote:
       "Visited for root canal treatment and crown placement. The doctor explained every step patiently and the treatment was completely painless. Exceptional service and very reasonable pricing.",
   },
   {
     id: 6,
     name: "V. Lakshmi",
-    avatar: "/figma/avatar_srinivas.png",
+    avatar: "/figma/avatar_lakshmi.jpg",
     quote:
       "Very polite staff and excellent treatment by Dr. Praveen. Clean and modern clinic environment. Best place for all dental and cosmetic teeth alignment needs in Yanam.",
   },
@@ -208,6 +209,7 @@ export default function Testimonials() {
                         alt={item.name}
                         fill
                         className="object-cover"
+                        style={{ objectPosition: item.objectPosition || "center" }}
                         unoptimized
                       />
                     </div>
