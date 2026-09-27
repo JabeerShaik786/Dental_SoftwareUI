@@ -2491,8 +2491,16 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
           let formattedSize = "--";
-          if (row.backup_size) {
-            formattedSize = `${(row.backup_size / (1024 * 1024)).toFixed(1)} MB`;
+          if (row.backup_size !== null && row.backup_size !== undefined && row.backup_size !== "") {
+            const bytes = Number(row.backup_size);
+            if (!isNaN(bytes) && bytes > 0) {
+              const oneMB = 1024 * 1024;
+              if (bytes < oneMB) {
+                formattedSize = `${(bytes / 1024).toFixed(2)} KB`;
+              } else {
+                formattedSize = `${(bytes / oneMB).toFixed(2)} MB`;
+              }
+            }
           }
 
           const statusStr = row.status
