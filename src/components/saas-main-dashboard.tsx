@@ -2548,8 +2548,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
   const [deleteStaffConfirm, setDeleteStaffConfirm] = useState<Staff | null>(null);
 
-  const [restoreBackupConfirm, setRestoreBackupConfirm] = useState<BackupHistoryItem | null>(null);
-
   // Form states for adding/editing doctor
   const [docFormName, setDocFormName] = useState("");
   const [docFormSpeciality, setDocFormSpeciality] = useState("General Dentist");
@@ -11678,12 +11676,6 @@ ${clinicName}`;
       }
     };
 
-    const handleRestoreBackup = () => {
-      if (!restoreBackupConfirm) return;
-      showToast(`Database snapshot from ${restoreBackupConfirm.date} (${restoreBackupConfirm.time}) restored successfully.`, "success");
-      setRestoreBackupConfirm(null);
-    };
-
     return (
       <div className="space-y-6 animate-fadeIn max-w-6xl mx-auto text-slate-800 dark:text-slate-200">
         {/* NO DUPLICATE SETTINGS HEADING - Begins directly with Settings Container Box */}
@@ -12002,15 +11994,11 @@ ${clinicName}`;
                           <th className="py-2.5 px-4 whitespace-nowrap min-w-[180px]">Date & Time</th>
                           <th className="py-2.5 px-4 whitespace-nowrap min-w-[110px]">Backup Size</th>
                           <th className="py-2.5 px-4 whitespace-nowrap min-w-[110px]">Status</th>
-                          <th className="py-2.5 px-4 text-right whitespace-nowrap min-w-[200px]">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                         {backupHistory.map(item => {
                           const statusLower = item.status?.toLowerCase() || "";
-                          const isCompleted = statusLower === "completed";
-                          const isDisabled = !isCompleted;
-
                           const badgeStyle =
                             statusLower === "triggered"
                               ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-100 dark:border-amber-900/40"
@@ -12028,26 +12016,6 @@ ${clinicName}`;
                                 <span className={`px-2.5 py-0.5 border rounded-full text-[11px] font-medium inline-block ${badgeStyle}`}>
                                   {item.status}
                                 </span>
-                              </td>
-                              <td className="py-3 px-4 text-right whitespace-nowrap">
-                                <div className="flex items-center justify-end gap-2 shrink-0">
-                                  <Button
-                                    variant="outline"
-                                    disabled={isDisabled}
-                                    onClick={() => setRestoreBackupConfirm(item)}
-                                    className="h-7 px-2.5 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
-                                  >
-                                    <RotateCcw className="h-3 w-3 text-slate-600 dark:text-slate-300" /> Restore
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    disabled={isDisabled}
-                                    onClick={() => showToast(`Downloading backup snapshot (${item.size})...`, "success")}
-                                    className="h-7 px-2.5 text-[12px] font-medium rounded-lg border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
-                                  >
-                                    <Download className="h-3 w-3 text-slate-600 dark:text-slate-300" /> Download
-                                  </Button>
-                                </div>
                               </td>
                             </tr>
                           );
@@ -12335,31 +12303,6 @@ ${clinicName}`;
                 </Button>
                 <Button type="button" onClick={handleDeleteStaff} className="bg-red-600 hover:bg-red-500 text-white font-bold h-10 px-5 text-xs">
                   Remove Staff
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* --- RESTORE BACKUP CONFIRMATION MODAL --- */}
-        {restoreBackupConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 text-center animate-scaleIn">
-              <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-955/50 text-blue-600 flex items-center justify-center mx-auto">
-                <RotateCcw className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="text-[16px] font-bold text-slate-900 dark:text-white">Restore Database Backup?</h3>
-                <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">
-                  Are you sure you want to restore the database backup from <strong className="font-semibold text-slate-900 dark:text-white">{restoreBackupConfirm.date} ({restoreBackupConfirm.time})</strong>? Current session modifications will be overwritten with snapshot data.
-                </p>
-              </div>
-              <div className="flex justify-center gap-3 pt-2">
-                <Button type="button" variant="outline" onClick={() => setRestoreBackupConfirm(null)} className="h-10 px-4 text-xs">
-                  Cancel
-                </Button>
-                <Button type="button" onClick={handleRestoreBackup} className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-5 text-xs">
-                  Confirm Restore
                 </Button>
               </div>
             </div>
