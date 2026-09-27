@@ -2,6 +2,7 @@ import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import ConsultancyCard from "@/components/ConsultancyCard";
 import AboutSection from "@/components/AboutSection";
+import AboutDoctor from "@/components/AboutDoctor";
 import Services from "@/components/Services";
 import Gallery from "@/components/Gallery";
 import Testimonials from "@/components/Testimonials";
@@ -17,6 +18,7 @@ export default function Home() {
         <Hero />
         <ConsultancyCard />
         <AboutSection />
+        <AboutDoctor />
         <Services />
         <Gallery />
         <Testimonials />
