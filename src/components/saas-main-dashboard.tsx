@@ -897,17 +897,17 @@ const Odontogram: React.FC<OdontogramProps> = ({
   );
 };
 
-// Predefined treatment base prices
-const TREATMENT_PRICES: Record<string, number> = {
-  "Consultation": 500,
-  "Scaling": 1500,
-  "Root Canal": 4500,
-  "Extraction": 2000,
-  "Filling": 1200,
-  "Implant": 25000,
-  "Crown": 5500,
-  "Braces": 35000
-};
+// Predefined treatment procedure names
+const ALL_TREATMENTS: string[] = [
+  "Consultation",
+  "Scaling",
+  "Root Canal",
+  "Extraction",
+  "Filling",
+  "Crown",
+  "Implant",
+  "Braces"
+];
 
 const menuItems = [
   { name: "Dashboard", icon: <Home className="h-[22px] w-[22px] shrink-0" strokeWidth={2} />, badge: null },
@@ -4648,7 +4648,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     );
 
     // Save treatment log into patient database
-    const treatmentCost = TREATMENT_PRICES[appt.treatment] || 500;
+    const treatmentCost = 0;
     const medicineCost = consultPrescription ? 800 : 0; // Simulate medicine cost flat ₹800
 
     let consultPatientUuid = patientItem.uuid;
@@ -5492,7 +5492,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
       // Auto-generate invoice
       const invoiceNum = `INV-${1000 + invoices.length + 1}`;
-      const treatmentCost = TREATMENT_PRICES[app.treatment] || 500;
+      const treatmentCost = 0;
       const invoiceItems = [{ description: `${app.treatment} Fee`, amount: treatmentCost }];
       const sub = treatmentCost;
       const tot = sub;
@@ -5538,7 +5538,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       } else {
         // Create quick invoice if not already created
         const invoiceNum = `INV-${1000 + invoices.length + 1}`;
-        const treatmentCost = TREATMENT_PRICES[app.treatment] || 500;
+        const treatmentCost = 0;
         const invoiceItems = [{ description: `${app.treatment} Fee`, amount: treatmentCost }];
         const sub = treatmentCost;
         const tot = sub;
@@ -7940,7 +7940,7 @@ ${clinicName}`;
 
         // Synchronize with Treatments History Log
         const doctorObj = doctors.find(d => d.name === chartDoctor);
-        const treatCostVal = Number(chartCost) || TREATMENT_PRICES[chartTreatmentName.trim()] || 0;
+        const treatCostVal = Number(chartCost) || 0;
         const treatDateVal = chartDate || new Date().toISOString().split("T")[0];
 
         const dbInsertRows = targetTeeth.map(tIdx => {
@@ -8563,17 +8563,12 @@ ${clinicName}`;
                                           <select
                                             className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-[13px] font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 cursor-pointer"
                                             value={chartTreatmentName}
-                                            onChange={e => {
-                                              setChartTreatmentName(e.target.value);
-                                              if (TREATMENT_PRICES[e.target.value]) {
-                                                setChartCost(String(TREATMENT_PRICES[e.target.value]));
-                                              }
-                                            }}
+                                            onChange={e => setChartTreatmentName(e.target.value)}
                                             required
                                           >
                                             <option value="">-- Choose Procedure --</option>
-                                            {Object.keys(TREATMENT_PRICES).map(t => (
-                                              <option key={t} value={t}>{t} (₹{TREATMENT_PRICES[t].toLocaleString()})</option>
+                                            {ALL_TREATMENTS.map(t => (
+                                              <option key={t} value={t}>{t}</option>
                                             ))}
                                           </select>
                                         </div>
@@ -9092,17 +9087,12 @@ ${clinicName}`;
                           <select
                             className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
                             value={newTrName}
-                            onChange={e => {
-                              setNewTrName(e.target.value);
-                              if (TREATMENT_PRICES[e.target.value]) {
-                                setNewTrCost(String(TREATMENT_PRICES[e.target.value]));
-                              }
-                            }}
+                            onChange={e => setNewTrName(e.target.value)}
                             required
                           >
                             <option value="">-- Choose Procedure --</option>
-                            {Object.keys(TREATMENT_PRICES).map(t => (
-                              <option key={t} value={t}>{t} (₹{TREATMENT_PRICES[t]})</option>
+                            {ALL_TREATMENTS.map(t => (
+                              <option key={t} value={t}>{t}</option>
                             ))}
                           </select>
                         </div>
@@ -9217,7 +9207,7 @@ ${clinicName}`;
                             required
                           >
                             <option value="">-- Select --</option>
-                            {Object.keys(TREATMENT_PRICES).map(t => (
+                            {ALL_TREATMENTS.map(t => (
                               <option key={t} value={t}>{t}</option>
                             ))}
                           </select>
@@ -9407,16 +9397,11 @@ ${clinicName}`;
                       <select
                         className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
                         value={invProcedure}
-                        onChange={e => {
-                          setInvProcedure(e.target.value);
-                          if (TREATMENT_PRICES[e.target.value]) {
-                            setInvAmount(String(TREATMENT_PRICES[e.target.value]));
-                          }
-                        }}
+                        onChange={e => setInvProcedure(e.target.value)}
                         required
                       >
                         <option value="">-- Choose Procedure --</option>
-                        {Object.keys(TREATMENT_PRICES).map(t => (
+                        {ALL_TREATMENTS.map(t => (
                           <option key={t} value={t}>{t}</option>
                         ))}
                       </select>
@@ -13943,7 +13928,7 @@ ${clinicName}`;
               <div className="text-xs font-semibold space-y-2">
                 <div className="flex justify-between border-b pb-2">
                   <span>Base treatment:</span>
-                  <span>{appt.treatment} (₹{(TREATMENT_PRICES[appt.treatment] || 500).toLocaleString()})</span>
+                  <span>{appt.treatment}</span>
                 </div>
                 <div className="flex justify-between border-b pb-2">
                   <span>Meds subtotal:</span>
@@ -13951,7 +13936,7 @@ ${clinicName}`;
                 </div>
                 <div className="flex justify-between font-black text-sm">
                   <span>Subtotal:</span>
-                  <span>₹{((TREATMENT_PRICES[appt.treatment] || 500) + (consultPrescription ? 800 : 0)).toLocaleString()}</span>
+                  <span>₹{consultPrescription ? "800" : "0"}</span>
                 </div>
               </div>
 
@@ -14652,8 +14637,8 @@ ${clinicName}`;
                       <div className="space-y-1.5">
                         <Label htmlFor="apptTreatment">Treatment Category</Label>
                         <select id="apptTreatment" className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-808 focus:outline-none dark:bg-slate-955 dark:border-slate-800" value={apptTreatment} onChange={e => setApptTreatment(e.target.value)}>
-                          {Object.keys(TREATMENT_PRICES).map(t => (
-                            <option key={t} value={t}>{t} (₹{TREATMENT_PRICES[t]})</option>
+                          {ALL_TREATMENTS.map(t => (
+                            <option key={t} value={t}>{t}</option>
                           ))}
                         </select>
                       </div>
@@ -15590,7 +15575,7 @@ ${clinicName}`;
                         value={slotTreatment}
                         onChange={e => setSlotTreatment(e.target.value)}
                       >
-                        {Object.keys(TREATMENT_PRICES).map(t => (
+                        {ALL_TREATMENTS.map(t => (
                           <option key={t} value={t}>{t}</option>
                         ))}
                       </select>
