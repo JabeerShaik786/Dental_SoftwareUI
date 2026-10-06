@@ -37,20 +37,10 @@ DROP POLICY IF EXISTS "Allow staff write blocked_slots" ON public.blocked_slots;
 CREATE POLICY "Allow staff write blocked_slots" ON public.blocked_slots
     FOR ALL TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'dentist', 'receptionist', 'assistant'));
 
--- 5. Normalize existing time slots in public.appointments (e.g., convert '9:30 AM' or '09:30 am' to '09:30 AM')
+-- 5. Normalize existing time slots in public.appointments (e.g., convert '10.30 am', '9:30 AM', or '09:30 am' to '09:30 AM')
 UPDATE public.appointments
-SET time_slot = 
-  CASE 
-    -- If it matches standard '09:30 AM' or '12:00 PM', leave it upper-cased
-    WHEN time_slot ~ '^\d{2}:\d{2}\s*(AM|PM|am|pm)$' THEN UPPER(TRIM(time_slot))
-    -- If it matches H:MM AM/PM (e.g. '9:30 AM'), pad the hour to 2 digits
-    WHEN time_slot ~ '^\d{1}:\d{2}\s*(AM|PM|am|pm)$' THEN 
-      '0' || UPPER(TRIM(time_slot))
-    -- Otherwise try to parse as time and format it
-    ELSE 
-      TO_CHAR(time_slot::TIME, 'HH12:MI AM')
-  END
-WHERE time_slot IS NOT NULL;
+SET time_slot = TO_CHAR(REPLACE(TRIM(time_slot), '.', ':')::TIME, 'HH12:MI AM')
+WHERE time_slot IS NOT NULL AND TRIM(time_slot) != '';
 
 -- 6. Safely resolve duplicate active appointments by marking older ones as 'Cancelled'
 WITH duplicate_appts AS (
