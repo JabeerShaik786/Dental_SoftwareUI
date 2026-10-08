@@ -16,7 +16,7 @@ export default function PrivacyPolicyPage() {
       <Navbar />
       <main className="flex-grow pt-28 pb-20 bg-[#f8fafc]">
         {/* Header Banner */}
-        <section className="bg-gradient-to-r from-[#0284c7] via-[#0ea5e9] to-[#38bdf8] text-white py-14 px-6 md:px-12 lg:px-20 relative overflow-hidden">
+        <section className="bg-gradient-to-r from-[#2E8B57] via-[#60A780] to-[#81BA9A] text-white py-14 px-6 md:px-12 lg:px-20 relative overflow-hidden">
           <div className="max-w-[1100px] mx-auto relative z-10">
             <Link
               href="/"
@@ -51,8 +51,8 @@ export default function PrivacyPolicyPage() {
             
             {/* Introduction */}
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#0f2942] mb-4 flex items-center gap-2.5">
-                <span className="w-2 h-6 bg-[#0284c7] rounded-full inline-block" />
+              <h2 className="text-xl sm:text-2xl font-bold text-[#173D2A] mb-4 flex items-center gap-2.5">
+                <span className="w-2 h-6 bg-[#2E8B57] rounded-full inline-block" />
                 1. Introduction
               </h2>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
@@ -62,8 +62,8 @@ export default function PrivacyPolicyPage() {
 
             {/* Information We Collect */}
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#0f2942] mb-4 flex items-center gap-2.5">
-                <span className="w-2 h-6 bg-[#0284c7] rounded-full inline-block" />
+              <h2 className="text-xl sm:text-2xl font-bold text-[#173D2A] mb-4 flex items-center gap-2.5">
+                <span className="w-2 h-6 bg-[#2E8B57] rounded-full inline-block" />
                 2. Information We Collect
               </h2>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base mb-4">
@@ -87,38 +87,38 @@ export default function PrivacyPolicyPage() {
 
             {/* How We Use Your Information */}
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#0f2942] mb-4 flex items-center gap-2.5">
-                <span className="w-2 h-6 bg-[#0284c7] rounded-full inline-block" />
+              <h2 className="text-xl sm:text-2xl font-bold text-[#173D2A] mb-4 flex items-center gap-2.5">
+                <span className="w-2 h-6 bg-[#2E8B57] rounded-full inline-block" />
                 3. How We Use Your Information
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/60">
-                  <h3 className="font-semibold text-sm text-[#0f2942] mb-1.5 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-[#0284c7]" /> Clinical Care
+                  <h3 className="font-semibold text-sm text-[#173D2A] mb-1.5 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-[#2E8B57]" /> Clinical Care
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                     Formulating accurate treatment plans, performing surgical procedures, tracking healing progress, and scheduling recalls.
                   </p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/60">
-                  <h3 className="font-semibold text-sm text-[#0f2942] mb-1.5 flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-[#0284c7]" /> Patient Communication
+                  <h3 className="font-semibold text-sm text-[#173D2A] mb-1.5 flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-[#2E8B57]" /> Patient Communication
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                     Sending appointment confirmations, pre-procedure instructions, post-treatment care advice, and responses to your inquiries.
                   </p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/60">
-                  <h3 className="font-semibold text-sm text-[#0f2942] mb-1.5 flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-[#0284c7]" /> Emergency Response
+                  <h3 className="font-semibold text-sm text-[#173D2A] mb-1.5 flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-[#2E8B57]" /> Emergency Response
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                     Contacting patients or designated emergency contacts in acute dental or medical situations during clinical treatment.
                   </p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/60">
-                  <h3 className="font-semibold text-sm text-[#0f2942] mb-1.5 flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-[#0284c7]" /> Statutory Compliance
+                  <h3 className="font-semibold text-sm text-[#173D2A] mb-1.5 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-[#2E8B57]" /> Statutory Compliance
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                     Complying with the Dental Council of India (DCI), state health authorities, and Indian medical record retention requirements.
@@ -129,8 +129,8 @@ export default function PrivacyPolicyPage() {
 
             {/* Confidentiality & Security */}
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#0f2942] mb-4 flex items-center gap-2.5">
-                <span className="w-2 h-6 bg-[#0284c7] rounded-full inline-block" />
+              <h2 className="text-xl sm:text-2xl font-bold text-[#173D2A] mb-4 flex items-center gap-2.5">
+                <span className="w-2 h-6 bg-[#2E8B57] rounded-full inline-block" />
                 4. Confidentiality & Data Security
               </h2>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
@@ -140,8 +140,8 @@ export default function PrivacyPolicyPage() {
 
             {/* Sharing of Information */}
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#0f2942] mb-4 flex items-center gap-2.5">
-                <span className="w-2 h-6 bg-[#0284c7] rounded-full inline-block" />
+              <h2 className="text-xl sm:text-2xl font-bold text-[#173D2A] mb-4 flex items-center gap-2.5">
+                <span className="w-2 h-6 bg-[#2E8B57] rounded-full inline-block" />
                 5. Information Sharing
               </h2>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
@@ -156,8 +156,8 @@ export default function PrivacyPolicyPage() {
 
             {/* Patient Rights */}
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#0f2942] mb-4 flex items-center gap-2.5">
-                <span className="w-2 h-6 bg-[#0284c7] rounded-full inline-block" />
+              <h2 className="text-xl sm:text-2xl font-bold text-[#173D2A] mb-4 flex items-center gap-2.5">
+                <span className="w-2 h-6 bg-[#2E8B57] rounded-full inline-block" />
                 6. Your Rights
               </h2>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
@@ -167,7 +167,7 @@ export default function PrivacyPolicyPage() {
 
             {/* Contact Information */}
             <div className="p-6 bg-slate-50 rounded-xl border border-slate-200">
-              <h3 className="font-bold text-base text-[#0f2942] mb-3">
+              <h3 className="font-bold text-base text-[#173D2A] mb-3">
                 Questions or Concerns Regarding Privacy?
               </h3>
               <p className="text-sm text-slate-600 mb-4">
@@ -175,15 +175,15 @@ export default function PrivacyPolicyPage() {
               </p>
               <div className="space-y-2 text-sm text-slate-700">
                 <p className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-[#0284c7] shrink-0" />
+                  <MapPin className="w-4 h-4 text-[#2E8B57] shrink-0" />
                   <span>3rd Cross St, opposite GMC Balayogi Stadium, Zicria Nagar, Yanam, Andhra Pradesh 533464</span>
                 </p>
                 <p className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-[#0284c7] shrink-0" />
+                  <Phone className="w-4 h-4 text-[#2E8B57] shrink-0" />
                   <span>098853 49798 / 087903 49798</span>
                 </p>
                 <p className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-[#0284c7] shrink-0" />
+                  <Mail className="w-4 h-4 text-[#2E8B57] shrink-0" />
                   <span>VRdental.yanam@gmail.com</span>
                 </p>
               </div>

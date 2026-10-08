@@ -21,7 +21,7 @@ export default function AppointmentCTA() {
       id="contact"
       className="py-20 lg:py-24 relative overflow-hidden text-white"
       style={{
-        background: "linear-gradient(160deg, #245b83 0%, #2e6993 50%, #1e4d70 100%)",
+        background: "linear-gradient(160deg, #2E8B57 0%, #257348 50%, #173D2A 100%)",
       }}
     >
       <div className="max-w-[1360px] mx-auto px-6 md:px-12 lg:px-20 relative z-10">
@@ -38,22 +38,22 @@ export default function AppointmentCTA() {
               Your smile deserves the best care! Whether you need a routine check-up, cosmetic enhancement, or specialized treatment, our expert team at VR Dental Care is here to help. Schedule your appointment now and take the first step toward a healthier, brighter smile. Easy booking, expert care, and a comfortable experience await you!
             </p>
 
-            {/* White Button with Blue Text */}
+            {/* White Button with Green Text */}
             <div>
               <a
                 href="#consultancy"
                 onClick={scrollToBooking}
-                className="inline-flex items-center justify-center px-8 py-3 bg-white text-[#0284c7] font-bold text-sm sm:text-base rounded-lg shadow-lg hover:bg-slate-50 active:scale-95 transition-all duration-200 cursor-pointer"
+                className="inline-flex items-center justify-center px-8 py-3 bg-white text-[#2E8B57] font-bold text-sm sm:text-base rounded-lg shadow-lg hover:bg-slate-50 active:scale-95 transition-all duration-200 cursor-pointer"
               >
                 Get Started
               </a>
             </div>
           </div>
 
-          {/* RIGHT: Large Cartoon Smiling Tooth in Circular Light Blue Container */}
+          {/* RIGHT: Large Cartoon Smiling Tooth in Circular Light Green Container */}
           <div className="lg:col-span-6 flex justify-center lg:justify-end relative">
             {/* Circular Backdrop */}
-            <div className="relative w-[300px] h-[300px] sm:w-[380px] sm:h-[380px] lg:w-[430px] lg:h-[430px] rounded-full bg-[#a8dbf8]/40 flex items-center justify-center border-4 border-white/20 shadow-2xl">
+            <div className="relative w-[300px] h-[300px] sm:w-[380px] sm:h-[380px] lg:w-[430px] lg:h-[430px] rounded-full bg-[#81BA9A]/40 flex items-center justify-center border-4 border-white/20 shadow-2xl">
               {/* Cartoon Smiling Tooth Character */}
               <div className="relative w-[280px] h-[280px] sm:w-[340px] sm:h-[340px] lg:w-[390px] lg:h-[390px] filter drop-shadow-[0_15px_30px_rgba(0,0,0,0.25)]">
                 <Image

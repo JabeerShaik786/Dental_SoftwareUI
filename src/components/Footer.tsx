@@ -34,10 +34,10 @@ export default function Footer() {
   };
 
   return (
-    <footer className="w-full bg-[#0F172A] text-white/90 pt-20 pb-10 border-t border-white/5 relative overflow-hidden">
+    <footer className="w-full bg-[#173D2A] text-white/90 pt-20 pb-10 border-t border-white/5 relative overflow-hidden">
       {/* Background radial glow */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-primary/10 blur-[150px] -z-10 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-secondary/5 blur-[120px] -z-10 pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-[#2E8B57]/10 blur-[150px] -z-10 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-[#60A780]/5 blur-[120px] -z-10 pointer-events-none" />
 
       <div className="max-w-[1440px] mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
         {/* Brand Column */}
@@ -60,7 +60,7 @@ export default function Footer() {
               <span className="font-heading font-extrabold text-sm tracking-tight text-white leading-tight uppercase">
                 V.R. Dental Care
               </span>
-              <span className="font-sans font-medium text-[8px] tracking-[0.05em] text-accent uppercase leading-none mt-0.5">
+              <span className="font-sans font-medium text-[8px] tracking-[0.05em] text-[#81BA9A] uppercase leading-none mt-0.5">
                 & Dental Implant Centre
               </span>
             </div>
@@ -69,7 +69,7 @@ export default function Footer() {
             Transforming Smiles, Transforming Lives. Professional and personalized dental care in a modern and comfortable environment.
           </p>
           <div className="flex items-center gap-3">
-            <span className="text-[12px] bg-primary/20 text-accent px-3.5 py-1 rounded-full font-semibold border border-primary/10 flex items-center gap-1.5">
+            <span className="text-[12px] bg-[#2E8B57]/20 text-[#81BA9A] px-3.5 py-1 rounded-full font-semibold border border-[#2E8B57]/10 flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" />
               Hours: Monday – Saturday: 9:00 AM – 8:00 PM (Sunday: Closed)
             </span>
@@ -94,7 +94,7 @@ export default function Footer() {
                 <a
                   href={link.href}
                   onClick={(e) => handleLinkClick(e, link.href)}
-                  className="hover:text-accent transition-colors duration-200"
+                  className="hover:text-[#81BA9A] transition-colors duration-200"
                 >
                   {link.name}
                 </a>
@@ -121,7 +121,7 @@ export default function Footer() {
                 <a
                   href={link.href}
                   onClick={(e) => handleLinkClick(e, link.href)}
-                  className="hover:text-accent transition-colors duration-200"
+                  className="hover:text-[#81BA9A] transition-colors duration-200"
                 >
                   {link.name}
                 </a>
@@ -137,17 +137,17 @@ export default function Footer() {
           </h4>
           <div className="flex flex-col gap-4 text-sm text-white/60">
             <div className="flex gap-3">
-              <MapPin className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+              <MapPin className="w-5 h-5 text-[#81BA9A] shrink-0 mt-0.5" />
               <span>P6M6+2M Yanam, Puducherry</span>
             </div>
             <div className="flex gap-3">
-              <Phone className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+              <Phone className="w-5 h-5 text-[#81BA9A] shrink-0 mt-0.5" />
               <a href="tel:09885349798" className="hover:text-white transition-colors">
                 098853 49798
               </a>
             </div>
             <div className="flex gap-3">
-              <Mail className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+              <Mail className="w-5 h-5 text-[#81BA9A] shrink-0 mt-0.5" />
               <a
                 href="mailto:VRdental.yanam@gmail.com"
                 className="hover:text-white transition-colors"

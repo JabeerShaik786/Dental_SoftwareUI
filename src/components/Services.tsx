@@ -9,7 +9,7 @@ export default function Services() {
       id="services"
       className="py-16 lg:py-20 relative overflow-hidden text-white"
       style={{
-        background: "linear-gradient(175deg, #177a9b 0%, #1a6f9c 45%, #246a8d 100%)",
+        background: "linear-gradient(175deg, #2E8B57 0%, #257348 45%, #173D2A 100%)",
       }}
     >
       <div className="max-w-[1360px] mx-auto px-4 sm:px-6 md:px-12 relative z-10 text-center">

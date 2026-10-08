@@ -92,8 +92,8 @@ export default function Navbar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full shadow-xs">
-      {/* 1. Thin Blue Top Gradient Strip */}
-      <div className="w-full h-8 bg-gradient-to-r from-[#0ea5e9] via-[#0284c7] to-[#38bdf8] text-white flex items-center justify-end px-6 md:px-12 lg:px-20 text-xs font-medium tracking-wide">
+      {/* 1. Thin Green Top Gradient Strip */}
+      <div className="w-full h-8 bg-gradient-to-r from-[#2E8B57] via-[#2E8B57] to-[#60A780] text-white flex items-center justify-end px-6 md:px-12 lg:px-20 text-xs font-medium tracking-wide">
         <div className="flex items-center gap-2">
           <Phone className="w-3.5 h-3.5 fill-current" />
           <a href="tel:9885349798" className="hover:underline transition-all">
@@ -128,7 +128,7 @@ export default function Navbar() {
                   unoptimized
                 />
               </div>
-              <div className="mt-1 px-2 py-0.5 bg-gradient-to-r from-[#0284c7] to-[#0ea5e9] rounded text-[9px] font-bold text-white tracking-wider uppercase shadow-2xs">
+              <div className="mt-1 px-2 py-0.5 bg-gradient-to-r from-[#2E8B57] to-[#60A780] rounded text-[9px] font-bold text-white tracking-wider uppercase shadow-2xs">
                 ESTD. 2011
               </div>
             </a>
@@ -146,7 +146,7 @@ export default function Navbar() {
                   href={item.href}
                   onClick={(e) => scrollToSection(e, item.href)}
                   className={`text-[15px] font-semibold transition-colors duration-200 ${
-                    isActive ? "text-[#0284c7]" : "text-[#1e293b] hover:text-[#0284c7]"
+                    isActive ? "text-[#2E8B57]" : "text-[#173D2A] hover:text-[#2E8B57]"
                   }`}
                 >
                   {item.name}
@@ -155,11 +155,11 @@ export default function Navbar() {
             })}
           </nav>
 
-          {/* Contact Us Button (Figma style: White bg, blue border, blue text) */}
+          {/* Contact Us Button */}
           <div className="hidden lg:block shrink-0">
             <a
               href="tel:09885349798"
-              className="inline-flex items-center justify-center px-6 py-2 text-[15px] font-semibold text-[#0284c7] bg-white border border-[#0284c7] rounded-lg hover:bg-[#0284c7] hover:text-white transition-all duration-200 shadow-2xs hover:shadow-xs active:scale-95"
+              className="inline-flex items-center justify-center px-6 py-2 text-[15px] font-semibold text-[#2E8B57] bg-white border border-[#2E8B57] rounded-lg hover:bg-[#2E8B57] hover:text-white transition-all duration-200 shadow-2xs hover:shadow-xs active:scale-95"
             >
               Contact Us
             </a>
@@ -169,13 +169,13 @@ export default function Navbar() {
           <div className="flex lg:hidden items-center gap-3">
             <a
               href="tel:09885349798"
-              className="px-3.5 py-1.5 text-xs font-semibold text-[#0284c7] border border-[#0284c7] rounded-md"
+              className="px-3.5 py-1.5 text-xs font-semibold text-[#2E8B57] border border-[#2E8B57] rounded-md"
             >
               Contact Us
             </a>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-slate-700 hover:text-[#0284c7] transition-colors"
+              className="p-2 text-[#173D2A] hover:text-[#2E8B57] transition-colors"
               aria-label="Toggle Navigation"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -194,7 +194,7 @@ export default function Navbar() {
                 key={item.name}
                 href={item.href}
                 onClick={(e) => scrollToSection(e, item.href)}
-                className="py-2 text-base font-semibold text-slate-800 hover:text-[#0284c7] transition-colors border-b border-slate-100"
+                className="py-2 text-base font-semibold text-[#173D2A] hover:text-[#2E8B57] transition-colors border-b border-slate-100"
               >
                 {item.name}
               </a>
@@ -202,13 +202,13 @@ export default function Navbar() {
           </div>
           <div className="pt-2 flex flex-col gap-3">
             <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
-              <Phone className="w-3.5 h-3.5 text-[#0284c7]" />
+              <Phone className="w-3.5 h-3.5 text-[#2E8B57]" />
               <span>9885349798 / 8790349798</span>
             </div>
             <a
               href="#contact"
               onClick={(e) => scrollToSection(e, "#contact")}
-              className="w-full py-2.5 text-center text-sm font-bold text-white bg-gradient-to-r from-[#0ea5e9] to-[#0284c7] rounded-lg shadow-sm"
+              className="w-full py-2.5 text-center text-sm font-bold text-white bg-gradient-to-r from-[#2E8B57] to-[#60A780] rounded-lg shadow-sm"
             >
               Get Online Consultancy
             </a>

@@ -43,9 +43,9 @@ export function PublicHeader() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`text-xs font-semibold transition-colors hover:text-blue-600 dark:hover:text-blue-400 ${
+                  className={`text-xs font-semibold transition-colors hover:text-[#2E8B57] dark:hover:text-[#81BA9A] ${
                     isActive
-                      ? "text-blue-600 dark:text-blue-400 font-bold"
+                      ? "text-[#2E8B57] dark:text-[#81BA9A] font-bold"
                       : "text-slate-600 dark:text-slate-300"
                   }`}
                 >
@@ -59,21 +59,21 @@ export function PublicHeader() {
         <div className="hidden sm:flex items-center gap-3">
           <Link
             href="/book-appointment"
-            className="text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+            className="text-xs font-bold text-white bg-[#2E8B57] hover:bg-[#257348] px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
           >
             <Calendar className="h-3.5 w-3.5" /> Book Appointment
           </Link>
           {isLoggedIn ? (
             <Link
               href="/dashboard"
-              className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
+              className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-[#2E8B57] bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
             >
-              <UserCheck className="h-3.5 w-3.5 text-blue-600" /> Dashboard
+              <UserCheck className="h-3.5 w-3.5 text-[#2E8B57]" /> Dashboard
             </Link>
           ) : (
             <Link
               href="/login"
-              className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
+              className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-[#2E8B57] bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
             >
               <Shield className="h-3.5 w-3.5 text-slate-500" /> Staff Portal
             </Link>
@@ -104,7 +104,7 @@ export function PublicHeader() {
                 onClick={() => setMobileMenuOpen(false)}
                 className={`block text-sm font-medium py-1.5 ${
                   isActive
-                    ? "text-blue-600 dark:text-blue-400 font-bold"
+                    ? "text-[#2E8B57] dark:text-[#81BA9A] font-bold"
                     : "text-slate-700 dark:text-slate-300"
                 }`}
               >
@@ -116,7 +116,7 @@ export function PublicHeader() {
             <Link
               href="/book-appointment"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 py-2.5 rounded-xl shadow-sm flex items-center justify-center gap-1.5"
+              className="w-full text-center text-xs font-bold text-white bg-[#2E8B57] hover:bg-[#257348] py-2.5 rounded-xl shadow-sm flex items-center justify-center gap-1.5"
             >
               <Calendar className="h-3.5 w-3.5" /> Book Appointment
             </Link>
@@ -126,7 +126,7 @@ export function PublicHeader() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full text-center text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 py-2.5 rounded-xl flex items-center justify-center gap-1.5"
               >
-                <UserCheck className="h-3.5 w-3.5 text-blue-600" /> Go to Dashboard
+                <UserCheck className="h-3.5 w-3.5 text-[#2E8B57]" /> Go to Dashboard
               </Link>
             ) : (
               <Link

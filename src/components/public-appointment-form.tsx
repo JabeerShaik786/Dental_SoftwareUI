@@ -144,7 +144,7 @@ export function PublicAppointmentForm({ className = "" }: { className?: string }
         <div className="pt-2">
           <Button
             onClick={handleReset}
-            className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-sm transition-colors cursor-pointer"
+            className="w-full h-11 bg-[#2E8B57] hover:bg-[#257348] text-white font-semibold rounded-xl text-sm transition-colors cursor-pointer"
           >
             Submit Another Request
           </Button>
@@ -157,7 +157,7 @@ export function PublicAppointmentForm({ className = "" }: { className?: string }
     <div className={`p-6 sm:p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl max-w-xl mx-auto space-y-6 ${className}`}>
       <div className="border-b border-slate-100 dark:border-slate-800/80 pb-4">
         <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-blue-600" /> Book an Appointment
+          <Calendar className="h-5 w-5 text-[#2E8B57]" /> Book an Appointment
         </h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
           Select your preferred date and time. Our team will contact you to confirm your slot.
@@ -250,7 +250,7 @@ export function PublicAppointmentForm({ className = "" }: { className?: string }
               name="time"
               value={formData.time}
               onChange={handleChange}
-              className="h-10 w-full rounded-xl bg-slate-50/50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="h-10 w-full rounded-xl bg-slate-50/50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2E8B57]"
             >
               <option value="09:00 AM">09:00 AM</option>
               <option value="10:00 AM">10:00 AM</option>
@@ -274,7 +274,7 @@ export function PublicAppointmentForm({ className = "" }: { className?: string }
               value={formData.doctorId}
               onChange={handleChange}
               disabled={loadingDoctors}
-              className="h-10 w-full rounded-xl bg-slate-50/50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
+              className="h-10 w-full rounded-xl bg-slate-50/50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2E8B57] disabled:opacity-60"
             >
               <option value="">Any Available Doctor</option>
               {doctors.map(doc => (
@@ -294,7 +294,7 @@ export function PublicAppointmentForm({ className = "" }: { className?: string }
               name="treatment"
               value={formData.treatment}
               onChange={handleChange}
-              className="h-10 w-full rounded-xl bg-slate-50/50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="h-10 w-full rounded-xl bg-slate-50/50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2E8B57]"
             >
               <option value="General Consultation">General Consultation</option>
               <option value="Dental Scaling / Cleaning">Dental Scaling / Cleaning</option>
@@ -319,7 +319,7 @@ export function PublicAppointmentForm({ className = "" }: { className?: string }
             placeholder="Mention any symptoms, specific dental issues, or requests..."
             value={formData.notes}
             onChange={handleChange}
-            className="w-full rounded-xl bg-slate-50/50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-xl bg-slate-50/50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2E8B57]"
           />
         </div>
 
@@ -327,7 +327,7 @@ export function PublicAppointmentForm({ className = "" }: { className?: string }
         <Button
           type="submit"
           disabled={submitting}
-          className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-500/10"
+          className="w-full h-11 bg-[#2E8B57] hover:bg-[#257348] text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-[#2E8B57]/10"
         >
           {submitting ? (
             <>

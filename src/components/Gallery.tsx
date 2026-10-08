@@ -32,7 +32,7 @@ export default function Gallery() {
       <div className="max-w-[1360px] mx-auto px-6 md:px-12 lg:px-20 relative z-20 text-center">
         
         {/* Section Heading */}
-        <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-bold text-[#0f2942] tracking-tight mb-12 lg:mb-16">
+        <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-bold text-[#173D2A] tracking-tight mb-12 lg:mb-16">
           Gallery
         </h2>
 
@@ -112,7 +112,7 @@ export default function Gallery() {
           <a
             href="#contact"
             onClick={scrollToContact}
-            className="inline-flex items-center justify-center px-9 py-2.5 bg-gradient-to-r from-[#0ea5e9] to-[#0284c7] text-white font-semibold text-sm sm:text-base rounded-lg shadow-md hover:shadow-lg hover:opacity-95 active:scale-95 transition-all duration-200"
+            className="inline-flex items-center justify-center px-9 py-2.5 bg-[#2E8B57] hover:bg-[#257348] text-white font-semibold text-sm sm:text-base rounded-lg shadow-md hover:shadow-lg active:scale-95 transition-all duration-200"
           >
             View All
           </a>

@@ -16,7 +16,7 @@ export default function TermsOfServicePage() {
       <Navbar />
       <main className="flex-grow pt-28 pb-20 bg-[#f8fafc]">
         {/* Header Banner */}
-        <section className="bg-gradient-to-r from-[#0284c7] via-[#0ea5e9] to-[#38bdf8] text-white py-14 px-6 md:px-12 lg:px-20 relative overflow-hidden">
+        <section className="bg-gradient-to-r from-[#2E8B57] via-[#60A780] to-[#81BA9A] text-white py-14 px-6 md:px-12 lg:px-20 relative overflow-hidden">
           <div className="max-w-[1100px] mx-auto relative z-10">
             <Link
               href="/"
@@ -51,8 +51,8 @@ export default function TermsOfServicePage() {
             
             {/* 1. Acceptance */}
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#0f2942] mb-4 flex items-center gap-2.5">
-                <span className="w-2 h-6 bg-[#0284c7] rounded-full inline-block" />
+              <h2 className="text-xl sm:text-2xl font-bold text-[#173D2A] mb-4 flex items-center gap-2.5">
+                <span className="w-2 h-6 bg-[#2E8B57] rounded-full inline-block" />
                 1. Acceptance of Terms
               </h2>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
@@ -62,15 +62,15 @@ export default function TermsOfServicePage() {
 
             {/* 2. Dental Services & Consultations */}
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#0f2942] mb-4 flex items-center gap-2.5">
-                <span className="w-2 h-6 bg-[#0284c7] rounded-full inline-block" />
+              <h2 className="text-xl sm:text-2xl font-bold text-[#173D2A] mb-4 flex items-center gap-2.5">
+                <span className="w-2 h-6 bg-[#2E8B57] rounded-full inline-block" />
                 2. Clinical Treatments & Scope of Care
               </h2>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base mb-4">
                 <strong>V.R. Dental Care & Dental Implant Centre</strong> provides multidisciplinary dental healthcare including general dentistry, dental implants, root canal therapy, orthodontics, smile designing, laser surgeries, pediatric dental care, and oral rehabilitation.
               </p>
               <div className="p-4 bg-sky-50/70 rounded-xl border border-sky-100 flex items-start gap-3">
-                <Stethoscope className="w-5 h-5 text-[#0284c7] shrink-0 mt-0.5" />
+                <Stethoscope className="w-5 h-5 text-[#2E8B57] shrink-0 mt-0.5" />
                 <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
                   All treatments are performed by registered dental practitioners in accordance with standards established by the Dental Council of India (DCI). Specific clinical outcomes may vary depending on patient anatomy, bone density, periodontal health, and compliance with post-operative instructions.
                 </p>
@@ -79,22 +79,22 @@ export default function TermsOfServicePage() {
 
             {/* 3. Appointments & Punctuality */}
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#0f2942] mb-4 flex items-center gap-2.5">
-                <span className="w-2 h-6 bg-[#0284c7] rounded-full inline-block" />
+              <h2 className="text-xl sm:text-2xl font-bold text-[#173D2A] mb-4 flex items-center gap-2.5">
+                <span className="w-2 h-6 bg-[#2E8B57] rounded-full inline-block" />
                 3. Appointments & Rescheduling
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/60">
-                  <h3 className="font-semibold text-sm text-[#0f2942] mb-1.5 flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[#0284c7]" /> Punctuality
+                  <h3 className="font-semibold text-sm text-[#173D2A] mb-1.5 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-[#2E8B57]" /> Punctuality
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                     Patients are requested to arrive 10 minutes prior to scheduled appointments to complete health screening and vital recording.
                   </p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/60">
-                  <h3 className="font-semibold text-sm text-[#0f2942] mb-1.5 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-[#0284c7]" /> Cancellations
+                  <h3 className="font-semibold text-sm text-[#173D2A] mb-1.5 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-[#2E8B57]" /> Cancellations
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                     If you must reschedule or cancel, please provide at least 24 hours notice so the operatory time slot can be made available for emergency patients.
@@ -105,8 +105,8 @@ export default function TermsOfServicePage() {
 
             {/* 4. Patient Medical Disclosure & Informed Consent */}
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#0f2942] mb-4 flex items-center gap-2.5">
-                <span className="w-2 h-6 bg-[#0284c7] rounded-full inline-block" />
+              <h2 className="text-xl sm:text-2xl font-bold text-[#173D2A] mb-4 flex items-center gap-2.5">
+                <span className="w-2 h-6 bg-[#2E8B57] rounded-full inline-block" />
                 4. Patient Health Disclosure & Informed Consent
               </h2>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base mb-3">
@@ -119,8 +119,8 @@ export default function TermsOfServicePage() {
 
             {/* 5. Online & WhatsApp Consultation Disclaimer */}
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#0f2942] mb-4 flex items-center gap-2.5">
-                <span className="w-2 h-6 bg-[#0284c7] rounded-full inline-block" />
+              <h2 className="text-xl sm:text-2xl font-bold text-[#173D2A] mb-4 flex items-center gap-2.5">
+                <span className="w-2 h-6 bg-[#2E8B57] rounded-full inline-block" />
                 5. Online & WhatsApp Consultation Disclaimer
               </h2>
               <div className="p-4 bg-amber-50/80 rounded-xl border border-amber-200/70 text-amber-900 text-xs sm:text-sm leading-relaxed">
@@ -130,23 +130,23 @@ export default function TermsOfServicePage() {
 
             {/* 6. Treatment Estimates & Payments */}
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#0f2942] mb-4 flex items-center gap-2.5">
-                <span className="w-2 h-6 bg-[#0284c7] rounded-full inline-block" />
+              <h2 className="text-xl sm:text-2xl font-bold text-[#173D2A] mb-4 flex items-center gap-2.5">
+                <span className="w-2 h-6 bg-[#2E8B57] rounded-full inline-block" />
                 6. Treatment Estimates & Payment Policy
               </h2>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base mb-3">
                 Written treatment plans and fee estimates are provided following initial diagnostic evaluation. Multi-visit treatments (such as customized prosthodontics, implants, and clear aligners) may involve staged milestone payments.
               </p>
               <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
-                <CreditCard className="w-4 h-4 text-[#0284c7]" />
+                <CreditCard className="w-4 h-4 text-[#2E8B57]" />
                 <span>Accepted payment modes: Cash, UPI, Debit/Credit Cards, and Bank Transfer.</span>
               </div>
             </div>
 
             {/* 7. Governing Law */}
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#0f2942] mb-4 flex items-center gap-2.5">
-                <span className="w-2 h-6 bg-[#0284c7] rounded-full inline-block" />
+              <h2 className="text-xl sm:text-2xl font-bold text-[#173D2A] mb-4 flex items-center gap-2.5">
+                <span className="w-2 h-6 bg-[#2E8B57] rounded-full inline-block" />
                 7. Governing Law & Jurisdiction
               </h2>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
@@ -156,7 +156,7 @@ export default function TermsOfServicePage() {
 
             {/* Contact Box */}
             <div className="p-6 bg-slate-50 rounded-xl border border-slate-200">
-              <h3 className="font-bold text-base text-[#0f2942] mb-3">
+              <h3 className="font-bold text-base text-[#173D2A] mb-3">
                 Clinic Administration Contact
               </h3>
               <p className="text-sm text-slate-600 mb-4">
@@ -164,15 +164,15 @@ export default function TermsOfServicePage() {
               </p>
               <div className="space-y-2 text-sm text-slate-700">
                 <p className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-[#0284c7] shrink-0" />
+                  <MapPin className="w-4 h-4 text-[#2E8B57] shrink-0" />
                   <span>3rd Cross St, opposite GMC Balayogi Stadium, Zicria Nagar, Yanam, Andhra Pradesh 533464</span>
                 </p>
                 <p className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-[#0284c7] shrink-0" />
+                  <Phone className="w-4 h-4 text-[#2E8B57] shrink-0" />
                   <span>098853 49798 / 087903 49798</span>
                 </p>
                 <p className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-[#0284c7] shrink-0" />
+                  <Mail className="w-4 h-4 text-[#2E8B57] shrink-0" />
                   <span>VRdental.yanam@gmail.com</span>
                 </p>
               </div>
