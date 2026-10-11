@@ -70,7 +70,8 @@ import {
   Pill,
   Package,
   Boxes,
-  AlertTriangle
+  AlertTriangle,
+  Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,6 +82,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { CaseSheetPrintTemplate } from "@/components/print/CaseSheetPrintTemplate";
 import { PrescriptionPrintTemplate } from "@/components/print/PrescriptionPrintTemplate";
+import { generateAndDownloadPrescriptionPdf } from "@/lib/prescriptionPdfGenerator";
 
 // Interfaces
 export interface MedicineItem {
@@ -2680,6 +2682,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [prescMeds, setPrescMeds] = useState<{ name: string; dosage: string; freq: string; duration: string; instructions: string }[]>([
     { name: "", dosage: "", freq: "", duration: "", instructions: "" }
   ]);
+  const [showPrescriptionPreviewModal, setShowPrescriptionPreviewModal] = useState(false);
+  const [activePrintPrescription, setActivePrintPrescription] = useState<{
+    doctorName?: string;
+    date?: string;
+    diagnosis?: string;
+    medicines: Array<{ name: string; dosage: string; duration: string; instructions: string; strength?: string }>;
+    advice?: string;
+  } | null>(null);
 
   // --- INVOICE FORM STATES ---
   const [invProcedure, setInvProcedure] = useState("");
@@ -3733,6 +3743,28 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       return p;
     }));
 
+    const newStructuredPresc: PatientPrescriptionRecord = {
+      id: `presc-${Date.now()}`,
+      patient_id: patientItem.id,
+      patient_name: patientItem.name,
+      doctor_name: docName,
+      prescription_date: prescDate || new Date().toISOString().slice(0, 10),
+      diagnosis: prescDiagnosis,
+      advice: prescAdvice,
+      items: prescMeds.map(m => ({
+        medicine_name: m.name,
+        dosage: m.dosage,
+        freq: m.freq,
+        duration: m.duration,
+        instructions: m.instructions,
+        dispensing_quantity: 10,
+        stock_unit: (m as any).stock_unit || "tablets",
+        dispensed: false
+      })),
+      created_at: new Date().toISOString()
+    };
+    setPatientPrescriptionsList(prev => [newStructuredPresc, ...prev]);
+
     setPrescMeds([{ name: "", dosage: "", freq: "", duration: "", instructions: "" }]);
     setPrescAdvice("");
     setPrescDiagnosis("");
@@ -3744,10 +3776,51 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     showToast("Prescription generated and saved.", "success");
   };
 
-  const handlePrintPrescription = () => {
+  const parsePrescriptionString = (str: string): { name: string; dosage: string; duration: string; instructions: string } => {
+    let name = str;
+    let dosage = "";
+    let duration = "";
+    let instructions = "";
+
+    const instrMatch = str.match(/\[(.*?)\]/);
+    if (instrMatch) {
+      instructions = instrMatch[1];
+      str = str.replace(/\[(.*?)\]/, "").trim();
+    }
+
+    const durMatch = str.match(/for\s+(.*?)$/i);
+    if (durMatch) {
+      duration = durMatch[1].trim();
+      str = str.replace(/for\s+(.*?)$/i, "").trim();
+    }
+
+    const doseMatch = str.match(/\((.*?)\)/);
+    if (doseMatch) {
+      dosage = doseMatch[1].trim();
+      name = str.replace(/\((.*?)\)/, "").trim();
+    }
+
+    return { name, dosage, duration, instructions };
+  };
+
+  const handlePrintPrescription = (customData?: {
+    doctorName?: string;
+    date?: string;
+    diagnosis?: string;
+    medicines: Array<{ name: string; dosage: string; duration: string; instructions: string; strength?: string }>;
+    advice?: string;
+  }) => {
     const patientItem = patients.find(p => p.id === selectedPatientId);
     if (!patientItem) {
       showToast("Please select a patient before printing a prescription.", "error");
+      return;
+    }
+
+    if (customData) {
+      setActivePrintPrescription(customData);
+      setTimeout(() => {
+        window.print();
+      }, 50);
       return;
     }
 
@@ -3766,7 +3839,52 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       return;
     }
 
-    window.print();
+    setActivePrintPrescription({
+      doctorName: prescDoctor || (doctors[0]?.name || "Dr. M. Durga Praveen"),
+      date: prescDate,
+      diagnosis: prescDiagnosis,
+      medicines: prescMeds.filter(m => m.name.trim()),
+      advice: prescAdvice,
+    });
+    setTimeout(() => {
+      window.print();
+    }, 50);
+  };
+
+  const handleDownloadPrescriptionPDF = async (customData?: {
+    doctorName?: string;
+    date?: string;
+    diagnosis?: string;
+    medicines: Array<{ name: string; dosage: string; duration: string; instructions: string; strength?: string }>;
+    advice?: string;
+  }) => {
+    const patientItem = patients.find(p => p.id === selectedPatientId);
+    if (!patientItem) {
+      showToast("Please select a patient before generating a prescription PDF.", "error");
+      return;
+    }
+
+    const medsToUse = customData?.medicines || prescMeds.filter(m => m.name.trim());
+    if (medsToUse.length === 0) {
+      showToast("Please enter at least one medicine before downloading.", "error");
+      return;
+    }
+
+    try {
+      await generateAndDownloadPrescriptionPdf({
+        patient: patientItem,
+        doctorName: customData?.doctorName || prescDoctor || (doctors[0]?.name || "Dr. M. Durga Praveen"),
+        date: customData?.date || prescDate,
+        diagnosis: customData?.diagnosis || prescDiagnosis,
+        medicines: medsToUse,
+        advice: customData?.advice || prescAdvice,
+        parseDosageFn: parseDosageString,
+      });
+      showToast("Prescription PDF downloaded successfully.", "success");
+    } catch (err) {
+      console.error("PDF download error:", err);
+      showToast("Failed to generate PDF.", "error");
+    }
   };
 
   const handleSaveClinicalNote = async (e: React.FormEvent) => {
@@ -9811,16 +9929,49 @@ ${clinicName}`;
                     <Input value={prescAdvice} onChange={e => setPrescAdvice(e.target.value)} placeholder="Follow-up warnings..." />
                   </div>
 
-                  <div className="flex gap-3 justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex flex-wrap gap-2.5 justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
                     <Button
                       type="button"
-                      onClick={handlePrintPrescription}
-                      className="h-9 px-4 rounded border border-slate-900 bg-slate-900 text-white hover:bg-[#333333] hover:text-white focus:outline-none focus:ring-2 focus:ring-slate-400 focus:text-white active:bg-black active:text-white dark:bg-slate-900 dark:text-white dark:hover:bg-[#333333] dark:hover:text-white font-semibold transition-colors duration-200 flex items-center gap-2 cursor-pointer shadow-xs"
+                      onClick={() => {
+                        const patientItem = patients.find(p => p.id === selectedPatientId);
+                        if (!patientItem) {
+                          showToast("Please select a patient first.", "error");
+                          return;
+                        }
+                        setActivePrintPrescription({
+                          doctorName: prescDoctor || (doctors[0]?.name || "Dr. M. Durga Praveen"),
+                          date: prescDate,
+                          diagnosis: prescDiagnosis,
+                          medicines: prescMeds.filter(m => m.name.trim()),
+                          advice: prescAdvice,
+                        });
+                        setShowPrescriptionPreviewModal(true);
+                      }}
+                      className="h-9 px-3.5 rounded border border-blue-600/40 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800 font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Preview Template
+                    </Button>
+
+                    <Button
+                      type="button"
+                      onClick={() => handleDownloadPrescriptionPDF()}
+                      className="h-9 px-3.5 rounded border border-emerald-600/40 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download PDF
+                    </Button>
+
+                    <Button
+                      type="button"
+                      onClick={() => handlePrintPrescription()}
+                      className="h-9 px-3.5 rounded border border-slate-900 bg-slate-900 text-white hover:bg-[#333333] hover:text-white font-semibold transition-colors duration-200 flex items-center gap-1.5 cursor-pointer shadow-xs"
                     >
                       <Printer className="h-4 w-4 text-white" />
                       Print Prescription
                     </Button>
-                    <Button type="submit" className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold">
+
+                    <Button type="submit" className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-xs">
                       Save Prescription
                     </Button>
                   </div>
@@ -9953,6 +10104,25 @@ ${clinicName}`;
                           </div>
 
                           <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const parsed = parsePrescriptionString(pr);
+                                setActivePrintPrescription({
+                                  doctorName: prescRec?.doctor_name || prescDoctor || (doctors[0]?.name || "Dr. M. Durga Praveen"),
+                                  date: prescRec?.prescription_date || "",
+                                  diagnosis: prescRec?.diagnosis || "",
+                                  medicines: [parsed],
+                                  advice: prescRec?.advice || "",
+                                });
+                                setShowPrescriptionPreviewModal(true);
+                              }}
+                              className="px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-[11px] flex items-center gap-1 cursor-pointer transition-colors"
+                              title="Preview & print on official template"
+                            >
+                              <Eye className="h-3.5 w-3.5 text-blue-600" /> View / Print
+                            </button>
+
                             {isDispensed ? (
                               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200">
                                 Dispensed
@@ -10005,17 +10175,102 @@ ${clinicName}`;
                   const pItem = patients.find(p => p.id === selectedPatientId);
                   if (!pItem) return null;
 
+                  const dataToPrint = activePrintPrescription || {
+                    doctorName: prescDoctor || (doctors[0]?.name || "Dr. M. Durga Praveen"),
+                    date: prescDate,
+                    diagnosis: prescDiagnosis,
+                    medicines: prescMeds.filter(m => m.name.trim()),
+                    advice: prescAdvice,
+                  };
+
                   return (
                     <div id="print-area" className="hidden print:block">
                       <PrescriptionPrintTemplate
                         patient={pItem}
-                        doctorName={prescDoctor || (doctors[0]?.name || "Dr. M. Durga Praveen")}
-                        date={prescDate}
-                        diagnosis={prescDiagnosis}
-                        medicines={prescMeds}
-                        advice={prescAdvice}
+                        doctorName={dataToPrint.doctorName}
+                        date={dataToPrint.date}
+                        diagnosis={dataToPrint.diagnosis}
+                        medicines={dataToPrint.medicines}
+                        advice={dataToPrint.advice}
                         parseDosageFn={parseDosageString}
                       />
+                    </div>
+                  );
+                })()}
+
+                {/* MODAL: INTERACTIVE ON-SCREEN PRESCRIPTION PREVIEW (OFFICIAL V.R. DENTAL CARE TEMPLATE) */}
+                {showPrescriptionPreviewModal && selectedPatientId && (() => {
+                  const pItem = patients.find(p => p.id === selectedPatientId);
+                  if (!pItem) return null;
+
+                  const currentData = activePrintPrescription || {
+                    doctorName: prescDoctor || (doctors[0]?.name || "Dr. M. Durga Praveen"),
+                    date: prescDate,
+                    diagnosis: prescDiagnosis,
+                    medicines: prescMeds.filter(m => m.name.trim()),
+                    advice: prescAdvice,
+                  };
+
+                  return (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-4 overflow-y-auto print:hidden">
+                      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-fadeIn">
+                        {/* Modal Header */}
+                        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950">
+                          <div>
+                            <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                              <FileText className="h-5 w-5 text-blue-600" />
+                              Official Prescription Template Preview
+                            </h3>
+                            <p className="text-xs text-slate-500">
+                              Patient: <strong className="text-slate-800 dark:text-slate-300">{pItem.name}</strong> • V.R. Dental Care & Dental Implant Centre
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              onClick={() => handleDownloadPrescriptionPDF(currentData)}
+                              className="h-8 px-3 rounded text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                            >
+                              <Download className="h-3.5 w-3.5" /> Download PDF
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                setActivePrintPrescription(currentData);
+                                setTimeout(() => window.print(), 50);
+                              }}
+                              className="h-8 px-3 rounded text-xs bg-slate-900 hover:bg-slate-800 text-white font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                            >
+                              <Printer className="h-3.5 w-3.5" /> Print
+                            </Button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowPrescriptionPreviewModal(false);
+                                setActivePrintPrescription(null);
+                              }}
+                              className="h-8 w-8 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Modal Body with Zoom / Scroll */}
+                        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-200/80 dark:bg-slate-950/80 flex justify-center shadow-inner">
+                          <div className="w-full max-w-[210mm] shadow-2xl rounded-xs overflow-hidden bg-white">
+                            <PrescriptionPrintTemplate
+                              patient={pItem}
+                              doctorName={currentData.doctorName}
+                              date={currentData.date}
+                              diagnosis={currentData.diagnosis}
+                              medicines={currentData.medicines}
+                              advice={currentData.advice}
+                              parseDosageFn={parseDosageString}
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   );
                 })()}

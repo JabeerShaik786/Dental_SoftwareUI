@@ -1,10 +1,15 @@
 import React from "react";
+import { getAssetPath } from "@/lib/getAssetPath";
 
 export interface PrescriptionMedicineItem {
   name: string;
   dosage: string;
   duration: string;
   instructions: string;
+  strength?: string;
+  route?: string;
+  frequency?: string;
+  quantity?: number | string;
 }
 
 export interface PrescriptionPrintData {
@@ -39,172 +44,143 @@ export const PrescriptionPrintTemplate: React.FC<PrescriptionPrintData> = ({
   advice = "",
   parseDosageFn,
 }) => {
-  const displayDate = date || new Date().toISOString().split("T")[0];
-  const ageSex = `${patient.age ? patient.age + " Yrs" : ""} ${patient.gender || ""}`.trim();
+  const templateUrl = getAssetPath("/templates/vr_prescription_template.png");
+
+  // Format date display: preserve explicit formatted date or format ISO date to readable en-GB
+  let displayDate = date;
+  if (!displayDate) {
+    displayDate = new Date().toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } else if (/^\d{4}-\d{2}-\d{2}/.test(displayDate)) {
+    const d = new Date(displayDate);
+    if (!isNaN(d.getTime())) {
+      displayDate = d.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    }
+  }
+
+  // Patient age/sex format
+  const ageSex = `${patient.age ? patient.age + " Yrs" : ""} ${patient.gender ? "/ " + patient.gender : ""}`.trim();
+
+  // Medical Alert: ignore placeholder values like "None" or "N/A"
+  const cleanMedAlert =
+    patient.medicalNotes &&
+    patient.medicalNotes !== "None" &&
+    patient.medicalNotes !== "N/A" &&
+    patient.medicalNotes.trim().length > 0
+      ? patient.medicalNotes.trim()
+      : "";
+
+  const isOverflow = medicines.length > 7;
 
   return (
-    <div className="w-[210mm] min-h-[297mm] bg-white text-slate-900 font-sans p-6 relative flex flex-col justify-between box-border leading-normal">
-      {/* Background Tooth Watermark */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] z-0">
-        <svg className="w-[300mm] h-[300mm] text-blue-900" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C8.5 2 6 4 6 7c0 2.5 1.5 5 2 7.5C8.5 17 9 20 10.5 21.5 11.2 22.2 12 22 12 22s.8.2 1.5-.5C15 20 15.5 17 16 14.5c.5-2.5 2-5 2-7.5 0-3-2.5-5-6-5z" />
-        </svg>
-      </div>
+    <div className="flex flex-col items-center">
+      {/* EXACT V.R. DENTAL CARE PRESCRIPTION A4 CONTAINER */}
+      <div className="relative w-[210mm] h-[297mm] min-h-[297mm] max-h-[297mm] bg-white text-slate-900 font-sans box-border overflow-hidden print:w-[210mm] print:h-[297mm] print:overflow-hidden shadow-md print:shadow-none">
+        {/* Authentic Fixed Background Template Image (Header, Timings, Doctor Column, Watermark, Footer) */}
+        <img
+          src={templateUrl}
+          alt="V.R Dental Care Official Prescription Template"
+          className="absolute inset-0 w-full h-full object-fill pointer-events-none select-none z-0"
+        />
 
-      <div className="relative z-10 space-y-3">
-        {/* TOP CLINIC HEADER (Image 2 reference) */}
-        <div className="border-b-2 border-slate-900 pb-2 space-y-1">
-          <div className="text-right text-[11px] font-bold text-slate-800">
-            Clinic : 9885349798, 8790349798
-          </div>
+        {/* 1. OVERLAID PATIENT INFORMATION (Positioned exactly over template labels) */}
 
-          <div className="flex items-center gap-3">
-            {/* Logo */}
-            <div className="h-12 w-12 rounded-full border-2 border-slate-900 flex flex-col items-center justify-center text-center shrink-0">
-              <svg className="h-6 w-6 text-slate-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 2C8.5 2 6 4 6 7c0 2.5 1.5 5 2 7.5C8.5 17 9 20 10.5 21.5 11.2 22.2 12 22 12 22s.8.2 1.5-.5C15 20 15.5 17 16 14.5c.5-2.5 2-5 2-7.5 0-3-2.5-5-6-5z" />
-              </svg>
-              <span className="text-[6.5px] font-bold text-slate-900 tracking-tighter -mt-0.5">ESTD. 2011</span>
-            </div>
-
-            <div className="flex-1 text-center">
-              <h1 className="text-2xl font-black tracking-tight uppercase font-serif text-slate-950">
-                V.R DENTAL CARE
-              </h1>
-              <h2 className="text-xs font-black tracking-widest uppercase text-slate-900">
-                & DENTAL IMPLANT CENTRE
-              </h2>
-              <p className="text-[10.5px] font-semibold text-slate-800 mt-0.5">
-                Opp. G.M.C. Balayogi Sports Complex, 3rd Cross, Zicriya Nagar, YANAM - 533 464
-              </p>
-            </div>
-          </div>
-
-          {/* Timings Bar */}
-          <div className="border-y border-slate-800 py-0.5 px-2 flex justify-between items-center text-[11px] font-bold text-slate-900 mt-2">
-            <span>సంప్రదించు వేళలు :</span>
-            <span>9 A.M. to 1 P.M.</span>
-            <span>4 P.M. to 8 P.M.</span>
-            <span>Sunday Holiday</span>
-          </div>
+        {/* Patient Name: beside printed "Name :" */}
+        <div
+          className="absolute z-10 font-bold text-slate-950 text-[12px] truncate"
+          style={{
+            left: "46.5%",
+            top: "23.0%",
+            maxWidth: "30%",
+          }}
+          title={patient.name}
+        >
+          {patient.name}
         </div>
 
-        {/* TWO-COLUMN PHYSICAL PRESCRIPTION LAYOUT (Image 2 reference) */}
-        <div className="grid grid-cols-12 gap-4 items-start min-h-[520px]">
-          {/* LEFT COLUMN: DOCTORS & CONSULTANTS ROSTER */}
-          <div className="col-span-4 border-r-2 border-slate-800 pr-3 space-y-3 text-[11px] text-slate-900 font-sans">
-            {/* Lead Surgeon */}
-            <div className="space-y-0.5">
-              <h3 className="font-bold text-[12px] text-slate-950">Dr. M. Durga Praveen <span className="text-[9.5px] font-normal">B.D.S, FICOI</span></h3>
-              <p className="font-semibold text-slate-800 text-[10px] leading-tight">Chief Dental Surgeon & Oral Implantologist</p>
-              <p className="text-[10px] text-slate-700">Regd. No. - 19</p>
-            </div>
+        {/* Date: beside printed "Date :" */}
+        <div
+          className="absolute z-10 font-bold text-slate-900 text-[11px] bg-white/95 px-1 rounded-xs"
+          style={{
+            left: "82.5%",
+            top: "22.8%",
+            maxWidth: "11%",
+          }}
+        >
+          {displayDate}
+        </div>
 
-            {/* Associate Surgeon */}
-            <div className="space-y-0.5 pt-1">
-              <h3 className="font-bold text-[11.5px] text-slate-950">Dr. P.chandra Keerthi <span className="text-[9.5px] font-normal">B.D.S, FCE</span></h3>
-              <p className="font-semibold text-slate-800 text-[10px]">Associate Dental Surgeon</p>
-            </div>
+        {/* Age / Sex: beside printed "Age / Sex :" */}
+        <div
+          className="absolute z-10 font-bold text-slate-900 text-[11.5px]"
+          style={{
+            left: "49.5%",
+            top: "25.6%",
+            maxWidth: "40%",
+          }}
+        >
+          {ageSex}
+        </div>
 
-            {/* Consultants Section */}
-            <div className="pt-2 space-y-2 border-t border-slate-300">
-              <h4 className="font-bold text-xs uppercase tracking-wide text-slate-950 border-b border-slate-400 pb-0.5">
-                Consultants :-
-              </h4>
-
-              <div className="space-y-2 text-[10px] leading-tight">
-                <div>
-                  <p className="font-bold text-slate-950">Dr. P. Naveen <span className="font-normal text-[9px]">M.D.S</span></p>
-                  <p className="text-slate-700">Consultant Oral & Maxillofacial Surgeon & Implantologist</p>
-                </div>
-
-                <div>
-                  <p className="font-bold text-slate-950">Dr. K. Anand Viswanadh <span className="font-normal text-[9px]">M.D.S</span></p>
-                  <p className="text-slate-700">Consultant Orthodontist</p>
-                </div>
-
-                <div>
-                  <p className="font-bold text-slate-950">Dr. P.S.S. Manikanta Kumar <span className="font-normal text-[9px]">M.D.S</span></p>
-                  <p className="text-slate-700">Consultant Periodontist</p>
-                </div>
-
-                <div>
-                  <p className="font-bold text-slate-950">Dr. L.Anish Kumar <span className="font-normal text-[9px]">M.D.S</span></p>
-                  <p className="text-slate-700">Consultant Endodontist</p>
-                </div>
-
-                <div>
-                  <p className="font-bold text-slate-950">Dr. Sekhar <span className="font-normal text-[9px]">M.D.S</span></p>
-                  <p className="text-slate-700">Consultant Endodontist</p>
-                </div>
-
-                <div>
-                  <p className="font-bold text-slate-950">Dr. B.S.R.S.V. Prasad <span className="font-normal text-[9px]">M.D.S</span></p>
-                  <p className="text-slate-700">Consultant Prosthodontist</p>
-                </div>
-              </div>
-            </div>
+        {/* Medical Alert: beside printed "Medical Alert:" */}
+        {cleanMedAlert && (
+          <div
+            className="absolute z-10 font-bold text-red-700 text-[11px] truncate"
+            style={{
+              left: "51.8%",
+              top: "28.2%",
+              maxWidth: "40%",
+            }}
+            title={cleanMedAlert}
+          >
+            {cleanMedAlert}
           </div>
+        )}
 
-          {/* RIGHT COLUMN: PATIENT INFO & PRESCRIPTION CONTENT */}
-          <div className="col-span-8 space-y-3 pl-1">
-            {/* Patient Header Line (Physical Pad Style) */}
-            <div className="space-y-1.5 text-xs font-medium border-b border-slate-400 pb-2">
-              <div className="flex justify-between items-center">
-                <div>
-                  <span className="font-bold text-slate-900">Name : </span>
-                  <span className="font-bold text-slate-950 text-sm">{patient.name}</span>
+        {/* 2. PRESCRIPTION WRITING AREA (Positioned strictly inside the large blank area on the right) */}
+        <div
+          className="absolute z-10 flex flex-col justify-between"
+          style={{
+            left: "41.5%",
+            right: "7.5%",
+            top: "31.8%",
+            bottom: "11.5%",
+          }}
+        >
+          {/* Top of writing area: Rx symbol + Clinical diagnosis + Medicines table */}
+          <div className="space-y-2">
+            {/* Rx Glyph & Heading */}
+            <div className="flex items-center justify-between">
+              <span className="text-2xl font-black font-serif text-slate-950 leading-none">
+                Rx
+              </span>
+              {diagnosis && diagnosis.trim() && (
+                <div className="text-[10px] text-slate-700 font-medium">
+                  <span className="font-bold text-slate-900">Diagnosis: </span>
+                  <span className="italic">{diagnosis.trim()}</span>
                 </div>
-                <div>
-                  <span className="font-bold text-slate-900">Date : </span>
-                  <span className="font-bold">{displayDate}</span>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center text-[11px]">
-                <div>
-                  <span className="font-bold text-slate-900">Age / Sex : </span>
-                  <span>{ageSex}</span>
-                </div>
-                {patient.medicalNotes && patient.medicalNotes !== "None" && (
-                  <div>
-                    <span className="font-bold text-red-700">Medical Alert : </span>
-                    <span className="font-semibold text-red-900">{patient.medicalNotes}</span>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
 
-            {/* Rx Symbol */}
-            <div className="text-2xl font-bold font-serif text-slate-900">
-              Rx
-            </div>
-
-            {/* Diagnosis Notes */}
-            {diagnosis.trim() && (
-              <div className="space-y-1">
-                <strong className="text-xs uppercase text-slate-900 block font-bold border-b border-slate-300 pb-0.5">
-                  Diagnosis / Clinical Notes
-                </strong>
-                <p className="text-xs text-slate-950 leading-relaxed font-medium pl-1">{diagnosis.trim()}</p>
-              </div>
-            )}
-
-            {/* Medicines Table */}
-            {medicines.length > 0 && (
-              <div className="space-y-1">
-                <strong className="text-xs uppercase text-slate-900 block font-bold border-b border-slate-300 pb-0.5">
-                  Medicines Prescribed
-                </strong>
-                <table className="w-full border-collapse border border-slate-400 text-xs">
+            {/* Prescribed Medicines Table */}
+            {medicines.length > 0 ? (
+              <div className="w-full">
+                <table className="w-full border-collapse text-left text-[10px] bg-transparent">
                   <thead>
-                    <tr className="bg-slate-200 text-slate-950 font-bold border-b border-slate-400">
-                      <th className="border border-slate-400 p-1.5 text-center w-7">#</th>
-                      <th className="border border-slate-400 p-1.5 text-left">Medicine Name</th>
-                      <th className="border border-slate-400 p-1.5 text-left">Dosage</th>
-                      <th className="border border-slate-400 p-1.5 text-left">Meal</th>
-                      <th className="border border-slate-400 p-1.5 text-left">Duration</th>
-                      <th className="border border-slate-400 p-1.5 text-left">Instructions</th>
+                    <tr className="border-b-2 border-slate-700 text-slate-950 font-bold">
+                      <th className="py-1 px-1 text-center w-6">#</th>
+                      <th className="py-1 px-1">Medicine Name</th>
+                      <th className="py-1 px-1 w-20">Dosage</th>
+                      <th className="py-1 px-1 w-20">Meal</th>
+                      <th className="py-1 px-1 w-16">Duration</th>
+                      <th className="py-1 px-1">Instructions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -215,95 +191,90 @@ export const PrescriptionPrintTemplate: React.FC<PrescriptionPrintData> = ({
                       if (parseDosageFn) {
                         const parsed = parseDosageFn(med.dosage);
                         const times: string[] = [];
-                        if (parsed.morning) times.push("Morning");
-                        if (parsed.afternoon) times.push("Afternoon");
-                        if (parsed.night) times.push("Night");
-                        timeStr = times.join(", ") || "-";
+                        if (parsed.morning) times.push("M");
+                        if (parsed.afternoon) times.push("A");
+                        if (parsed.night) times.push("N");
+                        timeStr = times.length > 0 ? times.join(" - ") : med.dosage || "-";
 
-                        if (parsed.beforeMeals) mealStr = "Before Meals";
-                        else if (parsed.afterMeals) mealStr = "After Meals";
+                        if (parsed.beforeMeals) mealStr = "Before Food";
+                        else if (parsed.afterMeals) mealStr = "After Food";
+                      } else {
+                        timeStr = med.dosage || "-";
                       }
 
                       return (
-                        <tr key={idx} className="border-b border-slate-300">
-                          <td className="border border-slate-300 p-1.5 text-center font-medium">{idx + 1}</td>
-                          <td className="border border-slate-300 p-1.5 font-bold text-slate-950">{med.name}</td>
-                          <td className="border border-slate-300 p-1.5">{timeStr !== "-" ? timeStr : med.dosage}</td>
-                          <td className="border border-slate-300 p-1.5">{mealStr}</td>
-                          <td className="border border-slate-300 p-1.5">{med.duration}</td>
-                          <td className="border border-slate-300 p-1.5">{med.instructions}</td>
+                        <tr
+                          key={idx}
+                          className="border-b border-slate-300/80 text-slate-900 font-medium align-middle"
+                        >
+                          <td className="py-1 px-1 text-center text-slate-600 font-bold">
+                            {idx + 1}
+                          </td>
+                          <td className="py-1 px-1 font-bold text-slate-950">
+                            {med.name}
+                            {med.strength && (
+                              <span className="ml-1 text-[9px] font-normal text-slate-600">
+                                ({med.strength})
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-1 px-1 font-semibold text-slate-800 whitespace-nowrap">
+                            {timeStr}
+                          </td>
+                          <td className="py-1 px-1 text-slate-700 whitespace-nowrap">
+                            {mealStr}
+                          </td>
+                          <td className="py-1 px-1 text-slate-800 whitespace-nowrap">
+                            {med.duration || "-"}
+                          </td>
+                          <td className="py-1 px-1 text-slate-700">
+                            {med.instructions || "-"}
+                          </td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
               </div>
+            ) : (
+              <div className="py-6 text-center text-slate-400 text-xs italic">
+                Prescription writing area
+              </div>
             )}
 
-            {/* Doctor Advice */}
-            {advice.trim() && (
-              <div className="space-y-1">
-                <strong className="text-xs uppercase text-slate-900 block font-bold border-b border-slate-300 pb-0.5">
-                  Doctor Advice
-                </strong>
-                <p className="text-xs text-slate-900 leading-relaxed pl-1">{advice.trim()}</p>
+            {/* Doctor Advice / Post-medication Instructions */}
+            {advice && advice.trim() && (
+              <div className="pt-2 text-[10px] text-slate-900">
+                <span className="font-bold uppercase tracking-wider text-slate-950 block text-[9.5px]">
+                  Doctor Advice / Instructions:
+                </span>
+                <p className="mt-0.5 leading-relaxed text-slate-800 bg-transparent pl-1 font-medium">
+                  {advice.trim()}
+                </p>
               </div>
             )}
           </div>
-        </div>
 
-        {/* POST-TREATMENT TELUGU PRECAUTIONS SECTION (Image 3 Reference) */}
-        <div className="pt-2 border-t border-slate-400 space-y-1.5">
-          <div className="flex justify-center">
-            <div className="border border-slate-800 rounded-full px-4 py-0.5 text-xs font-bold text-slate-950 bg-slate-100">
-              పన్ను తీసిన తర్వాత తీసుకోవలసిన జాగ్రత్తలు
-            </div>
-          </div>
+          {/* Bottom of Writing Area: Warning (if overflow) & Authorized Doctor Signature */}
+          <div className="pt-2">
+            {isOverflow && (
+              <div className="print:hidden p-1.5 mb-2 bg-amber-50 border border-amber-300 text-amber-800 text-[10px] rounded font-semibold text-center">
+                Prescription contains {medicines.length} medicines. Physical template fits up to 7 medicines per sheet.
+              </div>
+            )}
 
-          <div className="border border-slate-400 rounded-md p-2.5 bg-slate-50 text-[11px] font-semibold text-slate-950 leading-relaxed">
-            <ol className="list-decimal pl-5 space-y-0.5">
-              <li>దూదిని గంట వరకు పళ్ళ మధ్య వత్తి ఉంచవలెను.</li>
-              <li>పన్ను తీసిన రోజున నోటితో పుక్కిలించరాదు</li>
-              <li>చల్లని పానీయములే తీసుకొనవలెను</li>
-              <li>ద్రవ పదార్థములు, మెత్తటి ఆహారములు తీసుకొనవలెను</li>
-              <li>డాక్టరు గారు వ్రాసిన మందులు వాడవలెను</li>
-              <li>రక్తము ఆగనిచో డాక్టరును సంప్రదించవలెను</li>
-              <li>మరలా వచ్చినప్పుడు ఈ చీటీ తీసుకురావలెను.</li>
-            </ol>
-          </div>
-        </div>
-      </div>
-
-      {/* FOOTER: PHARMACY SHOP & SIGNATURE (Image 2 reference) */}
-      <div className="relative z-10 mt-auto pt-3 border-t-2 border-slate-900 text-xs">
-        <p className="text-center font-bold text-slate-950 text-[11px] mb-1">
-          పై మందులు ఈ క్రింది షాపులో లభించును
-        </p>
-
-        <div className="flex justify-between items-end">
-          <div className="space-y-0.5 text-[10.5px]">
-            <h4 className="font-extrabold text-xs text-blue-950 uppercase">
-              శ్రీ శ్రీనివాసా మెడికల్ స్టోర్స్
-            </h4>
-            <p className="font-semibold text-slate-800">
-              ప్రొ॥ బెజవాడ వెంకట రామదాస్ (కన్నా)
-            </p>
-            <p className="text-slate-700">
-              మార్కెట్ వద్ద, జైలు వీధి, యానాం - 533 464
-            </p>
-          </div>
-
-          <div className="text-right space-y-6">
-            <p className="text-[11px] font-bold text-slate-800">
-              Cell : 94412 39556, 70139 48588
-            </p>
-            <div className="space-y-1">
-              <p className="text-xs font-bold text-slate-950">
-                Doctor: {doctorName}
-              </p>
-              <p className="text-xs text-slate-700">
-                Signature: __________________________
-              </p>
+            <div className="flex justify-between items-end border-t border-slate-300/50 pt-2">
+              <div className="text-[9px] text-slate-500 italic max-w-[200px]">
+                * Please complete the prescribed course as directed.
+              </div>
+              <div className="text-right">
+                <p className="text-[11px] font-bold text-slate-950">
+                  {doctorName || "Dr. M. Durga Praveen"}
+                </p>
+                <p className="text-[9px] text-slate-600">
+                  Authorized Signature
+                </p>
+              </div>
             </div>
           </div>
         </div>
