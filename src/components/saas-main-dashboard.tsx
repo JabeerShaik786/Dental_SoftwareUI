@@ -83,11 +83,21 @@ import autoTable from "jspdf-autotable";
 import { CaseSheetPrintTemplate } from "@/components/print/CaseSheetPrintTemplate";
 import { PrescriptionPrintTemplate } from "@/components/print/PrescriptionPrintTemplate";
 import { generateAndDownloadPrescriptionPdf } from "@/lib/prescriptionPdfGenerator";
+import { MedicineCategorySelector } from "@/components/prescription/MedicineCategorySelector";
+import {
+  INITIAL_MEDICINES_CATALOGUE,
+  MEDICINE_CATEGORIES,
+  MedicineCategory,
+  getCategoryForMedicine,
+  isOldMockMedicine,
+} from "@/lib/medicineCatalogue";
 
 // Interfaces
 export interface MedicineItem {
   id: string;
   name: string;
+  category?: string;
+  dosage_form?: string;
   stock_unit: string;
   opening_stock: number | null;
   available_quantity: number | null;
@@ -929,7 +939,7 @@ const moduleSubTabs: Record<string, string[]> = {
   Patients: ["All Patients", "Add Patient"],
   Treatments: ["Active Treatments", "Completed", "Treatment Plans"],
   Billing: ["Invoices", "Payments"],
-  Reports: ["Revenue", "Patients", "Treatments", "Appointments", "Medicine Stock"],
+  Reports: ["Revenue", "Patients", "Treatments", "Appointments"],
   Settings: ["Clinic", "Doctors", "Staff", "Stock / Medicine", "Backup"]
 };
 
@@ -1046,19 +1056,18 @@ const DEFAULT_MOCK_PATIENTS = [
   { id: "DS-1015", name: "Rajesh Khanna", phone: "+91 98100 90123", age: 60, gender: "Male", address: "Richmond Town, Bengaluru", visit: "15 Jun 2026", medicalNotes: "Penicillin Allergy", balance: "₹0", status: "Active", dentalChart: {}, prescriptions: [], files: [], notes: [] }
 ];
 
-const DEFAULT_MOCK_MEDICINES: MedicineItem[] = [
-  { id: "med-1", name: "Roles-D", stock_unit: "tablets", opening_stock: null, available_quantity: null, low_stock_threshold: 5, is_active: true, is_configured: false },
-  { id: "med-2", name: "Taxim-O 200", stock_unit: "tablets", opening_stock: null, available_quantity: null, low_stock_threshold: 5, is_active: true, is_configured: false },
-  { id: "med-3", name: "Acecloren", stock_unit: "tablets", opening_stock: null, available_quantity: null, low_stock_threshold: 5, is_active: true, is_configured: false },
-  { id: "med-4", name: "Zerodol-MR", stock_unit: "tablets", opening_stock: null, available_quantity: null, low_stock_threshold: 5, is_active: true, is_configured: false },
-  { id: "med-5", name: "Flagyl 400", stock_unit: "tablets", opening_stock: null, available_quantity: null, low_stock_threshold: 5, is_active: true, is_configured: false },
-  { id: "med-6", name: "Zerodol-SP", stock_unit: "tablets", opening_stock: null, available_quantity: null, low_stock_threshold: 5, is_active: true, is_configured: false },
-  { id: "med-7", name: "Orahex-DG", stock_unit: "bottles", opening_stock: null, available_quantity: null, low_stock_threshold: 5, is_active: true, is_configured: false },
-  { id: "med-8", name: "Sensodent-K", stock_unit: "tubes", opening_stock: null, available_quantity: null, low_stock_threshold: 5, is_active: true, is_configured: false },
-  { id: "med-9", name: "Orohealth Toothpaste", stock_unit: "tubes", opening_stock: null, available_quantity: null, low_stock_threshold: 5, is_active: true, is_configured: false },
-  { id: "med-10", name: "Ornigreat Gel", stock_unit: "tubes", opening_stock: null, available_quantity: null, low_stock_threshold: 5, is_active: true, is_configured: false },
-  { id: "med-11", name: "Flagyl Gel", stock_unit: "tubes", opening_stock: null, available_quantity: null, low_stock_threshold: 5, is_active: true, is_configured: false },
-];
+const DEFAULT_MOCK_MEDICINES: MedicineItem[] = INITIAL_MEDICINES_CATALOGUE.map((item, idx) => ({
+  id: `med-${idx + 1}`,
+  name: item.name,
+  category: item.category,
+  dosage_form: item.dosage_form,
+  stock_unit: item.stock_unit,
+  opening_stock: null,
+  available_quantity: null,
+  low_stock_threshold: 5,
+  is_active: true,
+  is_configured: false,
+}));
 
 export function getMedicineStockStatus(med: MedicineItem): "not_configured" | "out_of_stock" | "low_stock" | "in_stock" {
   if (!med.is_configured || med.available_quantity === null || med.available_quantity === undefined) {
@@ -1479,26 +1488,38 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       }
     }
 
-    // 10. Fetch medicines inventory & transactions
+    // 10. Fetch medicines catalogue & transactions
     try {
       const { data: dbMeds, error: medErr } = await supabase
         .from("medicines")
         .select("*")
         .order("name", { ascending: true });
 
-      if (!medErr && dbMeds && dbMeds.length > 0) {
-        setMedicines(dbMeds.map(m => ({
-          id: m.id,
-          name: m.name,
-          stock_unit: m.stock_unit,
-          opening_stock: m.opening_stock !== null ? Number(m.opening_stock) : null,
-          available_quantity: m.available_quantity !== null ? Number(m.available_quantity) : null,
-          low_stock_threshold: Number(m.low_stock_threshold || 5),
-          is_active: m.is_active ?? true,
-          is_configured: m.is_configured ?? false,
-          created_at: m.created_at,
-          updated_at: m.updated_at
-        })));
+      if (!medErr && dbMeds) {
+        const sanitizedDbMeds: MedicineItem[] = dbMeds
+          .filter(m => !isOldMockMedicine(m.name))
+          .map(m => ({
+            id: m.id,
+            name: m.name,
+            category: m.category || getCategoryForMedicine(m.name),
+            dosage_form: m.dosage_form || (INITIAL_MEDICINES_CATALOGUE.find(c => c.name.toLowerCase() === m.name.toLowerCase())?.dosage_form || "Tablet"),
+            stock_unit: m.stock_unit || "tablets",
+            opening_stock: m.opening_stock !== null ? Number(m.opening_stock) : null,
+            available_quantity: m.available_quantity !== null ? Number(m.available_quantity) : null,
+            low_stock_threshold: Number(m.low_stock_threshold || 5),
+            is_active: m.is_active ?? true,
+            is_configured: m.is_configured ?? false,
+            created_at: m.created_at,
+            updated_at: m.updated_at
+          }));
+
+        // Merge initial 35 catalogue entries so none are missing if DB is unseeded or partially seeded
+        const dbNamesLower = new Set(sanitizedDbMeds.map(m => m.name.toLowerCase()));
+        const missingInitial = DEFAULT_MOCK_MEDICINES.filter(
+          initMed => !dbNamesLower.has(initMed.name.toLowerCase())
+        );
+
+        setMedicines([...sanitizedDbMeds, ...missingInitial]);
       }
 
       const { data: dbTx, error: txErr } = await supabase
@@ -1686,14 +1707,17 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [stockTransactions, setStockTransactions] = useState<StockTransaction[]>([]);
   const [patientPrescriptionsList, setPatientPrescriptionsList] = useState<PatientPrescriptionRecord[]>([]);
 
-  // Inventory UI Filters
+  // Inventory & Catalogue UI Filters
   const [stockSearchQuery, setStockSearchQuery] = useState("");
+  const [stockCategoryFilter, setStockCategoryFilter] = useState<string>("");
   const [stockStatusFilter, setStockStatusFilter] = useState<"All" | "In Stock" | "Low Stock" | "Not Configured">("All");
 
   // Medicine Add / Edit Modal State
   const [medicineModalOpen, setMedicineModalOpen] = useState(false);
   const [editingMedicine, setEditingMedicine] = useState<MedicineItem | null>(null);
   const [medFormName, setMedFormName] = useState("");
+  const [medFormCategory, setMedFormCategory] = useState<string>("Tablets / Capsules");
+  const [medFormDosageForm, setMedFormDosageForm] = useState<string>("Tablet");
   const [medFormUnit, setMedFormUnit] = useState("tablets");
   const [medFormOpeningStock, setMedFormOpeningStock] = useState("");
   const [medFormThreshold, setMedFormThreshold] = useState("5");
@@ -4023,13 +4047,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     showToast("File uploaded and linked successfully.", "success");
   };
 
-  // --- MEDICINE INVENTORY ACTION HANDLERS ---
+  // --- MEDICINE CATALOGUE ACTION HANDLERS ---
   const handleOpenAddMedicine = () => {
     setEditingMedicine(null);
     setMedFormName("");
+    setMedFormCategory("Tablets / Capsules");
+    setMedFormDosageForm("Tablet");
     setMedFormUnit("tablets");
-    setMedFormOpeningStock("");
-    setMedFormThreshold("5");
     setMedFormIsActive(true);
     setMedicineModalOpen(true);
   };
@@ -4037,9 +4061,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const handleOpenEditMedicine = (med: MedicineItem) => {
     setEditingMedicine(med);
     setMedFormName(med.name);
-    setMedFormUnit(med.stock_unit);
-    setMedFormOpeningStock(med.opening_stock !== null && med.opening_stock !== undefined ? String(med.opening_stock) : "");
-    setMedFormThreshold(String(med.low_stock_threshold || 5));
+    setMedFormCategory(med.category || getCategoryForMedicine(med.name));
+    setMedFormDosageForm(med.dosage_form || "Tablet");
+    setMedFormUnit(med.stock_unit || "tablets");
     setMedFormIsActive(med.is_active);
     setMedicineModalOpen(true);
   };
@@ -4047,7 +4071,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const handleSaveMedicine = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isOwner) {
-      showToast("Unauthorized: Only clinic owners can manage medicine stock.", "error");
+      showToast("Unauthorized: Only clinic owners can manage medicine catalogue.", "error");
       return;
     }
     const cleanName = medFormName.trim();
@@ -4056,43 +4080,15 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       return;
     }
 
-    const thresholdVal = Number(medFormThreshold);
-    if (isNaN(thresholdVal) || thresholdVal <= 0) {
-      showToast("Low-stock threshold must be greater than zero.", "error");
-      return;
-    }
-
-    let openingQtyNum: number | null = null;
-    if (medFormOpeningStock.trim() !== "") {
-      const parsed = Number(medFormOpeningStock.trim());
-      if (isNaN(parsed) || parsed < 0) {
-        showToast("Opening stock quantity cannot be negative.", "error");
-        return;
-      }
-      openingQtyNum = parsed;
-    }
-
     if (editingMedicine) {
-      const hasTx = stockTransactions.some(t => t.medicine_id === editingMedicine.id);
-      if (hasTx && editingMedicine.stock_unit !== medFormUnit) {
-        showToast(`Cannot change unit of "${editingMedicine.name}" while stock transactions exist. Make a stock adjustment instead.`, "error");
-        return;
-      }
-
-      const isNewlyConfigured = !editingMedicine.is_configured && openingQtyNum !== null;
-      const newAvailQty = isNewlyConfigured ? openingQtyNum : (openingQtyNum !== null && editingMedicine.available_quantity === null ? openingQtyNum : editingMedicine.available_quantity);
-      const isConfig = editingMedicine.is_configured || openingQtyNum !== null;
-
       const { error } = await supabase
         .from("medicines")
         .update({
           name: cleanName,
-          stock_unit: medFormUnit,
-          opening_stock: openingQtyNum !== null ? openingQtyNum : editingMedicine.opening_stock,
-          available_quantity: newAvailQty,
-          low_stock_threshold: thresholdVal,
+          category: medFormCategory,
+          dosage_form: medFormDosageForm,
+          stock_unit: medFormUnit || "tablets",
           is_active: medFormIsActive,
-          is_configured: isConfig
         })
         .eq("id", editingMedicine.id);
 
@@ -4103,37 +4099,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       setMedicines(prev => prev.map(m => m.id === editingMedicine.id ? {
         ...m,
         name: cleanName,
-        stock_unit: medFormUnit,
-        opening_stock: openingQtyNum !== null ? openingQtyNum : m.opening_stock,
-        available_quantity: newAvailQty,
-        low_stock_threshold: thresholdVal,
+        category: medFormCategory,
+        dosage_form: medFormDosageForm,
+        stock_unit: medFormUnit || "tablets",
         is_active: medFormIsActive,
-        is_configured: isConfig
       } : m));
-
-      if (isNewlyConfigured && openingQtyNum !== null) {
-        const txRecord: StockTransaction = {
-          id: `tx-${Date.now()}`,
-          medicine_id: editingMedicine.id,
-          transaction_type: "opening_stock",
-          quantity: openingQtyNum,
-          previous_quantity: 0,
-          new_quantity: openingQtyNum,
-          transaction_date: new Date().toISOString(),
-          reference: "INITIAL_SETUP",
-          notes: "Opening stock configured"
-        };
-        await supabase.from("stock_transactions").insert({
-          medicine_id: editingMedicine.id,
-          transaction_type: "opening_stock",
-          quantity: openingQtyNum,
-          previous_quantity: 0,
-          new_quantity: openingQtyNum,
-          reference: "INITIAL_SETUP",
-          notes: "Opening stock configured"
-        });
-        setStockTransactions(prev => [txRecord, ...prev]);
-      }
 
       showToast(`Medicine "${cleanName}" updated successfully.`, "success");
     } else {
@@ -4143,29 +4113,30 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         return;
       }
 
-      const isConfig = openingQtyNum !== null;
       const newMedId = `med-${Date.now()}`;
       const newMedItem: MedicineItem = {
         id: newMedId,
         name: cleanName,
-        stock_unit: medFormUnit,
-        opening_stock: openingQtyNum,
-        available_quantity: openingQtyNum,
-        low_stock_threshold: thresholdVal,
+        category: medFormCategory,
+        dosage_form: medFormDosageForm,
+        stock_unit: medFormUnit || "tablets",
+        opening_stock: null,
+        available_quantity: null,
+        low_stock_threshold: 5,
         is_active: medFormIsActive,
-        is_configured: isConfig
+        is_configured: false,
       };
 
       const { data: dbIns, error } = await supabase
         .from("medicines")
         .insert({
           name: cleanName,
-          stock_unit: medFormUnit,
-          opening_stock: openingQtyNum,
-          available_quantity: openingQtyNum,
-          low_stock_threshold: thresholdVal,
+          category: medFormCategory,
+          dosage_form: medFormDosageForm,
+          stock_unit: medFormUnit || "tablets",
+          low_stock_threshold: 5,
           is_active: medFormIsActive,
-          is_configured: isConfig
+          is_configured: false,
         })
         .select()
         .maybeSingle();
@@ -4173,41 +4144,18 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       const createdMed = dbIns ? {
         id: dbIns.id,
         name: dbIns.name,
-        stock_unit: dbIns.stock_unit,
+        category: dbIns.category || medFormCategory,
+        dosage_form: dbIns.dosage_form || medFormDosageForm,
+        stock_unit: dbIns.stock_unit || medFormUnit || "tablets",
         opening_stock: dbIns.opening_stock !== null ? Number(dbIns.opening_stock) : null,
         available_quantity: dbIns.available_quantity !== null ? Number(dbIns.available_quantity) : null,
-        low_stock_threshold: Number(dbIns.low_stock_threshold),
-        is_active: dbIns.is_active,
-        is_configured: dbIns.is_configured
+        low_stock_threshold: Number(dbIns.low_stock_threshold || 5),
+        is_active: dbIns.is_active ?? true,
+        is_configured: dbIns.is_configured ?? false,
       } : newMedItem;
 
-      setMedicines(prev => [...prev, createdMed]);
-
-      if (isConfig && openingQtyNum !== null) {
-        const txRecord: StockTransaction = {
-          id: `tx-${Date.now()}`,
-          medicine_id: createdMed.id,
-          transaction_type: "opening_stock",
-          quantity: openingQtyNum,
-          previous_quantity: 0,
-          new_quantity: openingQtyNum,
-          transaction_date: new Date().toISOString(),
-          reference: "INITIAL_SETUP",
-          notes: "Opening stock configured"
-        };
-        await supabase.from("stock_transactions").insert({
-          medicine_id: createdMed.id,
-          transaction_type: "opening_stock",
-          quantity: openingQtyNum,
-          previous_quantity: 0,
-          new_quantity: openingQtyNum,
-          reference: "INITIAL_SETUP",
-          notes: "Opening stock configured"
-        });
-        setStockTransactions(prev => [txRecord, ...prev]);
-      }
-
-      showToast(`Medicine "${cleanName}" added to inventory catalogue.`, "success");
+      setMedicines(prev => [createdMed, ...prev]);
+      showToast(`Medicine "${cleanName}" added to catalogue.`, "success");
     }
 
     setMedicineModalOpen(false);
@@ -9761,16 +9709,16 @@ ${clinicName}`;
                       return (
                         <div key={idx} className="p-3 bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 rounded-xl space-y-3">
                           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
-                            {/* Medicine Name & Catalogue Selection */}
+                            {/* Medicine Name & Category-Based Catalogue Selection */}
                             <div className="md:col-span-4 space-y-1">
                               <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Medicine Name</Label>
-                              <select
+                              <MedicineCategorySelector
                                 value={med.name}
-                                onChange={e => {
-                                  const selectedVal = e.target.value;
+                                medicines={medicines}
+                                onChange={(selectedVal, matchedOption) => {
                                   const copy = [...prescMeds];
                                   copy[idx].name = selectedVal;
-                                  const matched = medicines.find(m => m.name === selectedVal);
+                                  const matched = matchedOption || medicines.find(m => m.name.toLowerCase() === selectedVal.toLowerCase());
                                   if (matched) {
                                     (copy[idx] as any).medicine_id = matched.id;
                                     (copy[idx] as any).stock_unit = matched.stock_unit;
@@ -9778,29 +9726,18 @@ ${clinicName}`;
                                   }
                                   setPrescMeds(copy);
                                 }}
-                                className="mt-1 flex h-9 w-full rounded-md border border-slate-200 bg-white dark:bg-slate-900 px-3 py-1 text-xs focus:outline-none dark:border-slate-800 text-slate-900 dark:text-white"
-                              >
-                                <option value="">-- Select from Inventory Catalogue --</option>
-                                {medicines.filter(m => m.is_active).map(m => {
-                                  const status = getMedicineStockStatus(m);
-                                  const availStr = m.available_quantity !== null && m.available_quantity !== undefined ? `${m.available_quantity} ${m.stock_unit}` : "Unset";
-                                  const label = `${m.name} — Available: ${availStr} (${status.replace("_", " ")})`;
-                                  const isSelectable = status === "in_stock" || status === "low_stock";
-                                  return (
-                                    <option key={m.id} value={m.name} disabled={!isSelectable}>
-                                      {label} {!isSelectable ? " [Unavailable]" : ""}
-                                    </option>
-                                  );
-                                })}
-                              </select>
+                              />
                               {(() => {
-                                const matched = medicines.find(m => m.name === med.name);
+                                const matched = medicines.find(m => m.name.toLowerCase() === med.name.toLowerCase());
                                 if (!matched) return null;
-                                const status = getMedicineStockStatus(matched);
+                                const cat = matched.category || getCategoryForMedicine(matched.name);
                                 return (
-                                  <div className="flex items-center gap-2 pt-0.5">
-                                    <span className="text-[10px] text-slate-500 font-medium">Unit: {matched.stock_unit}</span>
-                                    {renderStockStatusBadge(status)}
+                                  <div className="flex items-center gap-1.5 pt-0.5 text-[10px] text-slate-500 font-medium">
+                                    <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 font-semibold">
+                                      {cat}
+                                    </span>
+                                    {matched.dosage_form && <span>• {matched.dosage_form}</span>}
+                                    {matched.stock_unit && <span className="capitalize">• {matched.stock_unit}</span>}
                                   </div>
                                 );
                               })()}
@@ -11496,7 +11433,7 @@ ${clinicName}`;
 
   const renderReportsModule = () => {
     // Current active sub-tab inside Reports (defaults to Revenue if invalid)
-    const currentSubTab = ["Revenue", "Patients", "Treatments", "Appointments", "Medicine Stock"].includes(activeSubTab)
+    const currentSubTab = ["Revenue", "Patients", "Treatments", "Appointments"].includes(activeSubTab)
       ? activeSubTab
       : "Revenue";
 
@@ -11776,45 +11713,9 @@ ${clinicName}`;
       };
     };
 
-    // Helper calculation for Reports -> Medicine Stock Analytics
-    const getMedicineAnalyticsData = () => {
-      const { start, end } = getReportsDateRange(reportsFilter, customStartDate, customEndDate);
-      const filteredTransactions = stockTransactions.filter(t => {
-        const dStr = t.created_at || t.transaction_date || (t as any).date;
-        return isDateInRange(dStr, start, end);
-      });
-
-      let totalReceivedInPeriod = 0;
-      let totalDispensedInPeriod = 0;
-
-      filteredTransactions.forEach(t => {
-        if (t.transaction_type === "received") {
-          totalReceivedInPeriod += Math.abs(t.quantity || 0);
-        } else if (t.transaction_type === "dispensed") {
-          totalDispensedInPeriod += Math.abs(t.quantity || 0);
-        }
-      });
-
-      const totalTracked = medicines.length;
-      const lowStockCount = medicines.filter(m => getMedicineStockStatus(m) === "low_stock").length;
-      const outOfStockCount = medicines.filter(m => getMedicineStockStatus(m) === "out_of_stock").length;
-      const notConfiguredCount = medicines.filter(m => getMedicineStockStatus(m) === "not_configured").length;
-
-      return {
-        totalTracked,
-        totalReceivedInPeriod,
-        totalDispensedInPeriod,
-        lowStockCount,
-        outOfStockCount,
-        notConfiguredCount,
-        filteredTransactions
-      };
-    };
-
     const patientStats = getPatientAnalyticsData();
     const trStats = getTreatmentAnalyticsData();
     const apptStats = getAppointmentAnalyticsData();
-    const medStats = getMedicineAnalyticsData();
 
     return (
       <div className="space-y-6 animate-fadeIn">
@@ -12646,187 +12547,17 @@ ${clinicName}`;
             </div>
           </div>
         )}
-
-        {/* SUB-TAB 5: MEDICINE STOCK */}
-        {currentSubTab === "Medicine Stock" && (
-          <div className="space-y-6 animate-fadeIn">
-            {/* 1. TIMEFRAME FILTER & METRIC HEADER */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-xs">
-              <div className="flex items-center gap-2">
-                <Boxes className="h-5 w-5 text-blue-600" />
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Medicine Stock Analytics & Audit Logs</h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Inventory levels, dispensing history, and stock movement logs</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl self-start sm:self-auto overflow-x-auto">
-                {(["Today", "Week", "Month", "Custom"] as const).map((filter) => (
-                  <button
-                    key={filter}
-                    type="button"
-                    onClick={() => {
-                      if (filter === "Custom") {
-                        setCustomRangeModalOpen(true);
-                      } else {
-                        setReportsFilter(filter);
-                      }
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                      reportsFilter === filter
-                        ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
-                    }`}
-                  >
-                    {filter === "Custom" && appliedCustomLabel ? appliedCustomLabel : filter === "Week" ? "This Week" : filter === "Month" ? "This Month" : filter}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 2. METRIC SUMMARY CARDS */}
-            {(() => {
-              const medAnalytics = medStats;
-              return (
-                <>
-                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
-                    <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Tracked</span>
-                        <div className="h-8 w-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600">
-                          <Pill className="h-4 w-4" />
-                        </div>
-                      </div>
-                      <div className="mt-3">
-                        <span className="text-2xl font-bold text-slate-900 dark:text-white">{medAnalytics.totalTracked}</span>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Catalogue Medicines</p>
-                      </div>
-                    </div>
-
-                    <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Stock Received</span>
-                        <div className="h-8 w-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600">
-                          <Package className="h-4 w-4" />
-                        </div>
-                      </div>
-                      <div className="mt-3">
-                        <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">+{medAnalytics.totalReceivedInPeriod}</span>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Units Added in Period</p>
-                      </div>
-                    </div>
-
-                    <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Stock Dispensed</span>
-                        <div className="h-8 w-8 rounded-xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600">
-                          <Pill className="h-4 w-4" />
-                        </div>
-                      </div>
-                      <div className="mt-3">
-                        <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">-{medAnalytics.totalDispensedInPeriod}</span>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Units Dispensed in Period</p>
-                      </div>
-                    </div>
-
-                    <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Low Stock Alert</span>
-                        <div className="h-8 w-8 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600">
-                          <AlertTriangle className="h-4 w-4" />
-                        </div>
-                      </div>
-                      <div className="mt-3">
-                        <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">{medAnalytics.lowStockCount}</span>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Below Threshold</p>
-                      </div>
-                    </div>
-
-                    <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col justify-between col-span-2 lg:col-span-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Out of Stock</span>
-                        <div className="h-8 w-8 rounded-xl bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center text-rose-600">
-                          <AlertTriangle className="h-4 w-4" />
-                        </div>
-                      </div>
-                      <div className="mt-3">
-                        <span className="text-2xl font-bold text-rose-600 dark:text-rose-400">{medAnalytics.outOfStockCount}</span>
-                        <p className="text-[10px] text-slate-400 mt-0.5">0 Units Remaining</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 3. MEDICINE STOCK SUMMARY TABLE */}
-                  <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">Current Stock Levels</h4>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">Real-time catalogue stock status</p>
-                      </div>
-                    </div>
-
-                    <div className="overflow-x-auto scrollbar-thin">
-                      <table className="w-full text-left border-collapse text-xs font-semibold min-w-[650px]">
-                        <thead>
-                          <tr className="border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-400 uppercase tracking-wider">
-                            <th className="py-3 px-3">Medicine Name</th>
-                            <th className="py-3 px-3">Stock Unit</th>
-                            <th className="py-3 px-3">Available Quantity</th>
-                            <th className="py-3 px-3">Low Threshold</th>
-                            <th className="py-3 px-3">Status</th>
-                            <th className="py-3 px-3 text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                          {medicines.map((med) => (
-                            <tr key={med.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30">
-                              <td className="py-3 px-3 font-bold text-slate-900 dark:text-white">{med.name}</td>
-                              <td className="py-3 px-3 text-slate-600 dark:text-slate-300 capitalize">{med.stock_unit}</td>
-                              <td className="py-3 px-3 font-bold">
-                                {med.available_quantity === null || med.available_quantity === undefined ? (
-                                  <span className="text-slate-400 font-normal">-- (Unset)</span>
-                                ) : (
-                                  <span className={med.available_quantity === 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white"}>
-                                    {med.available_quantity} {med.stock_unit}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-3 px-3 text-slate-500 dark:text-slate-400">{med.low_stock_threshold} {med.stock_unit}</td>
-                              <td className="py-3 px-3">{renderStockStatusBadge(getMedicineStockStatus(med))}</td>
-                              <td className="py-3 px-3 text-right">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setHistoryMedicine(med);
-                                    setHistoryModalOpen(true);
-                                  }}
-                                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold cursor-pointer"
-                                >
-                                  Movement History
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        )}
       </div>
     );
   };
 
   const renderSettingsModule = () => {
     const settingsNavItems = [
-      { name: "Clinic", icon: Building2 },
-      { name: "Doctors", icon: Stethoscope },
-      { name: "Staff", icon: Users },
-      ...(isOwner ? [{ name: "Stock / Medicine", icon: Pill }] : []),
-      { name: "Backup", icon: Database },
+      { name: "Clinic", label: "Clinic", icon: Building2 },
+      { name: "Doctors", label: "Doctors", icon: Stethoscope },
+      { name: "Staff", label: "Staff", icon: Users },
+      ...(isOwner ? [{ name: "Stock / Medicine", label: "Medicine Catalogue", icon: Pill }] : []),
+      { name: "Backup", label: "Backup", icon: Database },
     ];
     const settingsTabs = settingsNavItems.map(i => i.name);
     const currentTab = settingsTabs.includes(activeSubTab) ? activeSubTab : "Clinic";
@@ -13193,7 +12924,7 @@ ${clinicName}`;
 
           {/* DESKTOP LEFT NAVIGATION COLUMN (hidden on mobile, visible md+) */}
           <div className="hidden md:block md:col-span-3 lg:col-span-3 border-r border-slate-100 dark:border-slate-800/80 p-4 space-y-1.5 bg-slate-50/30 dark:bg-slate-950/20">
-            {settingsNavItems.map(({ name, icon: Icon }) => {
+            {settingsNavItems.map(({ name, label, icon: Icon }) => {
               const isActive = currentTab === name;
               return (
                 <button
@@ -13207,7 +12938,7 @@ ${clinicName}`;
                   }`}
                 >
                   <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`} />
-                  <span>{name}</span>
+                  <span>{label || name}</span>
                 </button>
               );
             })}
@@ -13216,7 +12947,7 @@ ${clinicName}`;
           {/* MOBILE BLOCK CARDS NAVIGATION (visible on mobile, hidden md+) */}
           <div className="block md:hidden border-b border-slate-100 dark:border-slate-800/80 p-3 bg-slate-50/40 dark:bg-slate-950/30">
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-              {settingsNavItems.map(({ name, icon: Icon }) => {
+              {settingsNavItems.map(({ name, label, icon: Icon }) => {
                 const isActive = currentTab === name;
                 return (
                   <button
@@ -13236,7 +12967,7 @@ ${clinicName}`;
                     }`}>
                       <Icon className="h-4 w-4" />
                     </div>
-                    <span className="text-[11px] leading-tight truncate w-full">{name}</span>
+                    <span className="text-[11px] leading-tight truncate w-full">{label || name}</span>
                   </button>
                 );
               })}
@@ -13538,14 +13269,14 @@ ${clinicName}`;
               </div>
             )}
 
-            {/* 5. STOCK / MEDICINE INVENTORY (Owner Only) */}
+            {/* 5. MEDICINE CATALOGUE (Owner Only) */}
             {currentTab === "Stock / Medicine" && isOwner && (
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
                   <div>
-                    <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Medicine Stock Management</h2>
+                    <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Medicine Catalogue</h2>
                     <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Configure stock units, thresholds, incoming inventory shipments and adjustments.
+                      Clinical medicine catalogue available for patient prescriptions.
                     </p>
                   </div>
                   <Button
@@ -13560,20 +13291,20 @@ ${clinicName}`;
                 {/* Filters & Search */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold overflow-x-auto scrollbar-none">
-                    {(["All", "In Stock", "Low Stock", "Not Configured"] as const).map(st => {
-                      const isActive = stockStatusFilter === st;
+                    {(["All", ...MEDICINE_CATEGORIES] as const).map(cat => {
+                      const isActive = (stockCategoryFilter === cat) || (cat === "All" && !stockCategoryFilter);
                       return (
                         <button
-                          key={st}
+                          key={cat}
                           type="button"
-                          onClick={() => setStockStatusFilter(st)}
+                          onClick={() => setStockCategoryFilter(cat === "All" ? "" : cat)}
                           className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors cursor-pointer ${
                             isActive
                               ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs"
                               : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                           }`}
                         >
-                          {st}
+                          {cat}
                         </button>
                       );
                     })}
@@ -13590,15 +13321,14 @@ ${clinicName}`;
                   </div>
                 </div>
 
-                {/* Inventory Table */}
+                {/* Catalogue Table */}
                 <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto scrollbar-thin">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold">
                       <tr>
                         <th className="py-3 px-4">Medicine Name</th>
-                        <th className="py-3 px-4">Stock Unit</th>
-                        <th className="py-3 px-4">Available Qty</th>
-                        <th className="py-3 px-4">Low-Stock Threshold</th>
+                        <th className="py-3 px-4">Category</th>
+                        <th className="py-3 px-4">Dosage Form / Unit</th>
                         <th className="py-3 px-4">Status</th>
                         <th className="py-3 px-4 text-right">Actions</th>
                       </tr>
@@ -13606,19 +13336,21 @@ ${clinicName}`;
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-medium text-slate-800 dark:text-slate-200">
                       {(() => {
                         const filtered = medicines.filter(m => {
-                          const matchesSearch = m.name.toLowerCase().includes(stockSearchQuery.toLowerCase());
-                          const status = getMedicineStockStatus(m);
+                          const query = stockSearchQuery.toLowerCase();
+                          const matchesSearch = m.name.toLowerCase().includes(query) ||
+                            (m.category && m.category.toLowerCase().includes(query));
                           if (!matchesSearch) return false;
-                          if (stockStatusFilter === "In Stock") return status === "in_stock";
-                          if (stockStatusFilter === "Low Stock") return status === "low_stock";
-                          if (stockStatusFilter === "Not Configured") return status === "not_configured";
+                          if (stockCategoryFilter) {
+                            const cat = m.category || getCategoryForMedicine(m.name);
+                            if (cat !== stockCategoryFilter) return false;
+                          }
                           return true;
                         });
 
                         if (filtered.length === 0) {
                           return (
                             <tr>
-                              <td colSpan={6} className="py-8 text-center text-slate-400">
+                              <td colSpan={5} className="py-8 text-center text-slate-400">
                                 No medicines found matching criteria.
                               </td>
                             </tr>
@@ -13626,52 +13358,41 @@ ${clinicName}`;
                         }
 
                         return filtered.map(m => {
-                          const status = getMedicineStockStatus(m);
+                          const cat = m.category || getCategoryForMedicine(m.name);
+                          const form = m.dosage_form || m.stock_unit;
                           return (
                             <tr key={m.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40">
                               <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">
                                 {m.name}
-                                {!m.is_active && <span className="ml-2 text-[10px] text-red-500 font-normal">(Inactive)</span>}
                               </td>
-                              <td className="py-3 px-4 capitalize">{m.stock_unit}</td>
-                              <td className="py-3 px-4 font-mono font-bold">
-                                {m.available_quantity !== null && m.available_quantity !== undefined ? `${m.available_quantity} ${m.stock_unit}` : <span className="text-slate-400 font-normal">--</span>}
+                              <td className="py-3 px-4">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                  {cat}
+                                </span>
                               </td>
-                              <td className="py-3 px-4 font-mono">{m.low_stock_threshold} {m.stock_unit}</td>
-                              <td className="py-3 px-4">{renderStockStatusBadge(status)}</td>
+                              <td className="py-3 px-4 capitalize text-slate-600 dark:text-slate-300">
+                                {form}
+                              </td>
+                              <td className="py-3 px-4">
+                                {m.is_active ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                    Active
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                    Inactive
+                                  </span>
+                                )}
+                              </td>
                               <td className="py-3 px-4 text-right">
                                 <div className="flex items-center justify-end gap-1.5">
                                   <button
                                     type="button"
-                                    onClick={() => handleOpenAddStock(m)}
-                                    className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer"
-                                    title="Add Stock"
-                                  >
-                                    <Plus className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenAdjustStock(m)}
-                                    className="p-1.5 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg transition-colors cursor-pointer"
-                                    title="Stock Adjustment"
-                                  >
-                                    <SlidersHorizontal className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    type="button"
                                     onClick={() => handleOpenEditMedicine(m)}
-                                    className="p-1.5 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                                    className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer"
                                     title="Edit Medicine Details"
                                   >
                                     <Pencil className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenMedicineHistory(m)}
-                                    className="p-1.5 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-                                    title="View Stock History"
-                                  >
-                                    <Clock className="h-4 w-4" />
                                   </button>
                                 </div>
                               </td>
@@ -16268,7 +15989,7 @@ ${clinicName}`;
         </div>
       )}
 
-      {/* MEDICINE ADD / EDIT MODAL */}
+      {/* MEDICINE ADD / EDIT CATALOGUE MODAL */}
       {medicineModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl max-w-md w-full space-y-5 animate-fadeIn">
@@ -16276,7 +15997,7 @@ ${clinicName}`;
               <div className="flex items-center gap-2">
                 <Pill className="h-5 w-5 text-blue-600" />
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  {editingMedicine ? "Edit Medicine Catalogue Item" : "Add New Medicine to Catalogue"}
+                  {editingMedicine ? "Edit Medicine Catalogue Item" : "Add Medicine to Catalogue"}
                 </h3>
               </div>
               <button
@@ -16295,7 +16016,7 @@ ${clinicName}`;
                 </Label>
                 <Input
                   id="medFormName"
-                  placeholder="e.g. Paracetamol 500mg"
+                  placeholder="e.g. Paracetamol 650 mg"
                   value={medFormName}
                   onChange={(e) => setMedFormName(e.target.value)}
                   required
@@ -16303,73 +16024,51 @@ ${clinicName}`;
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="medFormUnit" className="text-slate-700 dark:text-slate-300">
-                  Stock Unit <span className="text-rose-500">*</span>
+                <Label htmlFor="medFormCategory" className="text-slate-700 dark:text-slate-300">
+                  Category <span className="text-rose-500">*</span>
                 </Label>
-                {editingMedicine && stockTransactions.some(t => t.medicine_id === editingMedicine.id) ? (
-                  <div>
-                    <input
-                      type="text"
-                      disabled
-                      value={medFormUnit}
-                      className="flex h-10 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 px-3 py-2 text-sm text-slate-500 cursor-not-allowed capitalize"
-                    />
-                    <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 font-normal">
-                      Unit cannot be changed because stock transactions exist for this medicine.
-                    </p>
-                  </div>
-                ) : (
-                  <select
-                    id="medFormUnit"
-                    value={medFormUnit}
-                    onChange={(e) => setMedFormUnit(e.target.value)}
-                    className="flex h-10 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="tablets">tablets</option>
-                    <option value="capsules">capsules</option>
-                    <option value="bottles">bottles</option>
-                    <option value="tubes">tubes</option>
-                    <option value="sachets">sachets</option>
-                    <option value="vials">vials</option>
-                    <option value="strips">strips</option>
-                  </select>
-                )}
+                <select
+                  id="medFormCategory"
+                  value={medFormCategory}
+                  onChange={(e) => setMedFormCategory(e.target.value)}
+                  className="flex h-10 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-955 px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  {MEDICINE_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="medFormThreshold" className="text-slate-700 dark:text-slate-300">
-                  Low-Stock Threshold <span className="text-rose-500">*</span>
+                <Label htmlFor="medFormDosageForm" className="text-slate-700 dark:text-slate-300">
+                  Dosage Form / Unit <span className="text-rose-500">*</span>
                 </Label>
                 <Input
-                  id="medFormThreshold"
-                  type="number"
-                  min="1"
-                  placeholder="e.g. 5"
-                  value={medFormThreshold}
-                  onChange={(e) => setMedFormThreshold(e.target.value)}
+                  id="medFormDosageForm"
+                  placeholder="e.g. Tablet, Capsule, Syrup, Gel"
+                  value={medFormDosageForm}
+                  onChange={(e) => {
+                    setMedFormDosageForm(e.target.value);
+                    setMedFormUnit(e.target.value.toLowerCase());
+                  }}
                   required
                 />
-                <p className="text-[10px] text-slate-400 font-normal">
-                  Alert badge will show "Low Stock" when inventory drops below this number.
-                </p>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="medFormOpeningStock" className="text-slate-700 dark:text-slate-300">
-                  Opening Stock Quantity <span className="text-slate-400 font-normal">(Optional)</span>
-                </Label>
-                <Input
-                  id="medFormOpeningStock"
-                  type="number"
-                  min="0"
-                  placeholder="Leave empty if stock count is not yet configured"
-                  value={medFormOpeningStock}
-                  onChange={(e) => setMedFormOpeningStock(e.target.value)}
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="medFormIsActive"
+                  checked={medFormIsActive}
+                  onChange={(e) => setMedFormIsActive(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer"
                 />
-                <p className="text-[10px] text-slate-400 font-normal">
-                  If left empty, status remains "Not Configured" until opening stock is set.
-                </p>
+                <Label htmlFor="medFormIsActive" className="text-slate-700 dark:text-slate-300 cursor-pointer">
+                  Available in prescription dropdown
+                </Label>
               </div>
 
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
@@ -16389,282 +16088,6 @@ ${clinicName}`;
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* ADD STOCK MODAL */}
-      {addStockModalOpen && selectedStockMedicine && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl max-w-md w-full space-y-5 animate-fadeIn">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-emerald-600" />
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Add Stock – {selectedStockMedicine.name}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAddStockModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1 rounded-lg text-lg leading-none"
-              >
-                ×
-              </button>
-            </div>
-
-            <form onSubmit={handleAddStockSubmit} className="space-y-4 text-xs font-semibold">
-              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl flex items-center justify-between border border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500">Current Stock:</span>
-                <span className="font-bold text-slate-900 dark:text-white text-sm">
-                  {selectedStockMedicine.available_quantity === null ? "Not Configured" : `${selectedStockMedicine.available_quantity} ${selectedStockMedicine.stock_unit}`}
-                </span>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="addStockQty" className="text-slate-700 dark:text-slate-300">
-                  Quantity Received <span className="text-rose-500">*</span>
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="addStockQty"
-                    type="number"
-                    min="1"
-                    placeholder="e.g. 50"
-                    value={addStockQty}
-                    onChange={(e) => setAddStockQty(e.target.value)}
-                    required
-                  />
-                  <span className="text-sm font-bold text-slate-500 dark:text-slate-400 capitalize shrink-0">
-                    {selectedStockMedicine.stock_unit}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="addStockDate" className="text-slate-700 dark:text-slate-300">
-                  Date Received
-                </Label>
-                <Input
-                  id="addStockDate"
-                  type="date"
-                  value={addStockDate}
-                  onChange={(e) => setAddStockDate(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="addStockSupplier" className="text-slate-700 dark:text-slate-300">
-                  Supplier / Vendor / Batch Ref <span className="text-slate-400 font-normal">(Optional)</span>
-                </Label>
-                <Input
-                  id="addStockSupplier"
-                  placeholder="e.g. Apex Pharma Ltd - Batch #4910"
-                  value={addStockSupplier}
-                  onChange={(e) => setAddStockSupplier(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="addStockNotes" className="text-slate-700 dark:text-slate-300">
-                  Notes / Remarks <span className="text-slate-400 font-normal">(Optional)</span>
-                </Label>
-                <Input
-                  id="addStockNotes"
-                  placeholder="Additional stock entry details..."
-                  value={addStockNotes}
-                  onChange={(e) => setAddStockNotes(e.target.value)}
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setAddStockModalOpen(false)}
-                  className="h-9 px-4 rounded font-semibold cursor-pointer"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="h-9 px-5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center gap-2 cursor-pointer"
-                >
-                  Confirm & Receive Stock
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* STOCK ADJUSTMENT MODAL */}
-      {adjustStockModalOpen && adjustStockMedicine && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl max-w-md w-full space-y-5 animate-fadeIn">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <Pencil className="h-5 w-5 text-amber-600" />
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Stock Adjustment – {adjustStockMedicine.name}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAdjustStockModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1 rounded-lg text-lg leading-none"
-              >
-                ×
-              </button>
-            </div>
-
-            <form onSubmit={handleAdjustStockSubmit} className="space-y-4 text-xs font-semibold">
-              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl flex items-center justify-between border border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500">Current Stock in System:</span>
-                <span className="font-bold text-slate-900 dark:text-white text-sm">
-                  {adjustStockMedicine.available_quantity === null ? "Not Configured" : `${adjustStockMedicine.available_quantity} ${adjustStockMedicine.stock_unit}`}
-                </span>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="adjustStockNewQty" className="text-slate-700 dark:text-slate-300">
-                  New Actual Count <span className="text-rose-500">*</span>
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="adjustStockNewQty"
-                    type="number"
-                    min="0"
-                    placeholder="Enter physical count"
-                    value={adjustStockNewQty}
-                    onChange={(e) => setAdjustStockNewQty(e.target.value)}
-                    required
-                  />
-                  <span className="text-sm font-bold text-slate-500 dark:text-slate-400 capitalize shrink-0">
-                    {adjustStockMedicine.stock_unit}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="adjustStockReason" className="text-slate-700 dark:text-slate-300">
-                  Adjustment Reason <span className="text-rose-500">*</span>
-                </Label>
-                <Input
-                  id="adjustStockReason"
-                  placeholder="e.g. Expiry, Damaged bottle, Audit correction"
-                  value={adjustStockReason}
-                  onChange={(e) => setAdjustStockReason(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setAdjustStockModalOpen(false)}
-                  className="h-9 px-4 rounded font-semibold cursor-pointer"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="h-9 px-5 rounded bg-amber-600 hover:bg-amber-500 text-white font-semibold flex items-center gap-2 cursor-pointer"
-                >
-                  Save Stock Adjustment
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* STOCK MOVEMENT HISTORY MODAL */}
-      {historyModalOpen && historyMedicine && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl max-w-2xl w-full space-y-5 animate-fadeIn">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <Boxes className="h-5 w-5 text-blue-600" />
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Stock Movement History – {historyMedicine.name}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setHistoryModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1 rounded-lg text-lg leading-none"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="overflow-x-auto max-h-96 scrollbar-thin">
-              {stockTransactions.filter(t => t.medicine_id === historyMedicine.id).length === 0 ? (
-                <div className="p-8 text-center text-slate-400 font-medium text-xs">
-                  No stock movement transactions recorded yet for this medicine.
-                </div>
-              ) : (
-                <table className="w-full text-left border-collapse text-xs font-semibold">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider sticky top-0 bg-white dark:bg-slate-955">
-                      <th className="py-2.5 px-3">Date & Time</th>
-                      <th className="py-2.5 px-3">Type</th>
-                      <th className="py-2.5 px-3">Quantity</th>
-                      <th className="py-2.5 px-3">Stock Change</th>
-                      <th className="py-2.5 px-3">Notes / Ref</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                    {stockTransactions
-                      .filter(t => t.medicine_id === historyMedicine.id)
-                      .map((tx) => (
-                        <tr key={tx.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30">
-                          <td className="py-2.5 px-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                            {new Date(tx.created_at || tx.transaction_date || (tx as any).date).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </td>
-                          <td className="py-2.5 px-3">
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold capitalize ${
-                              tx.transaction_type === "received" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" :
-                              tx.transaction_type === "dispensed" ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300" :
-                              tx.transaction_type === "adjustment" ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300" :
-                              "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
-                            }`}>
-                              {tx.transaction_type.replace('_', ' ')}
-                            </span>
-                          </td>
-                          <td className="py-2.5 px-3 font-bold">
-                            {tx.transaction_type === "received" ? `+${tx.quantity}` :
-                             tx.transaction_type === "dispensed" ? `-${tx.quantity}` :
-                             tx.quantity > 0 ? `+${tx.quantity}` : `${tx.quantity}`} {historyMedicine.stock_unit}
-                          </td>
-                          <td className="py-2.5 px-3 text-slate-500">
-                            {tx.previous_quantity !== null && tx.previous_quantity !== undefined ? tx.previous_quantity : "--"} → {tx.previous_quantity !== null && tx.previous_quantity !== undefined ? (
-                              tx.transaction_type === "received" ? tx.previous_quantity + tx.quantity :
-                              tx.transaction_type === "dispensed" ? tx.previous_quantity - tx.quantity :
-                              tx.previous_quantity + tx.quantity
-                            ) : "--"}
-                          </td>
-                          <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">
-                            {tx.notes || tx.reference || "--"}
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-
-            <div className="flex justify-end pt-3 border-t border-slate-100 dark:border-slate-800">
-              <Button
-                type="button"
-                onClick={() => setHistoryModalOpen(false)}
-                className="h-9 px-4 rounded font-semibold cursor-pointer"
-              >
-                Close
-              </Button>
-            </div>
           </div>
         </div>
       )}
