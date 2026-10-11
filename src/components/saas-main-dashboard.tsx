@@ -79,6 +79,8 @@ import { DentalLogo } from "@/components/dental-logo";
 import { createClient } from "@/lib/supabase/client";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { CaseSheetPrintTemplate } from "@/components/print/CaseSheetPrintTemplate";
+import { PrescriptionPrintTemplate } from "@/components/print/PrescriptionPrintTemplate";
 
 // Interfaces
 export interface MedicineItem {
@@ -2612,6 +2614,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [editIntraOralExam, setEditIntraOralExam] = useState("");
   const [editProvisionalDiagnosis, setEditProvisionalDiagnosis] = useState("");
   const [editTreatmentAdvised, setEditTreatmentAdvised] = useState("");
+  const [includeCaseSheetBackPage, setIncludeCaseSheetBackPage] = useState(false);
 
   // --- TOOTH TREATMENT FORM STATE ---
   const [chartSelectedTooth, setChartSelectedTooth] = useState<number | null>(null);
@@ -8109,7 +8112,16 @@ ${clinicName}`;
                     <p className="text-xs text-slate-500">View and manage the patient's dental case sheet.</p>
                   </div>
 
-                  <div className="flex items-center gap-2.5 shrink-0 no-print">
+                  <div className="flex items-center gap-2.5 shrink-0 no-print flex-wrap">
+                    <label className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300 font-medium cursor-pointer mr-1">
+                      <input
+                        type="checkbox"
+                        checked={includeCaseSheetBackPage}
+                        onChange={(e) => setIncludeCaseSheetBackPage(e.target.checked)}
+                        className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <span>Include Telugu Back Page</span>
+                    </label>
                     <Button
                       type="button"
                       onClick={() => window.print()}
@@ -8117,7 +8129,7 @@ ${clinicName}`;
                       className="h-9 px-3.5 text-xs font-semibold border-slate-300 text-slate-700 hover:bg-slate-50 flex items-center gap-1.5"
                     >
                       <Printer className="h-4 w-4 text-slate-500" />
-                      Print
+                      Print / Save PDF
                     </Button>
                     {!isReceptionist && (
                       <Button
@@ -8131,7 +8143,7 @@ ${clinicName}`;
                         }`}
                       >
                         <Pencil className="h-3.5 w-3.5" />
-                        {isEditingCaseSheet ? "Editing Mode" : "Edit"}
+                        {isEditingCaseSheet ? "View Case Sheet" : "Edit Clinical Data"}
                       </Button>
                     )}
                     {isEditingCaseSheet && !isReceptionist && (
@@ -8141,35 +8153,65 @@ ${clinicName}`;
                         className="h-9 px-4 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 shadow-xs"
                       >
                         <FileText className="h-3.5 w-3.5" />
-                        Save
+                        Save to Database
                       </Button>
                     )}
                   </div>
                 </div>
 
-                {/* Digital Dental Case Sheet Container */}
-                <div id="print-area" className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-7 shadow-xs space-y-6 print:space-y-3 print:p-2 print:border-none print:shadow-none text-xs animate-fadeIn">
-                  {/* PRINT-ONLY CLINIC HEADER */}
-                  <div className="hidden print:block border-b-2 border-slate-800 pb-3 mb-3">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <DentalLogo showText={false} iconClassName="h-10 w-10" />
-                        <div>
-                          <h1 className="text-xl font-bold text-slate-900 tracking-tight">{clinicName || "VR Dental Clinic"}</h1>
-                          <p className="text-xs font-semibold text-slate-600">Dental Clinic / Comprehensive Dental Care</p>
-                          <p className="text-[11px] text-slate-500 font-medium">Phone: +91 98853 49798</p>
-                        </div>
-                      </div>
-                      <div className="text-right space-y-0.5">
-                        <span className="text-sm font-extrabold text-blue-700 block tracking-wider uppercase">DENTAL CASE SHEET</span>
-                        <p className="text-xs font-bold text-slate-800">ID: {patientItem.id}</p>
-                        <p className="text-xs text-slate-600">Date: {patientItem.visit || patientItem.firstVisit || new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</p>
-                      </div>
+                {/* DEDICATED PHYSICAL STATIONERY A4 PRINT TEMPLATE FOR CASE SHEET */}
+                <div id="print-area" className="hidden print:block">
+                  <CaseSheetPrintTemplate
+                    patient={patientItem}
+                    medicalHistoryConditions={editMedicalHistoryConditions}
+                    medicalHistoryOthers={editMedicalHistoryOthers}
+                    currentMedications={editCurrentMedications}
+                    chiefComplaint={editChiefComplaint}
+                    intraOralExam={editIntraOralExam}
+                    provisionalDiagnosis={editProvisionalDiagnosis}
+                    treatmentAdvised={formatTreatmentAdvisedFromChart(patientItem.dentalChart) || editTreatmentAdvised}
+                    visitDate={patientItem.visit || patientItem.firstVisit}
+                    includeBackPage={includeCaseSheetBackPage}
+                  />
+                </div>
+
+                {/* EXACT CASE SHEET PRESENTATION (WHEN VIEWING ON SCREEN) */}
+                {!isEditingCaseSheet ? (
+                  <div className="bg-slate-200/80 dark:bg-slate-900/80 p-4 sm:p-8 rounded-xl flex flex-col items-center overflow-x-auto border border-slate-300 dark:border-slate-800 animate-fadeIn print:hidden shadow-inner">
+                    <div className="w-full max-w-[210mm] shadow-2xl rounded-xs overflow-hidden bg-white">
+                      <CaseSheetPrintTemplate
+                        patient={patientItem}
+                        medicalHistoryConditions={editMedicalHistoryConditions}
+                        medicalHistoryOthers={editMedicalHistoryOthers}
+                        currentMedications={editCurrentMedications}
+                        chiefComplaint={editChiefComplaint}
+                        intraOralExam={editIntraOralExam}
+                        provisionalDiagnosis={editProvisionalDiagnosis}
+                        treatmentAdvised={formatTreatmentAdvisedFromChart(patientItem.dentalChart) || editTreatmentAdvised}
+                        visitDate={patientItem.visit || patientItem.firstVisit}
+                        includeBackPage={includeCaseSheetBackPage}
+                      />
                     </div>
                   </div>
-
+                ) : (
+                  /* Digital Dental Case Sheet Editor Container (When Editing) */
+                  <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-7 shadow-xs space-y-6 text-xs animate-fadeIn print:hidden">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-lg flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-blue-800 dark:text-blue-300 font-semibold text-xs">
+                        <Pencil className="h-4 w-4" />
+                        <span>Clinical Editing Mode: Update patient details, medical history, clinical notes or dental chart. Click &quot;Save to Database&quot; when done.</span>
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={() => setIsEditingCaseSheet(false)}
+                        variant="outline"
+                        className="h-7 text-xs border-blue-300 text-blue-700 hover:bg-blue-100"
+                      >
+                        Back to Case Sheet View
+                      </Button>
+                    </div>
                   {/* Top Header Row with Date (Screen Only) */}
-                  <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3 print:hidden">
+                  <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
                     <div className="flex items-center gap-2">
                       <FileText className="h-5 w-5 text-blue-600" />
                       <span className="font-bold text-sm tracking-wide text-slate-900 dark:text-white uppercase">DENTAL CASE SHEET</span>
@@ -8225,7 +8267,7 @@ ${clinicName}`;
                                 className="h-8 text-xs"
                               />
                             ) : (
-                              <span className="font-semibold text-slate-900 dark:text-white">{patientItem.age} Years</span>
+                              <span className="font-semibold text-slate-900 dark:text-white">{patientItem.age ? `${patientItem.age} Years` : ""}</span>
                             )}
                           </div>
                         </div>
@@ -8243,7 +8285,7 @@ ${clinicName}`;
                                 <option value="Female">Female</option>
                               </select>
                             ) : (
-                              <span className="font-semibold text-slate-900 dark:text-white">{patientItem.gender}</span>
+                              <span className="font-semibold text-slate-900 dark:text-white">{patientItem.gender || ""}</span>
                             )}
                           </div>
                         </div>
@@ -8258,7 +8300,7 @@ ${clinicName}`;
                                 className="h-8 text-xs"
                               />
                             ) : (
-                              <span className="font-semibold text-slate-900 dark:text-white">{patientItem.phone}</span>
+                              <span className="font-semibold text-slate-900 dark:text-white">{patientItem.phone || ""}</span>
                             )}
                           </div>
                         </div>
@@ -8277,7 +8319,9 @@ ${clinicName}`;
                                 className="h-8 text-xs"
                               />
                             ) : (
-                              <span className="font-semibold text-slate-900 dark:text-white">{editRefDoctor || "N/A"}</span>
+                              <span className="font-semibold text-slate-900 dark:text-white">
+                                {editRefDoctor && editRefDoctor !== "N/A" ? editRefDoctor : (patientItem.reference && patientItem.reference !== "N/A" ? patientItem.reference : "")}
+                              </span>
                             )}
                           </div>
                         </div>
@@ -8294,7 +8338,9 @@ ${clinicName}`;
                                 className="w-full rounded-md border border-slate-200 p-2 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
                               />
                             ) : (
-                              <span className="font-semibold text-slate-900 dark:text-white leading-relaxed">{patientItem.address || "N/A"}</span>
+                              <span className="font-semibold text-slate-900 dark:text-white leading-relaxed">
+                                {patientItem.address && patientItem.address !== "N/A" ? patientItem.address : ""}
+                              </span>
                             )}
                           </div>
                         </div>
@@ -8311,8 +8357,19 @@ ${clinicName}`;
                                 className="h-8 text-xs"
                               />
                             ) : (
-                              <span className="font-semibold text-slate-900 dark:text-white">{patientItem.email || "N/A"}</span>
+                              <span className="font-semibold text-slate-900 dark:text-white">
+                                {patientItem.email && patientItem.email !== "N/A" ? patientItem.email : ""}
+                              </span>
                             )}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 items-center gap-2">
+                          <Label className="font-bold text-slate-800 dark:text-slate-200">Occupation:</Label>
+                          <div className="col-span-2">
+                            <span className="font-semibold text-slate-900 dark:text-white">
+                              {(patientItem as any).occupation && (patientItem as any).occupation !== "N/A" ? (patientItem as any).occupation : ""}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -8386,7 +8443,9 @@ ${clinicName}`;
                             className="h-8 text-xs flex-1"
                           />
                         ) : (
-                          <span className="font-semibold text-slate-800 dark:text-slate-200 italic">{editCurrentMedications || "None"}</span>
+                          <span className="font-semibold text-slate-800 dark:text-slate-200 italic">
+                            {editCurrentMedications && editCurrentMedications !== "None" ? editCurrentMedications : ""}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -8415,8 +8474,8 @@ ${clinicName}`;
                             className="w-full rounded-md border border-slate-200 p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900"
                           />
                         ) : (
-                          <div className="min-h-[48px] print:min-h-0 p-2.5 print:p-2 bg-slate-50/60 dark:bg-slate-900/60 rounded border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-normal">
-                            {editChiefComplaint || <span className="text-slate-400 italic">No chief complaint recorded.</span>}
+                          <div className="min-h-[72px] print:min-h-[70px] p-2.5 print:p-2 bg-slate-50/60 dark:bg-slate-900/60 rounded border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-normal print:bg-white print:border-slate-300">
+                            {editChiefComplaint || <span className="text-slate-400 italic print:hidden">No chief complaint recorded.</span>}
                           </div>
                         )}
                       </div>
@@ -8435,8 +8494,8 @@ ${clinicName}`;
                             className="w-full rounded-md border border-slate-200 p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900"
                           />
                         ) : (
-                          <div className="min-h-[48px] print:min-h-0 p-2.5 print:p-2 bg-slate-50/60 dark:bg-slate-900/60 rounded border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-normal">
-                            {editIntraOralExam || <span className="text-slate-400 italic">No intra oral examination notes recorded.</span>}
+                          <div className="min-h-[72px] print:min-h-[70px] p-2.5 print:p-2 bg-slate-50/60 dark:bg-slate-900/60 rounded border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-normal print:bg-white print:border-slate-300">
+                            {editIntraOralExam || <span className="text-slate-400 italic print:hidden">No intra oral examination notes recorded.</span>}
                           </div>
                         )}
 
@@ -8937,8 +8996,8 @@ ${clinicName}`;
                             className="w-full rounded-md border border-slate-200 p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900"
                           />
                         ) : (
-                          <div className="min-h-[48px] print:min-h-0 p-2.5 print:p-2 bg-slate-50/60 dark:bg-slate-900/60 rounded border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-normal">
-                            {editProvisionalDiagnosis || <span className="text-slate-400 italic">No provisional diagnosis recorded.</span>}
+                          <div className="min-h-[72px] print:min-h-[70px] p-2.5 print:p-2 bg-slate-50/60 dark:bg-slate-900/60 rounded border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-normal print:bg-white print:border-slate-300">
+                            {editProvisionalDiagnosis || <span className="text-slate-400 italic print:hidden">No provisional diagnosis recorded.</span>}
                           </div>
                         )}
                       </div>
@@ -8957,16 +9016,17 @@ ${clinicName}`;
                             className="w-full rounded-md border border-slate-200 p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900"
                           />
                         ) : (
-                          <div className="min-h-[48px] print:min-h-0 p-2.5 print:p-2 bg-slate-50/60 dark:bg-slate-900/60 rounded border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-normal">
-                            {formatTreatmentAdvisedFromChart(patientItem.dentalChart) || editTreatmentAdvised || <span className="text-slate-400 italic">No treatment advised recorded.</span>}
+                          <div className="min-h-[72px] print:min-h-[70px] p-2.5 print:p-2 bg-slate-50/60 dark:bg-slate-900/60 rounded border border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-normal print:bg-white print:border-slate-300">
+                            {formatTreatmentAdvisedFromChart(patientItem.dentalChart) || editTreatmentAdvised || <span className="text-slate-400 italic print:hidden">No treatment advised recorded.</span>}
                           </div>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          )}
 
             {profileSubTab === "Treatments" && (
               <div className="space-y-6">
@@ -9940,143 +10000,25 @@ ${clinicName}`;
                   )}
                 </div>
 
-                {/* Printable Prescription Document Layout (Visible ONLY during print) */}
-                {selectedPatientId && (
-                  <div id="print-area" className="hidden print:block bg-white text-slate-900 p-8 max-w-[210mm] mx-auto text-xs space-y-6 font-sans">
-                    {/* Clinic Header */}
-                    <div className="border-b-2 border-slate-800 pb-4 mb-4 flex justify-between items-start print:break-inside-avoid">
-                      <div className="space-y-1">
-                        <h1 className="text-xl font-bold text-blue-900 tracking-tight">{clinicName || "VR Dental Care Dental Implant Centre"}</h1>
-                        <p className="text-xs text-slate-600 font-medium">3rd Cross St, opp. GMC Balayogi stadium, Zicria Nagar, Yanam, Andhra Pradesh 533464</p>
-                        <p className="text-xs text-slate-800 font-bold">PH: 09885349798</p>
-                      </div>
-                      <div className="text-right space-y-1">
-                        <span className="text-lg font-black text-blue-900 uppercase tracking-wider block">PRESCRIPTION</span>
-                        <p className="text-xs text-slate-600 font-medium">Date: {prescDate || new Date().toISOString().split("T")[0]}</p>
-                      </div>
+                {/* DEDICATED PHYSICAL STATIONERY A4 PRINT TEMPLATE FOR PRESCRIPTION */}
+                {selectedPatientId && (() => {
+                  const pItem = patients.find(p => p.id === selectedPatientId);
+                  if (!pItem) return null;
+
+                  return (
+                    <div id="print-area" className="hidden print:block">
+                      <PrescriptionPrintTemplate
+                        patient={pItem}
+                        doctorName={prescDoctor || (doctors[0]?.name || "Dr. M. Durga Praveen")}
+                        date={prescDate}
+                        diagnosis={prescDiagnosis}
+                        medicines={prescMeds}
+                        advice={prescAdvice}
+                        parseDosageFn={parseDosageString}
+                      />
                     </div>
-
-                    {/* Patient & Doctor Details Card */}
-                    {(() => {
-                      const pItem = patients.find(p => p.id === selectedPatientId);
-                      if (!pItem) return null;
-                      const ageGender = `${pItem.age || ""} ${pItem.gender || ""}`.trim();
-                      const docName = prescDoctor || (doctors[0]?.name || "Dr. Durga Praveen");
-                      const medNotes = pItem.medicalNotes || (pItem as any).medicalConditions || "None";
-
-                      return (
-                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 grid grid-cols-2 gap-x-6 gap-y-2 text-xs print:break-inside-avoid">
-                          <div>
-                            <span className="font-bold text-slate-700">Patient Name: </span>
-                            <span className="font-semibold text-slate-900">{pItem.name}</span>
-                          </div>
-                          <div>
-                            <span className="font-bold text-slate-700">Doctor: </span>
-                            <span className="font-semibold text-slate-900">{docName}</span>
-                          </div>
-                          <div>
-                            <span className="font-bold text-slate-700">Patient ID: </span>
-                            <span className="font-semibold text-slate-900">{pItem.id}</span>
-                          </div>
-                          <div>
-                            <span className="font-bold text-slate-700">Prescription Date: </span>
-                            <span className="font-semibold text-slate-900">{prescDate || new Date().toISOString().split("T")[0]}</span>
-                          </div>
-                          {ageGender && (
-                            <div>
-                              <span className="font-bold text-slate-700">Age / Gender: </span>
-                              <span className="font-semibold text-slate-900">{ageGender}</span>
-                            </div>
-                          )}
-                          {pItem.phone && (
-                            <div>
-                              <span className="font-bold text-slate-700">Contact: </span>
-                              <span className="font-semibold text-slate-900">{pItem.phone}</span>
-                            </div>
-                          )}
-                          {medNotes && medNotes !== "None" && (
-                            <div className="col-span-2 mt-1 pt-1 border-t border-slate-200">
-                              <span className="font-bold text-red-700">Medical Notes / Allergies: </span>
-                              <span className="font-semibold text-slate-900">{medNotes}</span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-
-                    {/* Diagnosis Notes */}
-                    {prescDiagnosis.trim() && (
-                      <div className="space-y-1.5 print:break-inside-avoid">
-                        <h3 className="font-bold text-sm text-blue-900 uppercase tracking-wide border-b border-slate-200 pb-1">Diagnosis / Clinical Notes</h3>
-                        <p className="text-xs text-slate-800 whitespace-pre-wrap leading-relaxed pl-1">{prescDiagnosis.trim()}</p>
-                      </div>
-                    )}
-
-                    {/* Medicines Prescribed Table */}
-                    {prescMeds.length > 0 && (
-                      <div className="space-y-2 print:break-inside-avoid">
-                        <h3 className="font-bold text-sm text-blue-900 uppercase tracking-wide border-b border-slate-200 pb-1">Medicines Prescribed</h3>
-                        <table className="w-full border-collapse border border-slate-300 text-xs">
-                          <thead>
-                            <tr className="bg-blue-900 text-white">
-                              <th className="border border-slate-300 px-2.5 py-1.5 text-center w-8">#</th>
-                              <th className="border border-slate-300 px-3 py-1.5 text-left font-bold">Medicine Name</th>
-                              <th className="border border-slate-300 px-3 py-1.5 text-left">Dosage / Frequency</th>
-                              <th className="border border-slate-300 px-3 py-1.5 text-left">Meal Timing</th>
-                              <th className="border border-slate-300 px-3 py-1.5 text-left">Duration</th>
-                              <th className="border border-slate-300 px-3 py-1.5 text-left">Special Instructions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {prescMeds.map((med, idx) => {
-                              const parsed = parseDosageString(med.dosage);
-                              const times: string[] = [];
-                              if (parsed.morning) times.push("Morning");
-                              if (parsed.afternoon) times.push("Afternoon");
-                              if (parsed.night) times.push("Night");
-
-                              const timeStr = times.join(", ") || "-";
-                              let mealStr = "-";
-                              if (parsed.beforeMeals) mealStr = "Before Meals";
-                              else if (parsed.afterMeals) mealStr = "After Meals";
-
-                              return (
-                                <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/80"} style={{ pageBreakInside: "avoid" }}>
-                                  <td className="border border-slate-300 px-2.5 py-2 text-center font-medium">{idx + 1}</td>
-                                  <td className="border border-slate-300 px-3 py-2 font-bold text-slate-900">{med.name.trim() || "-"}</td>
-                                  <td className="border border-slate-300 px-3 py-2 text-slate-800">{timeStr}</td>
-                                  <td className="border border-slate-300 px-3 py-2 text-slate-800">{mealStr}</td>
-                                  <td className="border border-slate-300 px-3 py-2 text-slate-800">{med.duration.trim() || "-"}</td>
-                                  <td className="border border-slate-300 px-3 py-2 text-slate-800">{med.instructions.trim() || "-"}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-
-                    {/* Doctor Advice / Instructions */}
-                    {prescAdvice.trim() && (
-                      <div className="space-y-1.5 print:break-inside-avoid">
-                        <h3 className="font-bold text-sm text-blue-900 uppercase tracking-wide border-b border-slate-200 pb-1">Doctor Advice / Instructions</h3>
-                        <p className="text-xs text-slate-800 whitespace-pre-wrap leading-relaxed pl-1">{prescAdvice.trim()}</p>
-                      </div>
-                    )}
-
-                    {/* Doctor Signature Block */}
-                    <div className="pt-8 flex justify-end print:break-inside-avoid">
-                      <div className="text-right space-y-6">
-                        <p className="text-xs font-bold text-slate-900">
-                          Doctor: {prescDoctor || (doctors[0]?.name || "Dr. Durga Praveen")}
-                        </p>
-                        <p className="text-xs text-slate-700">
-                          Signature: __________________________
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             )}
 
