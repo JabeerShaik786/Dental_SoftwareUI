@@ -91,6 +91,14 @@ import {
   getCategoryForMedicine,
   isOldMockMedicine,
 } from "@/lib/medicineCatalogue";
+import {
+  TREATMENT_CATEGORIES,
+  TreatmentCategoryDef,
+  findCategory,
+  parseTreatmentEntry,
+  buildTreatmentEntryString,
+} from "@/lib/treatmentCatalogue";
+import { SubTreatmentModal } from "@/components/treatment/SubTreatmentSelector";
 
 // Interfaces
 export interface MedicineItem {
@@ -407,6 +415,12 @@ export const TREATMENT_COLORS: Record<string, TreatmentColorConfig> = {
     badgeBg: "bg-orange-50 border-orange-200 text-orange-800 dark:bg-orange-950/40 dark:border-orange-800 dark:text-orange-300",
     toothFillClass: "fill-orange-200/90 dark:fill-orange-900/60 stroke-orange-600 stroke-[1.5]"
   },
+  "Extractions": {
+    name: "Extractions",
+    dotColor: "bg-orange-500 border-orange-600",
+    badgeBg: "bg-orange-50 border-orange-200 text-orange-800 dark:bg-orange-950/40 dark:border-orange-800 dark:text-orange-300",
+    toothFillClass: "fill-orange-200/90 dark:fill-orange-900/60 stroke-orange-600 stroke-[1.5]"
+  },
   "Filling": {
     name: "Filling",
     dotColor: "bg-purple-500 border-purple-600",
@@ -419,8 +433,20 @@ export const TREATMENT_COLORS: Record<string, TreatmentColorConfig> = {
     badgeBg: "bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300",
     toothFillClass: "fill-rose-200/90 dark:fill-rose-900/60 stroke-rose-600 stroke-[1.5]"
   },
+  "Crowns": {
+    name: "Crowns",
+    dotColor: "bg-rose-500 border-rose-600",
+    badgeBg: "bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300",
+    toothFillClass: "fill-rose-200/90 dark:fill-rose-900/60 stroke-rose-600 stroke-[1.5]"
+  },
   "Implant": {
     name: "Implant",
+    dotColor: "bg-cyan-500 border-cyan-600",
+    badgeBg: "bg-cyan-50 border-cyan-200 text-cyan-800 dark:bg-cyan-950/40 dark:border-cyan-800 dark:text-cyan-300",
+    toothFillClass: "fill-cyan-200/90 dark:fill-cyan-900/60 stroke-cyan-600 stroke-[1.5]"
+  },
+  "Implants": {
+    name: "Implants",
     dotColor: "bg-cyan-500 border-cyan-600",
     badgeBg: "bg-cyan-50 border-cyan-200 text-cyan-800 dark:bg-cyan-950/40 dark:border-cyan-800 dark:text-cyan-300",
     toothFillClass: "fill-cyan-200/90 dark:fill-cyan-900/60 stroke-cyan-600 stroke-[1.5]"
@@ -430,6 +456,24 @@ export const TREATMENT_COLORS: Record<string, TreatmentColorConfig> = {
     dotColor: "bg-fuchsia-500 border-fuchsia-600",
     badgeBg: "bg-fuchsia-50 border-fuchsia-200 text-fuchsia-800 dark:bg-fuchsia-950/40 dark:border-fuchsia-800 dark:text-fuchsia-300",
     toothFillClass: "fill-fuchsia-200/90 dark:fill-fuchsia-900/60 stroke-fuchsia-600 stroke-[1.5]"
+  },
+  "Orthodontic Treatments": {
+    name: "Orthodontic Treatments",
+    dotColor: "bg-fuchsia-500 border-fuchsia-600",
+    badgeBg: "bg-fuchsia-50 border-fuchsia-200 text-fuchsia-800 dark:bg-fuchsia-950/40 dark:border-fuchsia-800 dark:text-fuchsia-300",
+    toothFillClass: "fill-fuchsia-200/90 dark:fill-fuchsia-900/60 stroke-fuchsia-600 stroke-[1.5]"
+  },
+  "Prosthodontic Treatments": {
+    name: "Prosthodontic Treatments",
+    dotColor: "bg-indigo-500 border-indigo-600",
+    badgeBg: "bg-indigo-50 border-indigo-200 text-indigo-800 dark:bg-indigo-950/40 dark:border-indigo-800 dark:text-indigo-300",
+    toothFillClass: "fill-indigo-200/90 dark:fill-indigo-900/60 stroke-indigo-600 stroke-[1.5]"
+  },
+  "Pediatric Dentistry": {
+    name: "Pediatric Dentistry",
+    dotColor: "bg-amber-500 border-amber-600",
+    badgeBg: "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300",
+    toothFillClass: "fill-amber-200/90 dark:fill-amber-900/60 stroke-amber-600 stroke-[1.5]"
   },
   "Consultation": {
     name: "Consultation",
@@ -441,20 +485,33 @@ export const TREATMENT_COLORS: Record<string, TreatmentColorConfig> = {
 
 export function getTreatmentColorConfig(statusStr?: string): TreatmentColorConfig | null {
   if (!statusStr || statusStr === "Healthy") return null;
-  const mainName = statusStr.split(" (")[0].trim();
+  const parsed = parseTreatmentEntry(statusStr);
 
+  if (TREATMENT_COLORS[parsed.colorKey]) {
+    return TREATMENT_COLORS[parsed.colorKey];
+  }
+  if (TREATMENT_COLORS[parsed.category]) {
+    return TREATMENT_COLORS[parsed.category];
+  }
+
+  const catDef = findCategory(parsed.category) || findCategory(parsed.raw);
+  if (catDef && TREATMENT_COLORS[catDef.colorKey]) {
+    return TREATMENT_COLORS[catDef.colorKey];
+  }
+
+  const mainName = statusStr.split(" (")[0].trim();
   if (TREATMENT_COLORS[mainName]) {
     return TREATMENT_COLORS[mainName];
   }
 
   for (const [key, config] of Object.entries(TREATMENT_COLORS)) {
-    if (mainName.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(mainName.toLowerCase())) {
+    if (parsed.raw.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(parsed.raw.toLowerCase())) {
       return config;
     }
   }
 
   return {
-    name: mainName,
+    name: parsed.category || mainName,
     dotColor: "bg-blue-500 border-blue-600",
     badgeBg: "bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-300",
     toothFillClass: "fill-blue-200/90 dark:fill-blue-900/60 stroke-blue-600 stroke-[1.5]"
@@ -749,14 +806,14 @@ export function formatTreatmentAdvisedFromChart(dentalChart: Record<number, stri
     const treatmentList = parseToothTreatments(val);
 
     treatmentList.forEach(statusStr => {
-      const colorConfig = getTreatmentColorConfig(statusStr);
-      const procedure = colorConfig?.name || statusStr.split(" (")[0].replace(/\s*\([^)]*\)/g, "").trim();
-      if (!procedure) return;
+      const parsed = parseTreatmentEntry(statusStr);
+      const displayProc = parsed.subTreatment ? `${parsed.category} — ${parsed.subTreatment}` : parsed.category;
+      if (!displayProc) return;
 
-      const procKey = procedure.toLowerCase();
+      const procKey = displayProc.toLowerCase();
       if (!procedureMap[procKey]) {
         procedureMap[procKey] = {
-          displayProc: procedure,
+          displayProc,
           teeth: []
         };
       }
@@ -911,17 +968,8 @@ const Odontogram: React.FC<OdontogramProps> = ({
   );
 };
 
-// Predefined treatment procedure names
-const ALL_TREATMENTS: string[] = [
-  "Consultation",
-  "Scaling",
-  "Root Canal",
-  "Extraction",
-  "Filling",
-  "Crown",
-  "Implant",
-  "Braces"
-];
+// Predefined treatment procedure names (derived from shared catalogue)
+const ALL_TREATMENTS: string[] = TREATMENT_CATEGORIES.map(c => c.name);
 
 const menuItems = [
   { name: "Dashboard", icon: <Home className="h-[22px] w-[22px] shrink-0" strokeWidth={2} />, badge: null },
@@ -2646,7 +2694,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [chartSelectedTooth, setChartSelectedTooth] = useState<number | null>(null);
   const [selectedTeeth, setSelectedTeeth] = useState<number[]>([]);
   const [activeTreatment, setActiveTreatment] = useState<string | null>(null);
+  const [modalCategory, setModalCategory] = useState<TreatmentCategoryDef | null>(null);
   const [showClearAllConfirm, setShowClearAllConfirm] = useState(false);
+  const [chartCategory, setChartCategory] = useState("");
+  const [chartSubTreatment, setChartSubTreatment] = useState("");
   const [chartTreatmentName, setChartTreatmentName] = useState("");
   const [chartDiagnosis, setChartDiagnosis] = useState("");
   const [chartStatus, setChartStatus] = useState<"Planned" | "In Progress" | "Completed">("Planned");
@@ -2654,6 +2705,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [chartDate, setChartDate] = useState("");
   const [chartCost, setChartCost] = useState("");
   const [chartNotes, setChartNotes] = useState("");
+  const [isSavingToothTreatment, setIsSavingToothTreatment] = useState(false);
 
   // --- TREATMENTS FORM STATE ---
   const [showAddTreatmentModal, setShowAddTreatmentModal] = useState(false);
@@ -3185,8 +3237,16 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       const toothObj = ALL_TEETH.find(t => t.index === toothIndex);
       const fdi = toothObj?.fdi || toothIndex;
 
-      const activeItemStr = `${activeTreatment} (Planned)`;
-      const existingIdx = existingList.findIndex(t => t.toLowerCase().startsWith(activeTreatment.toLowerCase()));
+      const parsedActive = parseTreatmentEntry(activeTreatment);
+      const activeItemStr = buildTreatmentEntryString(parsedActive.category, parsedActive.subTreatment, "Planned");
+      const existingIdx = existingList.findIndex(t => {
+        const p = parseTreatmentEntry(t);
+        if (parsedActive.subTreatment) {
+          return p.category.toLowerCase() === parsedActive.category.toLowerCase() &&
+                 p.subTreatment?.toLowerCase() === parsedActive.subTreatment.toLowerCase();
+        }
+        return p.category.toLowerCase() === parsedActive.category.toLowerCase();
+      });
 
       let newList: string[];
       if (existingIdx !== -1) {
@@ -3478,9 +3538,11 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const costAmt = Number(newTrCost) || 0;
 
     if (toothNum) {
+      const parsed = parseTreatmentEntry(newTrName);
+      const entryFormatted = buildTreatmentEntryString(parsed.category, parsed.subTreatment, newTrStatus);
       const updatedChart = {
         ...(patientItem.dentalChart || {}),
-        [toothNum]: `${newTrName.trim()} (${newTrStatus})`
+        [toothNum]: entryFormatted
       };
 
       const { error: patChartErr } = await supabase
@@ -7896,13 +7958,34 @@ ${clinicName}`;
         if (activeTreatment) {
           const currentChart = { ...(patientItem.dentalChart || {}) };
           const existingList = parseToothTreatments(currentChart[toothIndex]);
-          const entryStr = `${activeTreatment} (Planned)`;
+          const parsedActive = parseTreatmentEntry(activeTreatment);
+          const entryStr = buildTreatmentEntryString(parsedActive.category, parsedActive.subTreatment, "Planned");
+          
           let updatedList: string[];
-          if (existingList.some(item => item.toLowerCase().startsWith(activeTreatment.toLowerCase()))) {
-            updatedList = existingList.filter(item => !item.toLowerCase().startsWith(activeTreatment.toLowerCase()));
+          const isAlreadyAssigned = existingList.some(item => {
+            const p = parseTreatmentEntry(item);
+            if (parsedActive.subTreatment) {
+              return p.category.toLowerCase() === parsedActive.category.toLowerCase() &&
+                     p.subTreatment?.toLowerCase() === parsedActive.subTreatment.toLowerCase();
+            }
+            return p.category.toLowerCase() === parsedActive.category.toLowerCase();
+          });
+
+          if (isAlreadyAssigned) {
+            updatedList = existingList.filter(item => {
+              const p = parseTreatmentEntry(item);
+              if (parsedActive.subTreatment) {
+                return !(p.category.toLowerCase() === parsedActive.category.toLowerCase() &&
+                         p.subTreatment?.toLowerCase() === parsedActive.subTreatment.toLowerCase());
+              }
+              return p.category.toLowerCase() !== parsedActive.category.toLowerCase();
+            });
+            showToast(`Removed ${activeTreatment} from Tooth #${ALL_TEETH.find(t => t.index === toothIndex)?.fdi || toothIndex}.`, "success");
           } else {
             updatedList = [...existingList, entryStr];
+            showToast(`Added ${activeTreatment} to Tooth #${ALL_TEETH.find(t => t.index === toothIndex)?.fdi || toothIndex}.`, "success");
           }
+
           if (updatedList.length === 0) {
             delete currentChart[toothIndex];
           } else {
@@ -7912,7 +7995,7 @@ ${clinicName}`;
             if (error) console.error("Database error saving dental chart:", error);
           });
           setPatients(prev => prev.map(p => p.id === patientItem.id ? { ...p, dentalChart: currentChart } : p));
-          showToast(`Updated ${activeTreatment} for Tooth #${ALL_TEETH.find(t => t.index === toothIndex)?.fdi || toothIndex}.`, "success");
+          setEditTreatmentAdvised(formatTreatmentAdvisedFromChart(currentChart));
           return;
         }
 
@@ -7932,13 +8015,21 @@ ${clinicName}`;
         });
       };
 
-      const handleSelectAllTeeth = (specificTreatment?: "Scaling" | "Braces") => {
-        if (specificTreatment) {
+      const handleSelectAllTeeth = (specificCategory?: string, specificSubTreatment?: string) => {
+        if (specificCategory) {
           const currentChart = { ...(patientItem.dentalChart || {}) };
-          const entryStr = `${specificTreatment} (Planned)`;
+          const entryStr = buildTreatmentEntryString(specificCategory, specificSubTreatment, "Planned");
           ALL_TEETH.forEach(t => {
             const existingList = parseToothTreatments(currentChart[t.index]);
-            if (!existingList.some(item => item.toLowerCase().startsWith(specificTreatment.toLowerCase()))) {
+            const hasMatch = existingList.some(item => {
+              const p = parseTreatmentEntry(item);
+              if (specificSubTreatment) {
+                return p.category.toLowerCase() === specificCategory.toLowerCase() &&
+                       p.subTreatment?.toLowerCase() === specificSubTreatment.toLowerCase();
+              }
+              return p.category.toLowerCase() === specificCategory.toLowerCase();
+            });
+            if (!hasMatch) {
               currentChart[t.index] = [...existingList, entryStr].join(" | ");
             }
           });
@@ -7946,7 +8037,9 @@ ${clinicName}`;
             if (error) console.error("Database error saving dental chart:", error);
           });
           setPatients(prev => prev.map(p => p.id === patientItem.id ? { ...p, dentalChart: currentChart } : p));
-          showToast(`Assigned ${specificTreatment} to All Teeth.`, "success");
+          setEditTreatmentAdvised(formatTreatmentAdvisedFromChart(currentChart));
+          const label = specificSubTreatment ? `${specificCategory} (${specificSubTreatment})` : specificCategory;
+          showToast(`Assigned ${label} to All Teeth.`, "success");
           return;
         }
         const allIndices = ALL_TEETH.map(t => t.index);
@@ -7958,13 +8051,24 @@ ${clinicName}`;
       const handleClearSelection = () => {
         setSelectedTeeth([]);
         setChartSelectedTooth(null);
+        setChartCategory("");
+        setChartSubTreatment("");
+        setChartTreatmentName("");
       };
 
       const handleSaveToothTreatment = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!patientItem) return;
-        if (!chartTreatmentName.trim()) {
-          showToast("Please choose a treatment procedure.", "error");
+        if (!patientItem || isSavingToothTreatment) return;
+
+        const effectiveCategory = chartCategory.trim() || (chartTreatmentName ? parseTreatmentEntry(chartTreatmentName).category : "");
+        if (!effectiveCategory) {
+          showToast("Please choose a treatment category.", "error");
+          return;
+        }
+
+        const catDef = findCategory(effectiveCategory);
+        if (catDef && catDef.subTreatments && catDef.subTreatments.length > 0 && !chartSubTreatment.trim()) {
+          showToast("Please choose a sub-treatment.", "error");
           return;
         }
 
@@ -7977,112 +8081,129 @@ ${clinicName}`;
           return;
         }
 
-        const currentChart = { ...(patientItem.dentalChart || {}) };
-        const newEntryStr = `${chartTreatmentName.trim()} (${chartStatus})`;
+        setIsSavingToothTreatment(true);
 
-        targetTeeth.forEach(toothIdx => {
-          const existingList = parseToothTreatments(currentChart[toothIdx]);
-          if (!existingList.some(item => item.toLowerCase() === newEntryStr.toLowerCase())) {
-            const updatedList = [...existingList, newEntryStr];
-            currentChart[toothIdx] = updatedList.join(" | ");
+        try {
+          const currentChart = { ...(patientItem.dentalChart || {}) };
+          const effectiveSub = chartSubTreatment.trim() || undefined;
+          const newEntryStr = buildTreatmentEntryString(effectiveCategory, effectiveSub, chartStatus);
+
+          targetTeeth.forEach(toothIdx => {
+            const existingList = parseToothTreatments(currentChart[toothIdx]);
+            if (!existingList.some(item => item.toLowerCase() === newEntryStr.toLowerCase())) {
+              const updatedList = [...existingList, newEntryStr];
+              currentChart[toothIdx] = updatedList.join(" | ");
+            }
+          });
+
+          const { error: updateErr } = await supabase
+            .from("patients")
+            .update({ dental_chart: currentChart })
+            .eq("patient_id", patientItem.id);
+
+          if (updateErr) {
+            console.error("Failed to save dental chart in database:", updateErr.message, updateErr.code);
+            showToast("Failed to save dental chart in database.", "error");
+            setIsSavingToothTreatment(false);
+            return;
           }
-        });
 
-        const { error: updateErr } = await supabase
-          .from("patients")
-          .update({ dental_chart: currentChart })
-          .eq("patient_id", patientItem.id);
-
-        if (updateErr) {
-          console.error("Failed to save dental chart in database:", updateErr.message, updateErr.code);
-          showToast("Failed to save dental chart in database.", "error");
-          return;
-        }
-
-        setPatients(prev => prev.map(p => {
-          if (p.id === patientItem.id) {
-            return { ...p, dentalChart: currentChart };
-          }
-          return p;
-        }));
-        setEditTreatmentAdvised(formatTreatmentAdvisedFromChart(currentChart));
-
-        // Synchronize with Treatments History Log
-        const doctorObj = doctors.find(d => d.name === chartDoctor);
-        const treatCostVal = Number(chartCost) || 0;
-        const treatDateVal = chartDate || new Date().toISOString().split("T")[0];
-
-        const dbInsertRows = targetTeeth.map(tIdx => {
-          const toothObj = ALL_TEETH.find(t => t.index === tIdx);
-          const fdi = toothObj?.fdi || tIdx;
-          return {
-            patient_id: patientItem.uuid || patientItem.id,
-            doctor_id: doctorObj?.id || null,
-            name: chartTreatmentName.trim(),
-            stage: chartStatus,
-            notes: chartNotes.trim() || undefined,
-            diagnosis: chartDiagnosis.trim() || undefined,
-            tooth_number: fdi,
-            cost: treatCostVal,
-            treatment_date: treatDateVal
-          };
-        });
-
-        const { data: insertedTreats } = await supabase
-          .from("treatments")
-          .insert(dbInsertRows)
-          .select();
-
-        if (insertedTreats && insertedTreats.length > 0) {
-          const newTreatItems: TreatmentItem[] = insertedTreats.map(row => ({
-            id: row.id,
-            name: row.name,
-            patient: patientItem.name,
-            doctor: chartDoctor || doctors[0]?.name || "Dr. Deepa Kodali",
-            stage: (row.stage === "Completed" || row.stage === "In Progress") ? row.stage : "Planned",
-            notes: row.notes || "",
-            nextVisit: "",
-            prescription: "",
-            tooth: row.tooth_number || undefined,
-            cost: Number(row.cost) || treatCostVal,
-            diagnosis: row.diagnosis || undefined,
-            date: row.treatment_date ? convertToUiDate(row.treatment_date) : convertToUiDate(treatDateVal)
+          setPatients(prev => prev.map(p => {
+            if (p.id === patientItem.id) {
+              return { ...p, dentalChart: currentChart };
+            }
+            return p;
           }));
-          setTreatments(prev => [...newTreatItems, ...prev]);
-        } else {
-          const fallbackItems: TreatmentItem[] = targetTeeth.map((tIdx, idx) => {
+          setEditTreatmentAdvised(formatTreatmentAdvisedFromChart(currentChart));
+
+          // Synchronize with Treatments History Log
+          const doctorObj = doctors.find(d => d.name === chartDoctor);
+          const treatCostVal = Number(chartCost) || 0;
+          const treatDateVal = chartDate || new Date().toISOString().split("T")[0];
+          const procedureDisplayName = effectiveSub ? `${effectiveCategory} — ${effectiveSub}` : effectiveCategory;
+
+          const dbInsertRows = targetTeeth.map(tIdx => {
             const toothObj = ALL_TEETH.find(t => t.index === tIdx);
             const fdi = toothObj?.fdi || tIdx;
             return {
-              id: `tr-${Date.now()}-${idx}`,
-              name: chartTreatmentName.trim(),
-              patient: patientItem.name,
-              doctor: chartDoctor || doctors[0]?.name || "Dr. Deepa Kodali",
-              stage: (chartStatus === "Completed" || chartStatus === "In Progress") ? chartStatus : "Planned",
-              notes: chartNotes.trim() || "",
-              nextVisit: "",
-              prescription: "",
-              tooth: fdi,
-              cost: treatCostVal,
+              patient_id: patientItem.uuid || patientItem.id,
+              doctor_id: doctorObj?.id || null,
+              name: procedureDisplayName,
+              category: effectiveCategory,
+              sub_treatment: effectiveSub || null,
+              stage: chartStatus,
+              notes: chartNotes.trim() || undefined,
               diagnosis: chartDiagnosis.trim() || undefined,
-              date: convertToUiDate(treatDateVal)
+              tooth_number: fdi,
+              cost: treatCostVal,
+              treatment_date: treatDateVal
             };
           });
-          setTreatments(prev => [...fallbackItems, ...prev]);
+
+          const { data: insertedTreats } = await supabase
+            .from("treatments")
+            .insert(dbInsertRows)
+            .select();
+
+          if (insertedTreats && insertedTreats.length > 0) {
+            const newTreatItems: TreatmentItem[] = insertedTreats.map(row => ({
+              id: row.id,
+              name: row.name,
+              category: row.category || effectiveCategory,
+              subTreatment: row.sub_treatment || effectiveSub,
+              patient: patientItem.name,
+              doctor: chartDoctor || doctors[0]?.name || "Dr. Deepa Kodali",
+              stage: (row.stage === "Completed" || row.stage === "In Progress") ? row.stage : "Planned",
+              notes: row.notes || "",
+              nextVisit: "",
+              prescription: "",
+              tooth: row.tooth_number || undefined,
+              cost: Number(row.cost) || treatCostVal,
+              diagnosis: row.diagnosis || undefined,
+              date: row.treatment_date ? convertToUiDate(row.treatment_date) : convertToUiDate(treatDateVal)
+            }));
+            setTreatments(prev => [...newTreatItems, ...prev]);
+          } else {
+            const fallbackItems: TreatmentItem[] = targetTeeth.map((tIdx, idx) => {
+              const toothObj = ALL_TEETH.find(t => t.index === tIdx);
+              const fdi = toothObj?.fdi || tIdx;
+              return {
+                id: `tr-${Date.now()}-${idx}`,
+                name: procedureDisplayName,
+                category: effectiveCategory,
+                subTreatment: effectiveSub,
+                patient: patientItem.name,
+                doctor: chartDoctor || doctors[0]?.name || "Dr. Deepa Kodali",
+                stage: (chartStatus === "Completed" || chartStatus === "In Progress") ? chartStatus : "Planned",
+                notes: chartNotes.trim() || "",
+                nextVisit: "",
+                prescription: "",
+                tooth: fdi,
+                cost: treatCostVal,
+                diagnosis: chartDiagnosis.trim() || undefined,
+                date: convertToUiDate(treatDateVal)
+              };
+            });
+            setTreatments(prev => [...fallbackItems, ...prev]);
+          }
+
+          const teethLabel = targetTeeth.map(tIdx => {
+            const toothObj = ALL_TEETH.find(t => t.index === tIdx);
+            return `#${toothObj?.fdi || tIdx}`;
+          }).join(", ");
+
+          showToast(`Assigned ${procedureDisplayName} (${chartStatus}) to Tooth ${teethLabel}.`, "success");
+
+          setSelectedTeeth([]);
+          setChartSelectedTooth(null);
+          setChartCategory("");
+          setChartSubTreatment("");
+          setChartTreatmentName("");
+          setChartDiagnosis("");
+          setChartNotes("");
+        } finally {
+          setIsSavingToothTreatment(false);
         }
-
-        const teethLabel = targetTeeth.map(tIdx => {
-          const toothObj = ALL_TEETH.find(t => t.index === tIdx);
-          return `#${toothObj?.fdi || tIdx}`;
-        }).join(", ");
-
-        showToast(`Assigned ${chartTreatmentName} (${chartStatus}) to Tooth ${teethLabel}.`, "success");
-
-        setSelectedTeeth([]);
-        setChartSelectedTooth(null);
-        setChartTreatmentName("");
-        setChartDiagnosis("");
-        setChartNotes("");
       };
 
       const handleClearAllTeeth = async () => {
@@ -8567,6 +8688,25 @@ ${clinicName}`;
 
                         {/* Interactive Dental Chart */}
                         <div className="pt-3 border-t border-slate-200 dark:border-slate-800 print:hidden">
+                          {modalCategory && (
+                            <SubTreatmentModal
+                              category={modalCategory}
+                              selectedSubTreatment={activeTreatment ? parseTreatmentEntry(activeTreatment).subTreatment : undefined}
+                              colorDotClass={TREATMENT_COLORS[modalCategory.colorKey]?.dotColor || "bg-blue-500"}
+                              onClose={() => setModalCategory(null)}
+                              onSelectSubTreatment={(sub) => {
+                                const activeStr = `${modalCategory.name} — ${sub}`;
+                                setActiveTreatment(activeStr);
+                                setModalCategory(null);
+                                showToast(`Activated ${activeStr} mode. Click teeth on chart to assign.`, "success");
+                              }}
+                              onSelectAllTeeth={(sub) => {
+                                handleSelectAllTeeth(modalCategory.name, sub);
+                                setModalCategory(null);
+                              }}
+                            />
+                          )}
+
                           {/* Clear All Confirmation Modal */}
                           {showClearAllConfirm && (
                             <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-fadeIn">
@@ -8684,32 +8824,91 @@ ${clinicName}`;
                                       {/* Row 1 */}
                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-1">
-                                          <label className="text-[13px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Treatment Procedure</label>
+                                          <label className="text-[13px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Treatment Category</label>
                                           <select
                                             className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-[13px] font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 cursor-pointer"
-                                            value={chartTreatmentName}
-                                            onChange={e => setChartTreatmentName(e.target.value)}
+                                            value={chartCategory}
+                                            onChange={e => {
+                                              const cat = e.target.value;
+                                              setChartCategory(cat);
+                                              setChartSubTreatment("");
+                                              const catDef = findCategory(cat);
+                                              if (!catDef?.subTreatments || catDef.subTreatments.length === 0) {
+                                                setChartTreatmentName(cat);
+                                              } else {
+                                                setChartTreatmentName("");
+                                              }
+                                            }}
                                             required
                                           >
-                                            <option value="">-- Choose Procedure --</option>
-                                            {ALL_TREATMENTS.map(t => (
-                                              <option key={t} value={t}>{t}</option>
+                                            <option value="">-- Choose Category --</option>
+                                            {TREATMENT_CATEGORIES.map(c => (
+                                              <option key={c.id} value={c.name}>{c.displayName}</option>
                                             ))}
                                           </select>
                                         </div>
-                                        <div className="space-y-1">
-                                          <label className="text-[13px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Treatment Status</label>
-                                          <select
-                                            className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-[13px] font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 cursor-pointer"
-                                            value={chartStatus}
-                                            onChange={e => setChartStatus(e.target.value as any)}
-                                          >
-                                            <option value="Planned">Planned</option>
-                                            <option value="In Progress">In Progress</option>
-                                            <option value="Completed">Completed</option>
-                                          </select>
-                                        </div>
+                                        {(() => {
+                                          const catDef = findCategory(chartCategory);
+                                          const hasSubs = catDef && catDef.subTreatments && catDef.subTreatments.length > 0;
+                                          if (hasSubs) {
+                                            return (
+                                              <div className="space-y-1 animate-fadeIn">
+                                                <label className="text-[13px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Sub-Treatment</label>
+                                                <select
+                                                  className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-[13px] font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 cursor-pointer"
+                                                  value={chartSubTreatment}
+                                                  onChange={e => {
+                                                    const sub = e.target.value;
+                                                    setChartSubTreatment(sub);
+                                                    setChartTreatmentName(sub ? `${catDef.name} — ${sub}` : "");
+                                                  }}
+                                                  required
+                                                >
+                                                  <option value="">-- Choose Sub-Treatment --</option>
+                                                  {catDef.subTreatments?.map(s => (
+                                                    <option key={s} value={s}>{s}</option>
+                                                  ))}
+                                                </select>
+                                              </div>
+                                            );
+                                          }
+                                          return (
+                                            <div className="space-y-1">
+                                              <label className="text-[13px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Treatment Status</label>
+                                              <select
+                                                className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-[13px] font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 cursor-pointer"
+                                                value={chartStatus}
+                                                onChange={e => setChartStatus(e.target.value as any)}
+                                              >
+                                                <option value="Planned">Planned</option>
+                                                <option value="In Progress">In Progress</option>
+                                                <option value="Completed">Completed</option>
+                                              </select>
+                                            </div>
+                                          );
+                                        })()}
                                       </div>
+
+                                      {/* Row 1b: If category has sub-treatments, show Treatment Status */}
+                                      {(() => {
+                                        const catDef = findCategory(chartCategory);
+                                        const hasSubs = catDef && catDef.subTreatments && catDef.subTreatments.length > 0;
+                                        if (!hasSubs) return null;
+                                        return (
+                                          <div className="space-y-1 animate-fadeIn">
+                                            <label className="text-[13px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Treatment Status</label>
+                                            <select
+                                              className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-[13px] font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900 cursor-pointer"
+                                              value={chartStatus}
+                                              onChange={e => setChartStatus(e.target.value as any)}
+                                            >
+                                              <option value="Planned">Planned</option>
+                                              <option value="In Progress">In Progress</option>
+                                              <option value="Completed">Completed</option>
+                                            </select>
+                                          </div>
+                                        );
+                                      })()}
 
                                       {/* Row 2 */}
                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -8755,8 +8954,12 @@ ${clinicName}`;
                                     <Button type="button" onClick={handleClearSelection} className="h-9 px-4 rounded border font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
                                       Cancel
                                     </Button>
-                                    <Button type="submit" className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold cursor-pointer shadow-xs">
-                                      Assign Treatment
+                                    <Button
+                                      type="submit"
+                                      disabled={isSavingToothTreatment}
+                                      className="h-9 px-4 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold cursor-pointer shadow-xs disabled:opacity-50"
+                                    >
+                                      {isSavingToothTreatment ? "Saving..." : "Assign Treatment"}
                                     </Button>
                                   </div>
                                 </form>
@@ -8787,73 +8990,90 @@ ${clinicName}`;
                                         </button>
                                       )}
                                     </div>
+
+                                    {/* Active Treatment Banner */}
+                                    {activeTreatment && (() => {
+                                      const parsed = parseTreatmentEntry(activeTreatment);
+                                      const colorCfg = TREATMENT_COLORS[parsed.colorKey] || TREATMENT_COLORS[parsed.category];
+                                      const catDef = findCategory(parsed.category);
+                                      const hasSubs = catDef && catDef.subTreatments && catDef.subTreatments.length > 0;
+                                      return (
+                                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-blue-50/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-xs animate-fadeIn">
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <span className={`w-3 h-3 rounded-full ${colorCfg?.dotColor || 'bg-blue-500'} shrink-0`} />
+                                            <div className="min-w-0">
+                                              <span className="font-bold text-blue-900 dark:text-blue-200 block truncate">
+                                                Active: {parsed.category}{parsed.subTreatment ? ` → ${parsed.subTreatment}` : ''}
+                                              </span>
+                                              <span className="text-[10px] text-blue-600 dark:text-blue-400 block">
+                                                Click teeth on the chart to assign or toggle.
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                            {hasSubs && (
+                                              <button
+                                                type="button"
+                                                onClick={() => setModalCategory(catDef)}
+                                                className="text-[10px] font-bold px-2 py-1 rounded bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 hover:bg-blue-50 cursor-pointer"
+                                              >
+                                                Change
+                                              </button>
+                                            )}
+                                            <button
+                                              type="button"
+                                              onClick={() => setActiveTreatment(null)}
+                                              className="text-[10px] font-bold px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer"
+                                            >
+                                              Exit
+                                            </button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
+
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                      {Object.entries(TREATMENT_COLORS).map(([tKey, cfg]) => {
-                                        const isActive = activeTreatment === cfg.name;
-                                        const isHoverMenuAvailable = cfg.name === "Scaling" || cfg.name === "Braces";
-                                        const isMenuOpen = openTreatmentMenu === cfg.name;
+                                      {TREATMENT_CATEGORIES.map((catDef) => {
+                                        const colorCfg = TREATMENT_COLORS[catDef.colorKey] || TREATMENT_COLORS[catDef.name];
+                                        const parsedActive = activeTreatment ? parseTreatmentEntry(activeTreatment) : null;
+                                        const isActive = parsedActive?.category.toLowerCase() === catDef.name.toLowerCase();
+                                        const hasSubTreatments = !!(catDef.subTreatments && catDef.subTreatments.length > 0);
 
                                         return (
                                           <div
-                                            key={tKey}
-                                            onClick={(e) => {
-                                              if (isHoverMenuAvailable) {
-                                                e.stopPropagation();
-                                                setOpenTreatmentMenu(prev => prev === cfg.name ? null : cfg.name);
+                                            key={catDef.id}
+                                            onClick={() => {
+                                              if (hasSubTreatments) {
+                                                setModalCategory(catDef);
                                               } else {
-                                                setActiveTreatment(isActive ? null : cfg.name);
+                                                setActiveTreatment(isActive ? null : catDef.name);
                                               }
                                             }}
-                                            className={`group relative flex items-center justify-between p-2.5 rounded-lg transition-all duration-150 cursor-pointer treatment-menu-container ${
+                                            className={`group relative flex items-center justify-between p-2.5 rounded-lg transition-all duration-150 cursor-pointer ${
                                               isActive
                                                 ? 'bg-blue-50/90 dark:bg-blue-950/60 border-2 border-blue-500 shadow-xs ring-1 ring-blue-400/40 scale-[1.01]'
                                                 : 'bg-white dark:bg-slate-955 border border-slate-200/60 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700'
                                             }`}
                                           >
                                             <div className="flex items-center gap-2 min-w-0">
-                                              <span className={`w-3.5 h-3.5 rounded-full ${cfg.dotColor} shrink-0`}></span>
+                                              <span className={`w-3.5 h-3.5 rounded-full ${colorCfg?.dotColor || 'bg-blue-500'} shrink-0`}></span>
                                               <span className={`text-[12px] truncate ${isActive ? 'font-bold text-blue-900 dark:text-blue-200' : 'font-semibold text-slate-700 dark:text-slate-300'}`}>
-                                                {cfg.name}
+                                                {catDef.displayName}
                                               </span>
+                                            </div>
+
+                                            <div className="flex items-center gap-1 shrink-0">
                                               {isActive && (
-                                                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-blue-600 text-white tracking-wider shrink-0">
+                                                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-blue-600 text-white tracking-wider">
                                                   Active
                                                 </span>
                                               )}
+                                              {hasSubTreatments && (
+                                                <span className="text-[11px] font-bold text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                  ›
+                                                </span>
+                                              )}
                                             </div>
-
-                                            {isHoverMenuAvailable && (
-                                              <div
-                                                onClick={(e) => e.stopPropagation()}
-                                                className={`items-center gap-1 shrink-0 ml-1 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 p-1 rounded-md shadow-xs transition-all ${
-                                                  isMenuOpen ? 'flex' : 'hidden group-hover:flex'
-                                                }`}
-                                              >
-                                                <button
-                                                  type="button"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleSelectAllTeeth(cfg.name as "Scaling" | "Braces");
-                                                    setOpenTreatmentMenu(null);
-                                                  }}
-                                                  className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-955/60 dark:hover:bg-blue-900/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition-colors cursor-pointer"
-                                                >
-                                                  Select All
-                                                </button>
-                                                <button
-                                                  type="button"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setActiveTreatment(cfg.name);
-                                                    setOpenTreatmentMenu(null);
-                                                    showToast(`Activated ${cfg.name} Custom Select mode. Click teeth to add/remove.`, "success");
-                                                  }}
-                                                  className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-955/60 dark:hover:bg-blue-900/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition-colors cursor-pointer"
-                                                >
-                                                  Custom Select
-                                                </button>
-                                              </div>
-                                            )}
                                           </div>
                                         );
                                       })}
@@ -8889,10 +9109,13 @@ ${clinicName}`;
                                         );
                                       }
 
-                                      // Group entries by procedure name and status
+                                      // Group entries by category, sub-treatment, and status
                                       interface TreatmentGroup {
                                         key: string;
+                                        category: string;
+                                        subTreatment?: string;
                                         procedure: string;
+                                        colorKey: string;
                                         status: string;
                                         teeth: Array<{ index: number; fdi: number }>;
                                       }
@@ -8906,21 +9129,17 @@ ${clinicName}`;
                                         const treatmentList = parseToothTreatments(val);
 
                                         treatmentList.forEach(statusStr => {
-                                          const colorConfig = getTreatmentColorConfig(statusStr);
-                                          const procedure = colorConfig?.name || statusStr.split(" (")[0].trim();
-
-                                          let status = "Planned";
-                                          if (String(statusStr).includes("Completed")) status = "Completed";
-                                          else if (String(statusStr).includes("In Progress")) status = "In Progress";
-                                          else if (String(statusStr).includes("Planned")) status = "Planned";
-
-                                          const groupKey = `${procedure}__${status}`;
+                                          const parsed = parseTreatmentEntry(statusStr);
+                                          const groupKey = `${parsed.category}__${parsed.subTreatment || ""}__${parsed.status}`;
 
                                           if (!groupMap[groupKey]) {
                                             groupMap[groupKey] = {
                                               key: groupKey,
-                                              procedure,
-                                              status,
+                                              category: parsed.category,
+                                              subTreatment: parsed.subTreatment,
+                                              procedure: parsed.subTreatment ? `${parsed.category} — ${parsed.subTreatment}` : parsed.category,
+                                              colorKey: parsed.colorKey,
+                                              status: parsed.status,
                                               teeth: []
                                             };
                                           }
@@ -8938,7 +9157,7 @@ ${clinicName}`;
                                       return (
                                         <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
                                           {groups.map((group) => {
-                                            const colorConfig = TREATMENT_COLORS[group.procedure] || {
+                                            const colorConfig = TREATMENT_COLORS[group.colorKey] || TREATMENT_COLORS[group.category] || {
                                               dotColor: "bg-blue-500 border-blue-600",
                                               badgeBg: "bg-blue-50 border-blue-200 text-blue-800"
                                             };
@@ -8961,7 +9180,7 @@ ${clinicName}`;
                                                   <div className="flex items-center gap-2">
                                                     <span className={`w-3.5 h-3.5 rounded-full ${colorConfig.dotColor} shrink-0`}></span>
                                                     <span className="text-[13px] font-bold text-slate-900 dark:text-white tracking-wide uppercase">
-                                                      {group.procedure}
+                                                      {group.category}
                                                     </span>
                                                   </div>
                                                   <div className="flex items-center gap-2">
@@ -8977,7 +9196,14 @@ ${clinicName}`;
                                                         const currentChart = { ...(patientItem.dentalChart || {}) };
                                                         group.teeth.forEach(t => {
                                                           const list = parseToothTreatments(currentChart[t.index]);
-                                                          const filtered = list.filter(item => !item.toLowerCase().startsWith(group.procedure.toLowerCase()));
+                                                          const filtered = list.filter(item => {
+                                                            const p = parseTreatmentEntry(item);
+                                                            if (group.subTreatment) {
+                                                              return !(p.category.toLowerCase() === group.category.toLowerCase() &&
+                                                                       p.subTreatment?.toLowerCase() === group.subTreatment.toLowerCase());
+                                                            }
+                                                            return p.category.toLowerCase() !== group.category.toLowerCase();
+                                                          });
                                                           if (filtered.length === 0) {
                                                             delete currentChart[t.index];
                                                           } else {
@@ -8997,7 +9223,7 @@ ${clinicName}`;
                                                           return p;
                                                         }));
                                                         setEditTreatmentAdvised(formatTreatmentAdvisedFromChart(currentChart));
-                                                        setTreatments(prev => prev.filter(t => !(t.patient === patientItem.name && t.name.toLowerCase() === group.procedure.toLowerCase())));
+                                                        setTreatments(prev => prev.filter(t => !(t.patient === patientItem.name && t.name.toLowerCase().includes(group.procedure.toLowerCase()))));
                                                         showToast(`Removed ${group.procedure} record.`, "success");
                                                       }}
                                                       className="p-1 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
@@ -9008,15 +9234,23 @@ ${clinicName}`;
                                                   </div>
                                                 </div>
 
+                                                {/* Sub-Treatment bullet if present */}
+                                                {group.subTreatment && (
+                                                  <div className="flex items-center gap-1.5 text-[12px] font-semibold text-slate-700 dark:text-slate-300 pl-5.5">
+                                                    <span className="text-slate-400 dark:text-slate-500">•</span>
+                                                    <span>{group.subTreatment}</span>
+                                                  </div>
+                                                )}
+
                                                 {/* Teeth List */}
                                                 {group.teeth.length >= ALL_TEETH.length ? (
-                                                  <div className="pt-0.5">
+                                                  <div className="pt-0.5 pl-5.5">
                                                     <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
                                                       All Teeth
                                                     </span>
                                                   </div>
                                                 ) : (
-                                                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                                                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5 pl-5.5">
                                                     <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Teeth:</span>
                                                     {group.teeth.map((t, idx) => (
                                                       <span key={t.index} className="inline-flex items-center">
@@ -9217,9 +9451,24 @@ ${clinicName}`;
                             required
                           >
                             <option value="">-- Choose Procedure --</option>
-                            {ALL_TREATMENTS.map(t => (
-                              <option key={t} value={t}>{t}</option>
-                            ))}
+                            {TREATMENT_CATEGORIES.map(cat => {
+                              if (cat.subTreatments && cat.subTreatments.length > 0) {
+                                return (
+                                  <optgroup key={cat.id} label={cat.displayName}>
+                                    {cat.subTreatments.map(sub => (
+                                      <option key={sub} value={`${cat.name} — ${sub}`}>
+                                        {cat.name} — {sub}
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                );
+                              }
+                              return (
+                                <option key={cat.id} value={cat.name}>
+                                  {cat.displayName}
+                                </option>
+                              );
+                            })}
                           </select>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
