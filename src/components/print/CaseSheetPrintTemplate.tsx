@@ -1,4 +1,5 @@
 import React from "react";
+import { getAssetPath } from "@/lib/getAssetPath";
 
 export interface CaseSheetPrintData {
   patient: {
@@ -36,12 +37,26 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
   visitDate = "",
   includeBackPage = false,
 }) => {
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-  const templateUrl = `${basePath}/templates/vr_case_sheet_template.png`;
-  const backPageUrl = `${basePath}/templates/vr_post_op_instructions.jpg`;
+  const templateUrl = getAssetPath("/templates/vr_case_sheet_template.png");
+  const backPageUrl = getAssetPath("/templates/vr_post_op_instructions.jpg");
+
+  // Format consultation date cleanly, stripping any duplicate time suffixes
+  let rawDate = visitDate || "";
+  if (rawDate && /^\d{4}-\d{2}-\d{2}/.test(rawDate)) {
+    const d = new Date(rawDate);
+    if (!isNaN(d.getTime())) {
+      rawDate = d.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    }
+  } else if (rawDate && rawDate.includes(",")) {
+    rawDate = rawDate.split(",")[0].trim();
+  }
 
   const displayDate =
-    visitDate ||
+    rawDate ||
     new Date().toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "short",
@@ -79,25 +94,22 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
         />
 
         {/* Overlaid Clinical Form Content positioned between the authentic header and footer */}
-        <div className="relative z-10 h-full flex flex-col justify-between pt-[37mm] pb-[40mm] px-[12mm] box-border">
-          {/* Sub-header Bar: Case Sheet Title + ID + Date */}
+        <div className="relative z-10 h-full flex flex-col justify-between pt-[37mm] pb-[46mm] px-[12mm] box-border">
+          {/* Sub-header Bar: Case Sheet Title + ID only (Date removed from header beside ID) */}
           <div className="flex justify-between items-center border-b border-[#0f4c81]/40 pb-1 mb-2">
             <div className="flex items-center gap-2">
               <span className="text-[12px] font-black uppercase tracking-widest text-[#0f4c81] font-serif">
                 DENTAL CASE SHEET
               </span>
             </div>
-            <div className="text-[10px] font-bold text-slate-800 flex items-center gap-3">
+            <div className="text-[10px] font-bold text-slate-800 flex items-center">
               <span>
                 <strong className="text-slate-600">ID:</strong> {patient.id}
-              </span>
-              <span>
-                <strong className="text-slate-600">Date:</strong> {displayDate}
               </span>
             </div>
           </div>
 
-          {/* 1. PATIENT / CONTACT INFORMATION TABLE */}
+          {/* 1. PATIENT / CONTACT INFORMATION TABLE (Intended consultation date preserved here) */}
           <div className="border border-[#0f4c81]/70 rounded-xs overflow-hidden bg-white/80 backdrop-blur-[0.5px] mb-2 shadow-2xs">
             <div className="bg-[#0f4c81] text-white px-2.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider flex justify-between items-center">
               <span>PATIENT / CONTACT INFORMATION</span>
@@ -188,7 +200,7 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
             </div>
 
             {/* 1. Chief Complaint & Past Dental History */}
-            <div className="border-b border-slate-300 p-2 flex-1 min-h-[30mm] flex flex-col">
+            <div className="border-b border-slate-300 p-2 flex-1 min-h-[26mm] flex flex-col">
               <strong className="text-[10px] font-bold text-slate-900 uppercase tracking-wide block mb-0.5">
                 1. Chief Complaint & Past Dental History
               </strong>
@@ -198,7 +210,7 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
             </div>
 
             {/* 2. Intra Oral Examination */}
-            <div className="border-b border-slate-300 p-2 flex-1 min-h-[40mm] flex flex-col">
+            <div className="border-b border-slate-300 p-2 flex-1 min-h-[34mm] flex flex-col">
               <strong className="text-[10px] font-bold text-slate-900 uppercase tracking-wide block mb-0.5">
                 2. Intra Oral Examination
               </strong>
@@ -208,7 +220,7 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
             </div>
 
             {/* 3. Provisional Diagnosis */}
-            <div className="border-b border-slate-300 p-2 flex-1 min-h-[22mm] flex flex-col">
+            <div className="border-b border-slate-300 p-2 flex-1 min-h-[18mm] flex flex-col">
               <strong className="text-[10px] font-bold text-slate-900 uppercase tracking-wide block mb-0.5">
                 3. Provisional Diagnosis
               </strong>
@@ -218,7 +230,7 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
             </div>
 
             {/* 4. Treatment Advised */}
-            <div className="p-2 flex-1 min-h-[28mm] flex flex-col">
+            <div className="p-2 flex-1 min-h-[24mm] flex flex-col">
               <strong className="text-[10px] font-bold text-slate-900 uppercase tracking-wide block mb-0.5">
                 4. Treatment Advised
               </strong>
@@ -234,6 +246,7 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
             </div>
           </div>
         </div>
+
       </div>
 
       {/* PAGE 2 (OPTIONAL): TELUGU POST-OP INSTRUCTIONS BACK PAGE */}

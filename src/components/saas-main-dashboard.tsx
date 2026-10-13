@@ -82,6 +82,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { CaseSheetPrintTemplate } from "@/components/print/CaseSheetPrintTemplate";
 import { PrescriptionPrintTemplate } from "@/components/print/PrescriptionPrintTemplate";
+import { ResponsivePdfPreview } from "@/components/print/ResponsivePdfPreview";
 import { generateAndDownloadPrescriptionPdf } from "@/lib/prescriptionPdfGenerator";
 import { MedicineCategorySelector } from "@/components/prescription/MedicineCategorySelector";
 import {
@@ -8364,8 +8365,11 @@ ${clinicName}`;
 
                 {/* EXACT CASE SHEET PRESENTATION (WHEN VIEWING ON SCREEN) */}
                 {!isEditingCaseSheet ? (
-                  <div className="bg-slate-200/80 dark:bg-slate-900/80 p-4 sm:p-8 rounded-xl flex flex-col items-center overflow-x-auto border border-slate-300 dark:border-slate-800 animate-fadeIn print:hidden shadow-inner">
-                    <div className="w-full max-w-[210mm] shadow-2xl rounded-xs overflow-hidden bg-white">
+                  <div className="bg-slate-200/80 dark:bg-slate-900/80 p-2 sm:p-6 rounded-xl flex flex-col items-center border border-slate-300 dark:border-slate-800 animate-fadeIn print:hidden shadow-inner w-full">
+                    <ResponsivePdfPreview
+                      pageCount={includeCaseSheetBackPage ? 2 : 1}
+                      title="Dental Case Sheet"
+                    >
                       <CaseSheetPrintTemplate
                         patient={patientItem}
                         medicalHistoryConditions={editMedicalHistoryConditions}
@@ -8378,7 +8382,7 @@ ${clinicName}`;
                         visitDate={patientItem.visit || patientItem.firstVisit}
                         includeBackPage={includeCaseSheetBackPage}
                       />
-                    </div>
+                    </ResponsivePdfPreview>
                   </div>
                 ) : (
                   /* Digital Dental Case Sheet Editor Container (When Editing) */
@@ -10443,8 +10447,11 @@ ${clinicName}`;
                         </div>
 
                         {/* Modal Body with Zoom / Scroll */}
-                        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-200/80 dark:bg-slate-950/80 flex justify-center shadow-inner">
-                          <div className="w-full max-w-[210mm] shadow-2xl rounded-xs overflow-hidden bg-white">
+                        <div className="flex-1 overflow-y-auto p-2 sm:p-6 bg-slate-200/80 dark:bg-slate-950/80 flex justify-center shadow-inner">
+                          <ResponsivePdfPreview
+                            pageCount={1}
+                            title="Official Prescription"
+                          >
                             <PrescriptionPrintTemplate
                               patient={pItem}
                               doctorName={currentData.doctorName}
@@ -10454,7 +10461,7 @@ ${clinicName}`;
                               advice={currentData.advice}
                               parseDosageFn={parseDosageString}
                             />
-                          </div>
+                          </ResponsivePdfPreview>
                         </div>
                       </div>
                     </div>
