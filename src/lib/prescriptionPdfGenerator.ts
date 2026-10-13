@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { getAssetPath } from "./getAssetPath";
+import { formatDbDateToUi, getTodayKolkataUiDate } from "./dateTimeUtils";
 
 export interface GeneratePrescriptionPdfOptions {
   patient: {
@@ -67,23 +68,7 @@ export async function generateAndDownloadPrescriptionPdf(options: GeneratePrescr
     console.error("Failed to load prescription template background image:", err);
   }
 
-  let displayDate = date;
-  if (!displayDate) {
-    displayDate = new Date().toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  } else if (/^\d{4}-\d{2}-\d{2}/.test(displayDate)) {
-    const d = new Date(displayDate);
-    if (!isNaN(d.getTime())) {
-      displayDate = d.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-    }
-  }
+  const displayDate = date ? formatDbDateToUi(date) : getTodayKolkataUiDate();
 
   const ageSex = `${patient.age ? patient.age + " Yrs" : ""} ${patient.gender ? "/ " + patient.gender : ""}`.trim();
 

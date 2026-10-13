@@ -1,5 +1,5 @@
-import React from "react";
 import { getAssetPath } from "@/lib/getAssetPath";
+import { formatDbDateToUi, getTodayKolkataUiDate } from "@/lib/dateTimeUtils";
 
 export interface CaseSheetPrintData {
   patient: {
@@ -40,28 +40,9 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
   const templateUrl = getAssetPath("/templates/vr_case_sheet_template.png");
   const backPageUrl = getAssetPath("/templates/vr_post_op_instructions.jpg");
 
-  // Format consultation date cleanly, stripping any duplicate time suffixes
-  let rawDate = visitDate || "";
-  if (rawDate && /^\d{4}-\d{2}-\d{2}/.test(rawDate)) {
-    const d = new Date(rawDate);
-    if (!isNaN(d.getTime())) {
-      rawDate = d.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-    }
-  } else if (rawDate && rawDate.includes(",")) {
-    rawDate = rawDate.split(",")[0].trim();
-  }
-
-  const displayDate =
-    rawDate ||
-    new Date().toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+  // Format consultation date cleanly in Asia/Kolkata, stripping any duplicate time suffixes
+  const rawDate = visitDate ? (visitDate.includes(",") ? visitDate.split(",")[0].trim() : visitDate) : "";
+  const displayDate = rawDate ? formatDbDateToUi(rawDate) : getTodayKolkataUiDate();
 
   const ageSex = `${patient.age ? patient.age + " Yrs" : ""} ${patient.gender || ""}`.trim();
 

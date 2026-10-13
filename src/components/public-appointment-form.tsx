@@ -6,22 +6,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { getTodayKolkataDbDate, getNextAvailableAppointmentSlot, isSlotInThePast } from "@/lib/dateTimeUtils";
+
 interface DoctorOption {
   id: string;
   name: string;
   speciality: string;
 }
 
+const PUBLIC_APPT_SLOTS = ["09:00 AM", "10:00 AM", "11:30 AM", "02:00 PM", "04:30 PM", "06:00 PM"];
+
 export function PublicAppointmentForm({ className = "" }: { className?: string }) {
   const [doctors, setDoctors] = useState<DoctorOption[]>([]);
   const [loadingDoctors, setLoadingDoctors] = useState(true);
+
+  const todayDb = getTodayKolkataDbDate();
+  const defaultSlot = getNextAvailableAppointmentSlot(todayDb, PUBLIC_APPT_SLOTS);
 
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     email: "",
-    date: "",
-    time: "09:00 AM",
+    date: todayDb,
+    time: defaultSlot,
     doctorId: "",
     treatment: "General Consultation",
     notes: ""
@@ -56,7 +63,15 @@ export function PublicAppointmentForm({ className = "" }: { className?: string }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [name]: value };
+      if (name === "date") {
+        if (isSlotInThePast(prev.time, value)) {
+          next.time = getNextAvailableAppointmentSlot(value, PUBLIC_APPT_SLOTS);
+        }
+      }
+      return next;
+    });
     if (errorMessage) setErrorMessage(null);
   };
 
@@ -78,6 +93,11 @@ export function PublicAppointmentForm({ className = "" }: { className?: string }
 
     if (!formData.date) {
       setErrorMessage("Please select your preferred appointment date.");
+      return;
+    }
+
+    if (isSlotInThePast(formData.time, formData.date)) {
+      setErrorMessage("The selected time slot has already passed for today. Please choose an upcoming time slot.");
       return;
     }
 
@@ -117,12 +137,13 @@ export function PublicAppointmentForm({ className = "" }: { className?: string }
   const handleReset = () => {
     setSuccessMessage(null);
     setErrorMessage(null);
+    const resetDate = getTodayKolkataDbDate();
     setFormData({
       name: "",
       phone: "",
       email: "",
-      date: "",
-      time: "09:00 AM",
+      date: resetDate,
+      time: getNextAvailableAppointmentSlot(resetDate, PUBLIC_APPT_SLOTS),
       doctorId: "",
       treatment: "General Consultation",
       notes: ""
@@ -234,7 +255,7 @@ export function PublicAppointmentForm({ className = "" }: { className?: string }
               name="date"
               type="date"
               required
-              min={new Date().toISOString().split("T")[0]}
+              min={todayDb}
               value={formData.date}
               onChange={handleChange}
               className="h-10 rounded-xl bg-slate-50/50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs"
@@ -252,12 +273,14 @@ export function PublicAppointmentForm({ className = "" }: { className?: string }
               onChange={handleChange}
               className="h-10 w-full rounded-xl bg-slate-50/50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2E8B57]"
             >
-              <option value="09:00 AM">09:00 AM</option>
-              <option value="10:00 AM">10:00 AM</option>
-              <option value="11:30 AM">11:30 AM</option>
-              <option value="02:00 PM">02:00 PM</option>
-              <option value="04:30 PM">04:30 PM</option>
-              <option value="06:00 PM">06:00 PM</option>
+              {PUBLIC_APPT_SLOTS.map((slot) => {
+                const past = isSlotInThePast(slot, formData.date);
+                return (
+                  <option key={slot} value={slot} disabled={past}>
+                    {slot}{past ? " (Past)" : ""}
+                  </option>
+                );
+              })}
             </select>
           </div>
         </div>

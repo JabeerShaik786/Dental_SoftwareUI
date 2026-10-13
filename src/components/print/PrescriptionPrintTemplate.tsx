@@ -1,5 +1,6 @@
 import React from "react";
 import { getAssetPath } from "@/lib/getAssetPath";
+import { formatDbDateToUi, getTodayKolkataUiDate } from "@/lib/dateTimeUtils";
 
 export interface PrescriptionMedicineItem {
   name: string;
@@ -46,24 +47,8 @@ export const PrescriptionPrintTemplate: React.FC<PrescriptionPrintData> = ({
 }) => {
   const templateUrl = getAssetPath("/templates/vr_prescription_template.png");
 
-  // Format date display: preserve explicit formatted date or format ISO date to readable en-GB
-  let displayDate = date;
-  if (!displayDate) {
-    displayDate = new Date().toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  } else if (/^\d{4}-\d{2}-\d{2}/.test(displayDate)) {
-    const d = new Date(displayDate);
-    if (!isNaN(d.getTime())) {
-      displayDate = d.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-    }
-  }
+  // Format date display: preserve explicit formatted date or format ISO date to readable DD Mon YYYY in Asia/Kolkata
+  const displayDate = date ? formatDbDateToUi(date) : getTodayKolkataUiDate();
 
   // Patient age/sex format
   const ageSex = `${patient.age ? patient.age + " Yrs" : ""} ${patient.gender ? "/ " + patient.gender : ""}`.trim();
