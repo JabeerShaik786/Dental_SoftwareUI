@@ -1495,6 +1495,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     const { data: dbProfiles } = await supabase
       .from("profiles")
       .select("*");
+    let hasReceptionistAccount = false;
+    let foundReceptionistProfile: any = null;
     if (dbProfiles && dbProfiles.length > 0) {
       const mappedStaff: Staff[] = dbProfiles.map(p => ({
         id: p.id,
@@ -1505,10 +1507,47 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       }));
       setStaffList(mappedStaff);
 
-      const receptionistProfile = dbProfiles.find(p => p.role === "receptionist" || p.custom_title?.toLowerCase().includes("reception") || p.custom_title?.toLowerCase().includes("desk"));
-      if (receptionistProfile?.full_name) {
-        setReceptionistUser(receptionistProfile.full_name);
+      foundReceptionistProfile = dbProfiles.find(p => p.role === "receptionist" || p.custom_title?.toLowerCase().includes("reception") || p.custom_title?.toLowerCase().includes("desk"));
+      if (foundReceptionistProfile?.full_name) {
+        setReceptionistUser(foundReceptionistProfile.full_name);
+        setIsReceptionistAccountIdentity(true);
+        hasReceptionistAccount = true;
+      } else {
+        setIsReceptionistAccountIdentity(false);
       }
+    }
+
+    // 10. Fetch clinic settings
+    try {
+      const { data: dbSettings, error: csErr } = await supabase
+        .from("clinic_settings")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+
+      if (csErr) {
+        console.error("Error loading clinic settings from database:", csErr.message);
+      } else if (dbSettings) {
+        setSettingsRecordId(dbSettings.id);
+        if (dbSettings.clinic_name) {
+          setClinicName(dbSettings.clinic_name);
+        }
+        if (dbSettings.address) {
+          setClinicAddress(dbSettings.address);
+        }
+        if (!hasReceptionistAccount && dbSettings.receptionist_name) {
+          setReceptionistUser(dbSettings.receptionist_name);
+        }
+        try {
+          localStorage.setItem("clinic_settings", JSON.stringify({
+            clinicName: dbSettings.clinic_name || "",
+            clinicAddress: dbSettings.address || "",
+            receptionistUser: hasReceptionistAccount ? (foundReceptionistProfile?.full_name || "") : (dbSettings.receptionist_name || "")
+          }));
+        } catch (e) {}
+      }
+    } catch (csErr) {
+      console.error("Unexpected error loading clinic settings:", csErr);
     }
 
     // 10. Fetch medicines catalogue & transactions
@@ -2838,9 +2877,12 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     { id: "st-2", name: "Amit Kumar", role: "Desk Operations & Billing", phone: "+91 98765 44556", status: "Active" }
   ]);
 
-  const [clinicName, setClinicName] = useState("Apex Dental Clinic");
-  const [receptionistUser, setReceptionistUser] = useState("Anjali");
-  const [clinicAddress, setClinicAddress] = useState("12, MG Road, Bengaluru");
+  const [clinicName, setClinicName] = useState("");
+  const [receptionistUser, setReceptionistUser] = useState("");
+  const [clinicAddress, setClinicAddress] = useState("");
+  const [settingsRecordId, setSettingsRecordId] = useState<string | null>(null);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isReceptionistAccountIdentity, setIsReceptionistAccountIdentity] = useState(false);
 
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [backupHistory, setBackupHistory] = useState<BackupHistoryItem[]>([]);
@@ -2901,9 +2943,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       const savedSettings = localStorage.getItem("clinic_settings");
       if (savedSettings) {
         const parsed = JSON.parse(savedSettings);
-        if (parsed.clinicName) setClinicName(parsed.clinicName);
-        if (parsed.receptionistUser) setReceptionistUser(parsed.receptionistUser);
-        if (parsed.clinicAddress) setClinicAddress(parsed.clinicAddress);
+        if (parsed.clinicName && parsed.clinicName !== "Apex Dental Clinic") setClinicName(parsed.clinicName);
+        if (parsed.receptionistUser && parsed.receptionistUser !== "Anjali") setReceptionistUser(parsed.receptionistUser);
+        if (parsed.clinicAddress && parsed.clinicAddress !== "12, MG Road, Bengaluru") setClinicAddress(parsed.clinicAddress);
       }
     } catch (e) {}
   }, []);
@@ -2932,7 +2974,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [createdCredentials, setCreatedCredentials] = useState<{ name: string; email: string; pass: string } | null>(null);
 
   const [activities, setActivities] = useState<ActivityItem[]>([
-    { id: "act-1", type: "Register", msg: "Apex Dental database initialized with 15 intake files.", time: "1 hour ago" },
+    { id: "act-1", type: "Register", msg: "Clinic database initialized with 15 intake files.", time: "1 hour ago" },
     { id: "act-2", type: "Appointment", msg: "Aarav Mehta scheduled for Root Canal at 09:00 AM.", time: "45 mins ago" }
   ]);
 
@@ -12813,14 +12855,10 @@ ${clinicName}`;
       setDoctorModalOpen(true);
     };
 
-    const handleSaveClinicSettings = (e?: React.FormEvent) => {
+    const handleSaveClinicSettings = async (e?: React.FormEvent) => {
       if (e) e.preventDefault();
       if (!clinicName.trim()) {
         showToast("Please enter a clinic name.", "error");
-        return;
-      }
-      if (!receptionistUser.trim()) {
-        showToast("Please enter a receptionist user name.", "error");
         return;
       }
       if (!clinicAddress.trim()) {
@@ -12828,16 +12866,57 @@ ${clinicName}`;
         return;
       }
 
+      setIsSavingSettings(true);
+
       try {
-        const settingsObj = {
-          clinicName: clinicName.trim(),
-          receptionistUser: receptionistUser.trim(),
-          clinicAddress: clinicAddress.trim()
+        const matchedReceptionist = staffList.find(s => s.role.toLowerCase().includes("reception") || s.role.toLowerCase().includes("desk"));
+        const receptionistId = matchedReceptionist && !matchedReceptionist.id.startsWith("st-") ? matchedReceptionist.id : null;
+
+        const payload = {
+          clinic_name: clinicName.trim(),
+          address: clinicAddress.trim(),
+          receptionist_name: receptionistUser.trim() || null,
+          receptionist_user_id: receptionistId,
+          singleton_guard: true,
+          updated_at: new Date().toISOString()
         };
-        localStorage.setItem("clinic_settings", JSON.stringify(settingsObj));
-        showToast("Clinic configurations saved.", "success");
-      } catch (err) {
-        showToast("Failed to save clinic configurations.", "error");
+
+        const { data: savedRecord, error: saveErr } = await supabase
+          .from("clinic_settings")
+          .upsert(payload, { onConflict: "singleton_guard" })
+          .select()
+          .single();
+
+        if (saveErr) {
+          console.error("Failed to save clinic settings to database:", saveErr);
+          showToast(saveErr.message || "Failed to save clinic configurations.", "error");
+          setIsSavingSettings(false);
+          return;
+        }
+
+        if (savedRecord) {
+          setSettingsRecordId(savedRecord.id);
+          setClinicName(savedRecord.clinic_name || "");
+          setClinicAddress(savedRecord.address || "");
+          if (savedRecord.receptionist_name && !isReceptionistAccountIdentity) {
+            setReceptionistUser(savedRecord.receptionist_name);
+          }
+
+          try {
+            localStorage.setItem("clinic_settings", JSON.stringify({
+              clinicName: savedRecord.clinic_name || "",
+              clinicAddress: savedRecord.address || "",
+              receptionistUser: receptionistUser.trim()
+            }));
+          } catch (e) {}
+
+          showToast("Clinic configurations saved successfully.", "success");
+        }
+      } catch (err: any) {
+        console.error("Unexpected error saving clinic configurations:", err);
+        showToast(err?.message || "Failed to save clinic configurations.", "error");
+      } finally {
+        setIsSavingSettings(false);
       }
     };
 
@@ -13212,7 +13291,10 @@ ${clinicName}`;
             {/* 1. CLINIC */}
             {currentTab === "Clinic" && (
               <div className="space-y-6 max-w-xl">
-                <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Clinic Profile Settings</h2>
+                <div>
+                  <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Clinic Profile Settings</h2>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">Manage your clinic profile, address, and primary practice details.</p>
+                </div>
 
                 <form onSubmit={handleSaveClinicSettings} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -13221,16 +13303,36 @@ ${clinicName}`;
                       <Input
                         value={clinicName}
                         onChange={(e) => setClinicName(e.target.value)}
+                        placeholder="e.g. V.R. Dental Clinic"
                         className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[14px]"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Receptionist User</Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Receptionist User</Label>
+                        {isReceptionistAccountIdentity && (
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">Account Identity</span>
+                        )}
+                      </div>
                       <Input
                         value={receptionistUser}
-                        onChange={(e) => setReceptionistUser(e.target.value)}
-                        className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[14px]"
+                        onChange={(e) => {
+                          if (!isReceptionistAccountIdentity) {
+                            setReceptionistUser(e.target.value);
+                          }
+                        }}
+                        readOnly={isReceptionistAccountIdentity}
+                        disabled={isReceptionistAccountIdentity}
+                        placeholder={isReceptionistAccountIdentity ? "Linked to receptionist account" : "Enter receptionist name"}
+                        className={`h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[14px] ${
+                          isReceptionistAccountIdentity ? "bg-slate-50/80 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400 cursor-not-allowed" : ""
+                        }`}
                       />
+                      {isReceptionistAccountIdentity && (
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                          Receptionist account credentials and profile details are managed in the Staff tab.
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -13239,6 +13341,7 @@ ${clinicName}`;
                     <Input
                       value={clinicAddress}
                       onChange={(e) => setClinicAddress(e.target.value)}
+                      placeholder="e.g. 12, Main Road, Bengaluru"
                       className="h-10 rounded-xl border-slate-200 dark:border-slate-800 text-[14px]"
                     />
                   </div>
@@ -13246,9 +13349,16 @@ ${clinicName}`;
                   <div className="pt-2">
                     <Button
                       type="submit"
-                      className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-5 rounded-xl text-xs cursor-pointer shadow-xs"
+                      disabled={isSavingSettings}
+                      className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-5 rounded-xl text-xs cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Save Settings
+                      {isSavingSettings ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> Saving...
+                        </>
+                      ) : (
+                        "Save Settings"
+                      )}
                     </Button>
                   </div>
                 </form>
@@ -14248,7 +14358,7 @@ ${clinicName}`;
                   {(clinicName || "Clinic").split(" ").filter(Boolean).map(w => w[0]).slice(0, 2).join("").toUpperCase() || "DC"}
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[14px] font-bold text-slate-900 dark:text-slate-202 truncate">{clinicName}</span>
+                  <span className="text-[14px] font-bold text-slate-900 dark:text-slate-202 truncate">{clinicName || "Dental Clinic"}</span>
                   <span className="text-[12px] font-medium text-slate-505 truncate">
                     {currentUserName || (isOwner ? "Owner / Dentist" : "Receptionist")} ({isOwner ? "Owner" : "Receptionist"})
                   </span>
@@ -14637,7 +14747,7 @@ ${clinicName}`;
           >
             {hoveredItem === "profile" ? (
               <div className="flex flex-col gap-0.5 text-xs font-semibold">
-                <span className="font-bold text-[13px] text-white">{clinicName}</span>
+                <span className="font-bold text-[13px] text-white">{clinicName || "Dental Clinic"}</span>
                 <span className="text-slate-300 font-normal">{currentUserName || (isOwner ? "Owner / Dentist" : "Receptionist")}</span>
                 <span className="text-[10px] text-blue-405 font-bold uppercase tracking-wider mt-1 block">{isOwner ? "Owner" : "Receptionist"}</span>
               </div>
