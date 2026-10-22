@@ -39,7 +39,7 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
   includeBackPage = false,
 }) => {
   // Official V.R. Dental Care template image with authentic header, logo, watermark, General Consent, signature line, and footer
-  const templateUrl = getAssetPath("/VR_CaseSheet.jpg");
+  const templateUrl = getAssetPath("/vrcasesheet.jpeg");
   const backPageUrl = getAssetPath("/templates/vr_post_op_instructions.jpg");
 
   // Format consultation date cleanly in Asia/Kolkata (displayed in the top Patient Information section)
@@ -96,11 +96,11 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
         <img
           src={templateUrl}
           alt="V.R Dental Care Official Case Sheet Template"
-          className="absolute inset-0 w-full h-full object-fill pointer-events-none select-none z-0"
+          className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none z-0"
         />
 
         {/* Overlaid Clinical Form Content: positioned strictly between the top header banner and the bottom General Consent block */}
-        <div className="relative z-10 h-full flex flex-col justify-between pt-[37mm] pb-[60mm] px-[12mm] box-border">
+        <div className="relative z-10 h-full flex flex-col justify-between pt-[38mm] pb-[62mm] px-[12mm] box-border">
           {/* Sub-header Bar: Horizontally centered, prominent CASE SHEET heading + OP No. on right */}
           <div className="relative flex items-center justify-center border-b-2 border-[#0f4c81]/50 pb-1 mb-2">
             <h1 className="text-[18px] font-black uppercase tracking-wider text-[#0f4c81] text-center font-sans">
@@ -275,10 +275,10 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
           <img
             src={templateUrl}
             alt="V.R Dental Care Official Case Sheet Continuation"
-            className="absolute inset-0 w-full h-full object-fill pointer-events-none select-none z-0"
+            className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none z-0"
           />
 
-          <div className="relative z-10 h-full flex flex-col justify-between pt-[37mm] pb-[60mm] px-[12mm] box-border">
+          <div className="relative z-10 h-full flex flex-col justify-between pt-[38mm] pb-[62mm] px-[12mm] box-border">
             {/* Continuation Sub-header */}
             <div className="relative flex items-center justify-center border-b-2 border-[#0f4c81]/50 pb-1 mb-2">
               <h1 className="text-[18px] font-black uppercase tracking-wider text-[#0f4c81] text-center font-sans">
