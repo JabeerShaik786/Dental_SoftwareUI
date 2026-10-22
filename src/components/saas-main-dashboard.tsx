@@ -95,6 +95,10 @@ import {
 import {
   TREATMENT_CATEGORIES,
   TreatmentCategoryDef,
+  TREATMENT_COLOR_PALETTES,
+  ColorPaletteOption,
+  getColorPaletteByKey,
+  setDynamicCatalogue,
   findCategory,
   parseTreatmentEntry,
   buildTreatmentEntryString,
@@ -515,8 +519,18 @@ export function getTreatmentColorConfig(statusStr?: string): TreatmentColorConfi
   }
 
   const catDef = findCategory(parsed.category) || findCategory(parsed.raw);
-  if (catDef && TREATMENT_COLORS[catDef.colorKey]) {
-    return TREATMENT_COLORS[catDef.colorKey];
+  if (catDef) {
+    if (catDef.colorDot && catDef.colorTooth) {
+      return {
+        name: catDef.name,
+        dotColor: catDef.colorDot,
+        badgeBg: catDef.colorBadge || "bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-300",
+        toothFillClass: catDef.colorTooth
+      };
+    }
+    if (TREATMENT_COLORS[catDef.colorKey]) {
+      return TREATMENT_COLORS[catDef.colorKey];
+    }
   }
 
   const mainName = statusStr.split(" (")[0].trim();
@@ -1008,7 +1022,7 @@ const moduleSubTabs: Record<string, string[]> = {
   Treatments: ["Active Treatments", "Completed", "Treatment Plans"],
   Billing: ["Invoices", "Payments"],
   Reports: ["Revenue", "Patients", "Treatments", "Appointments"],
-  Settings: ["Clinic", "Doctors", "Staff", "Stock / Medicine", "Backup"]
+  Settings: ["Clinic", "Doctors", "Staff", "Stock / Medicine", "Treatments", "Backup"]
 };
 
 interface ClinicalMedia {
@@ -1643,6 +1657,52 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     } catch (err) {
       console.error("Error fetching medicine stock data:", err);
     }
+
+    // 11. Fetch Treatment Catalogue
+    try {
+      const { data: dbTreatmentCats, error: trCatErr } = await supabase
+        .from("treatment_categories")
+        .select("*")
+        .order("sort_order", { ascending: true });
+
+      if (!trCatErr && dbTreatmentCats && dbTreatmentCats.length > 0) {
+        const loadedCats: TreatmentCategoryDef[] = dbTreatmentCats.map((row: any) => ({
+          id: row.id,
+          name: row.name,
+          displayName: row.display_name || row.name,
+          colorKey: row.color_key,
+          colorDot: row.color_dot,
+          colorBadge: row.color_badge,
+          colorTooth: row.color_tooth,
+          subTreatments: Array.isArray(row.sub_treatments) ? row.sub_treatments : [],
+          aliases: Array.isArray(row.aliases) ? row.aliases : [],
+          sortOrder: row.sort_order ?? 0,
+          isActive: row.is_active ?? true,
+        }));
+        setTreatmentCategories(loadedCats);
+        setDynamicCatalogue(loadedCats);
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem("dentpro_treatment_catalogue", JSON.stringify(loadedCats));
+          } catch (e) {}
+        }
+      } else {
+        if (typeof window !== "undefined") {
+          const stored = localStorage.getItem("dentpro_treatment_catalogue");
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setTreatmentCategories(parsed);
+                setDynamicCatalogue(parsed);
+              }
+            } catch (e) {}
+          }
+        }
+      }
+    } catch (catFetchErr) {
+      console.warn("Treatment categories fetch notice:", catFetchErr);
+    }
   };
 
   const insertBillingRecord = async (newInvoice: InvoiceItem) => {
@@ -1833,6 +1893,52 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     dispensingQty: number;
     stockUnit: string;
     availableStock: number | null;
+  } | null>(null);
+
+  // Treatment Catalogue Management States
+  const [treatmentCategories, setTreatmentCategories] = useState<TreatmentCategoryDef[]>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("dentpro_treatment_catalogue");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setDynamicCatalogue(parsed);
+            return parsed;
+          }
+        } catch (e) {}
+      }
+    }
+    return TREATMENT_CATEGORIES;
+  });
+  const [treatmentsSearchQuery, setTreatmentsSearchQuery] = useState("");
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
+    extractions: true,
+    crowns: true,
+    scaling: true,
+    orthodontics: true,
+    prosthodontics: true,
+    implants: true,
+    pediatric: true,
+    "root-canal": false,
+    filling: false,
+    consultation: false,
+  });
+
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<TreatmentCategoryDef | null>(null);
+  const [catFormName, setCatFormName] = useState("");
+  const [catFormColorKey, setCatFormColorKey] = useState("Blue");
+
+  const [subTreatmentModalOpen, setSubTreatmentModalOpen] = useState(false);
+  const [editingSubTreatment, setEditingSubTreatment] = useState<{ categoryId: string; subName: string; originalSubName?: string } | null>(null);
+  const [subFormCatId, setSubFormCatId] = useState("");
+  const [subFormName, setSubFormName] = useState("");
+
+  const [deleteTreatmentConfirm, setDeleteTreatmentConfirm] = useState<{
+    type: "category" | "subTreatment";
+    category: TreatmentCategoryDef;
+    subName?: string;
   } | null>(null);
 
   // Global Dialog triggers
@@ -4808,6 +4914,251 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     showToast(`Dispensed ${dispensingQty} ${stockUnit} of ${medicineName} successfully.`, "success");
     setDispenseConfirmModal(null);
+  };
+
+  // --- TREATMENT CATALOGUE ACTION HANDLERS ---
+  const persistTreatmentCatalogue = async (updatedList: TreatmentCategoryDef[]) => {
+    setTreatmentCategories(updatedList);
+    setDynamicCatalogue(updatedList);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("dentpro_treatment_catalogue", JSON.stringify(updatedList));
+      } catch (err) {
+        console.warn("Error storing treatment catalogue in localStorage:", err);
+      }
+    }
+
+    try {
+      const payload = updatedList.map((cat, idx) => ({
+        id: cat.id,
+        name: cat.name,
+        display_name: cat.displayName || cat.name,
+        color_key: cat.colorKey,
+        color_dot: cat.colorDot,
+        color_badge: cat.colorBadge,
+        color_tooth: cat.colorTooth,
+        sub_treatments: cat.subTreatments || [],
+        aliases: cat.aliases || [],
+        sort_order: cat.sortOrder ?? idx + 1,
+        is_active: cat.isActive ?? true,
+        updated_at: new Date().toISOString()
+      }));
+
+      const { error } = await supabase.from("treatment_categories").upsert(payload, { onConflict: "id" });
+      if (error) {
+        console.warn("Supabase treatment_categories upsert notice:", error.message);
+      }
+    } catch (err) {
+      console.warn("Database sync notice (localStorage fallback preserved):", err);
+    }
+  };
+
+  const deleteCategoryFromDb = async (categoryId: string) => {
+    try {
+      const { error } = await supabase.from("treatment_categories").delete().eq("id", categoryId);
+      if (error) {
+        console.warn("Supabase treatment_categories delete notice:", error.message);
+      }
+    } catch (err) {
+      console.warn("Database delete error:", err);
+    }
+  };
+
+  const handleOpenAddCategory = () => {
+    if (!isOwner) {
+      showToast("Only clinic owners and dentists can manage the treatment catalogue.", "error");
+      return;
+    }
+    setEditingCategory(null);
+    setCatFormName("");
+    setCatFormColorKey("Blue");
+    setCategoryModalOpen(true);
+  };
+
+  const handleOpenEditCategory = (cat: TreatmentCategoryDef) => {
+    if (!isOwner) {
+      showToast("Only clinic owners and dentists can manage the treatment catalogue.", "error");
+      return;
+    }
+    setEditingCategory(cat);
+    setCatFormName(cat.name);
+    setCatFormColorKey(cat.colorKey || "Blue");
+    setCategoryModalOpen(true);
+  };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isOwner) {
+      showToast("Only clinic owners and dentists can manage the treatment catalogue.", "error");
+      return;
+    }
+    const cleanName = catFormName.trim();
+    if (!cleanName) {
+      showToast("Please enter a category name.", "error");
+      return;
+    }
+
+    const palette = getColorPaletteByKey(catFormColorKey);
+
+    if (editingCategory) {
+      const nameExists = treatmentCategories.some(
+        c => c.id !== editingCategory.id && c.name.toLowerCase() === cleanName.toLowerCase()
+      );
+      if (nameExists) {
+        showToast(`A category named "${cleanName}" already exists.`, "error");
+        return;
+      }
+
+      const updated = treatmentCategories.map(c => {
+        if (c.id === editingCategory.id) {
+          return {
+            ...c,
+            name: cleanName,
+            displayName: cleanName,
+            colorKey: catFormColorKey,
+            colorDot: palette.dotColor,
+            colorBadge: palette.badgeBg,
+            colorTooth: palette.toothFillClass,
+          };
+        }
+        return c;
+      });
+
+      await persistTreatmentCatalogue(updated);
+      showToast(`Category "${cleanName}" updated successfully.`, "success");
+    } else {
+      const nameExists = treatmentCategories.some(
+        c => c.name.toLowerCase() === cleanName.toLowerCase()
+      );
+      if (nameExists) {
+        showToast(`A category named "${cleanName}" already exists.`, "error");
+        return;
+      }
+
+      const newId = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `cat-${Date.now()}`;
+      const newCat: TreatmentCategoryDef = {
+        id: newId,
+        name: cleanName,
+        displayName: cleanName,
+        colorKey: catFormColorKey,
+        colorDot: palette.dotColor,
+        colorBadge: palette.badgeBg,
+        colorTooth: palette.toothFillClass,
+        subTreatments: [],
+        aliases: [],
+        sortOrder: treatmentCategories.length + 1,
+        isActive: true,
+      };
+
+      const updated = [...treatmentCategories, newCat];
+      await persistTreatmentCatalogue(updated);
+      setExpandedCategories(prev => ({ ...prev, [newId]: true }));
+      showToast(`Category "${cleanName}" created successfully.`, "success");
+    }
+
+    setCategoryModalOpen(false);
+  };
+
+  const handleOpenAddSubTreatment = (categoryId: string) => {
+    if (!isOwner) {
+      showToast("Only clinic owners and dentists can manage the treatment catalogue.", "error");
+      return;
+    }
+    setEditingSubTreatment(null);
+    setSubFormCatId(categoryId);
+    setSubFormName("");
+    setSubTreatmentModalOpen(true);
+  };
+
+  const handleOpenEditSubTreatment = (categoryId: string, subName: string) => {
+    if (!isOwner) {
+      showToast("Only clinic owners and dentists can manage the treatment catalogue.", "error");
+      return;
+    }
+    setEditingSubTreatment({ categoryId, subName, originalSubName: subName });
+    setSubFormCatId(categoryId);
+    setSubFormName(subName);
+    setSubTreatmentModalOpen(true);
+  };
+
+  const handleSaveSubTreatment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isOwner) {
+      showToast("Only clinic owners and dentists can manage the treatment catalogue.", "error");
+      return;
+    }
+    const cleanSub = subFormName.trim();
+    if (!cleanSub) {
+      showToast("Please enter a sub-treatment name.", "error");
+      return;
+    }
+
+    const targetCat = treatmentCategories.find(c => c.id === subFormCatId);
+    if (!targetCat) {
+      showToast("Target category not found.", "error");
+      return;
+    }
+
+    if (editingSubTreatment) {
+      const existingSubs = targetCat.subTreatments || [];
+      const isDuplicate = existingSubs.some(
+        s => s.toLowerCase() === cleanSub.toLowerCase() && s.toLowerCase() !== editingSubTreatment.originalSubName?.toLowerCase()
+      );
+      if (isDuplicate) {
+        showToast(`Sub-treatment "${cleanSub}" already exists under ${targetCat.name}.`, "error");
+        return;
+      }
+
+      const updatedSubs = existingSubs.map(s => s === editingSubTreatment.originalSubName ? cleanSub : s);
+      const updated = treatmentCategories.map(c => c.id === targetCat.id ? { ...c, subTreatments: updatedSubs } : c);
+      await persistTreatmentCatalogue(updated);
+      showToast(`Sub-treatment "${cleanSub}" updated successfully.`, "success");
+    } else {
+      const existingSubs = targetCat.subTreatments || [];
+      const isDuplicate = existingSubs.some(s => s.toLowerCase() === cleanSub.toLowerCase());
+      if (isDuplicate) {
+        showToast(`Sub-treatment "${cleanSub}" already exists under ${targetCat.name}.`, "error");
+        return;
+      }
+
+      const updatedSubs = [...existingSubs, cleanSub];
+      const updated = treatmentCategories.map(c => c.id === targetCat.id ? { ...c, subTreatments: updatedSubs } : c);
+      await persistTreatmentCatalogue(updated);
+      setExpandedCategories(prev => ({ ...prev, [targetCat.id]: true }));
+      showToast(`Sub-treatment "${cleanSub}" added under ${targetCat.name}.`, "success");
+    }
+
+    setSubTreatmentModalOpen(false);
+  };
+
+  const handleConfirmDeleteTreatment = async () => {
+    if (!deleteTreatmentConfirm) return;
+    if (!isOwner) {
+      showToast("Only clinic owners and dentists can manage the treatment catalogue.", "error");
+      setDeleteTreatmentConfirm(null);
+      return;
+    }
+
+    if (deleteTreatmentConfirm.type === "category") {
+      const catToDelete = deleteTreatmentConfirm.category;
+      const updated = treatmentCategories.filter(c => c.id !== catToDelete.id);
+      await persistTreatmentCatalogue(updated);
+      await deleteCategoryFromDb(catToDelete.id);
+      showToast(`Category "${catToDelete.name}" deleted. Historical patient records remain intact.`, "success");
+    } else if (deleteTreatmentConfirm.type === "subTreatment" && deleteTreatmentConfirm.subName) {
+      const cat = deleteTreatmentConfirm.category;
+      const subToDelete = deleteTreatmentConfirm.subName;
+      const updatedSubs = (cat.subTreatments || []).filter(s => s !== subToDelete);
+      const updated = treatmentCategories.map(c => c.id === cat.id ? { ...c, subTreatments: updatedSubs } : c);
+      await persistTreatmentCatalogue(updated);
+      showToast(`Sub-treatment "${subToDelete}" deleted from ${cat.name}. Historical records remain intact.`, "success");
+    }
+
+    setDeleteTreatmentConfirm(null);
+  };
+
+  const toggleCategoryExpand = (catId: string) => {
+    setExpandedCategories(prev => ({ ...prev, [catId]: !prev[catId] }));
   };
 
 
@@ -9046,9 +9397,16 @@ ${clinicName}`;
                         <div className="pt-3 border-t border-slate-200 dark:border-slate-800 print:hidden">
                           {modalCategory && (
                             <SubTreatmentModal
-                              category={modalCategory}
-                              selectedSubTreatment={activeTreatment ? parseTreatmentEntry(activeTreatment).subTreatment : undefined}
-                              colorDotClass={TREATMENT_COLORS[modalCategory.colorKey]?.dotColor || "bg-blue-500"}
+                              category={
+                                treatmentCategories.find(c => c.id === modalCategory.id || c.name.toLowerCase() === modalCategory.name.toLowerCase()) || modalCategory
+                              }
+                              selectedSubTreatment={activeTreatment ? parseTreatmentEntry(activeTreatment, treatmentCategories).subTreatment : undefined}
+                              colorDotClass={
+                                modalCategory.colorDot ||
+                                TREATMENT_COLORS[modalCategory.colorKey]?.dotColor ||
+                                getColorPaletteByKey(modalCategory.colorKey).dotColor ||
+                                "bg-blue-500"
+                              }
                               onClose={() => setModalCategory(null)}
                               onSelectSubTreatment={(sub) => {
                                 const activeStr = `${modalCategory.name} — ${sub}`;
@@ -9188,7 +9546,7 @@ ${clinicName}`;
                                               const cat = e.target.value;
                                               setChartCategory(cat);
                                               setChartSubTreatment("");
-                                              const catDef = findCategory(cat);
+                                              const catDef = findCategory(cat, treatmentCategories);
                                               if (!catDef?.subTreatments || catDef.subTreatments.length === 0) {
                                                 setChartTreatmentName(cat);
                                               } else {
@@ -9198,13 +9556,13 @@ ${clinicName}`;
                                             required
                                           >
                                             <option value="">-- Choose Category --</option>
-                                            {TREATMENT_CATEGORIES.map(c => (
+                                            {treatmentCategories.filter(c => c.isActive !== false).map(c => (
                                               <option key={c.id} value={c.name}>{c.displayName}</option>
                                             ))}
                                           </select>
                                         </div>
                                         {(() => {
-                                          const catDef = findCategory(chartCategory);
+                                          const catDef = findCategory(chartCategory, treatmentCategories);
                                           const hasSubs = catDef && catDef.subTreatments && catDef.subTreatments.length > 0;
                                           if (hasSubs) {
                                             return (
@@ -9389,9 +9747,15 @@ ${clinicName}`;
                                     })()}
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                      {TREATMENT_CATEGORIES.map((catDef) => {
-                                        const colorCfg = TREATMENT_COLORS[catDef.colorKey] || TREATMENT_COLORS[catDef.name];
-                                        const parsedActive = activeTreatment ? parseTreatmentEntry(activeTreatment) : null;
+                                      {treatmentCategories.filter(c => c.isActive !== false).map((catDef) => {
+                                        const pal = getColorPaletteByKey(catDef.colorKey);
+                                        const colorCfg = catDef.colorDot ? {
+                                          name: catDef.name,
+                                          dotColor: catDef.colorDot,
+                                          badgeBg: catDef.colorBadge || pal.badgeBg,
+                                          toothFillClass: catDef.colorTooth || pal.toothFillClass
+                                        } : (TREATMENT_COLORS[catDef.colorKey] || TREATMENT_COLORS[catDef.name] || pal);
+                                        const parsedActive = activeTreatment ? parseTreatmentEntry(activeTreatment, treatmentCategories) : null;
                                         const isActive = parsedActive?.category.toLowerCase() === catDef.name.toLowerCase();
                                         const hasSubTreatments = !!(catDef.subTreatments && catDef.subTreatments.length > 0);
 
@@ -9807,7 +10171,7 @@ ${clinicName}`;
                             required
                           >
                             <option value="">-- Choose Procedure --</option>
-                            {TREATMENT_CATEGORIES.map(cat => {
+                            {treatmentCategories.filter(c => c.isActive !== false).map(cat => {
                               if (cat.subTreatments && cat.subTreatments.length > 0) {
                                 return (
                                   <optgroup key={cat.id} label={cat.displayName}>
@@ -13541,6 +13905,7 @@ ${clinicName}`;
       { name: "Doctors", label: "Doctors", icon: Stethoscope },
       { name: "Staff", label: "Staff", icon: Users },
       ...(isOwner ? [{ name: "Stock / Medicine", label: "Medicine Catalogue", icon: Pill }] : []),
+      { name: "Treatments", label: "Treatments", icon: Activity },
       { name: "Backup", label: "Backup", icon: Database },
     ];
     const settingsTabs = settingsNavItems.map(i => i.name);
@@ -14458,6 +14823,234 @@ ${clinicName}`;
               </div>
             )}
 
+            {/* 6. TREATMENTS CATALOGUE */}
+            {currentTab === "Treatments" && (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-[18px] font-semibold text-slate-900 dark:text-white tracking-tight">Treatment Catalogue</h2>
+                      {!isOwner && (
+                        <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full font-semibold text-[11px] border border-slate-200 dark:border-slate-700">
+                          Read-Only View
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Configure dental treatment categories, sub-treatments, and chart color indicators.
+                    </p>
+                  </div>
+                  {isOwner && (
+                    <Button
+                      type="button"
+                      onClick={handleOpenAddCategory}
+                      className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-9 px-4 rounded-xl text-xs flex items-center gap-1.5 shrink-0 cursor-pointer shadow-xs"
+                    >
+                      <Plus className="h-4 w-4" /> Add Category
+                    </Button>
+                  )}
+                </div>
+
+                {/* Filters, Search & Summary */}
+                {(() => {
+                  const filteredCats = treatmentCategories.filter(cat => {
+                    if (cat.isActive === false) return false;
+                    if (!treatmentsSearchQuery.trim()) return true;
+                    const q = treatmentsSearchQuery.toLowerCase();
+                    const matchCat = cat.name.toLowerCase().includes(q) || cat.displayName.toLowerCase().includes(q);
+                    const matchSub = cat.subTreatments?.some(s => s.toLowerCase().includes(q));
+                    return matchCat || matchSub;
+                  });
+
+                  const totalProcedures = filteredCats.reduce((acc, c) => acc + (c.subTreatments?.length || 0), 0);
+                  const allExpanded = filteredCats.length > 0 && filteredCats.every(c => expandedCategories[c.id]);
+
+                  return (
+                    <>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <div className="relative max-w-xs w-full sm:w-72">
+                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                            <Input
+                              placeholder="Search categories or sub-treatments..."
+                              value={treatmentsSearchQuery}
+                              onChange={e => setTreatmentsSearchQuery(e.target.value)}
+                              className="pl-9 h-9 text-xs rounded-xl"
+                            />
+                          </div>
+                          {treatmentsSearchQuery && (
+                            <button
+                              type="button"
+                              onClick={() => setTreatmentsSearchQuery("")}
+                              className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 px-2 py-1 rounded cursor-pointer"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200/80 dark:border-slate-700/60">
+                            {filteredCats.length} Categories
+                          </span>
+                          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200/80 dark:border-slate-700/60">
+                            {totalProcedures} Sub-Treatments
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next: Record<string, boolean> = {};
+                              filteredCats.forEach(c => { next[c.id] = !allExpanded; });
+                              setExpandedCategories(prev => ({ ...prev, ...next }));
+                            }}
+                            className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 cursor-pointer"
+                          >
+                            {allExpanded ? "Collapse All" : "Expand All"}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Categories List (Accordion Cards) */}
+                      <div className="space-y-3">
+                        {filteredCats.length === 0 ? (
+                          <div className="p-8 text-center bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 text-xs">
+                            No treatment categories or sub-treatments found matching &quot;{treatmentsSearchQuery}&quot;.
+                          </div>
+                        ) : (
+                          filteredCats.map(cat => {
+                            const isExpanded = !!expandedCategories[cat.id] || !!treatmentsSearchQuery.trim();
+                            const subCount = cat.subTreatments?.length || 0;
+                            const pal = getColorPaletteByKey(cat.colorKey);
+                            const dotClass = cat.colorDot || pal.dotColor;
+
+                            return (
+                              <div
+                                key={cat.id}
+                                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs transition-all"
+                              >
+                                <div
+                                  onClick={() => toggleCategoryExpand(cat.id)}
+                                  className="flex items-center justify-between p-3.5 sm:p-4 cursor-pointer hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors select-none"
+                                >
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <span className={`w-3.5 h-3.5 rounded-full shrink-0 ${dotClass}`} />
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-bold text-[14px] text-slate-900 dark:text-white truncate">
+                                          {cat.displayName}
+                                        </span>
+                                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700/60">
+                                          {subCount > 0 ? `${subCount} sub-treatment${subCount > 1 ? "s" : ""}` : "Direct procedure"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+                                    {isOwner && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleOpenAddSubTreatment(cat.id)}
+                                          className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-900/60 transition-colors cursor-pointer"
+                                          title={`Add sub-treatment to ${cat.name}`}
+                                        >
+                                          <Plus className="h-3 w-3" /> Sub-treatment
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleOpenEditCategory(cat)}
+                                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer"
+                                          title="Edit category name and color"
+                                        >
+                                          <Pencil className="h-3.5 w-3.5" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setDeleteTreatmentConfirm({ type: "category", category: cat })}
+                                          className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors cursor-pointer"
+                                          title="Delete category"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                      </>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleCategoryExpand(cat.id)}
+                                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer"
+                                      title={isExpanded ? "Collapse" : "Expand"}
+                                    >
+                                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {isExpanded && (
+                                  <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-3.5 sm:p-4 space-y-3">
+                                    {cat.subTreatments && cat.subTreatments.length > 0 ? (
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        {cat.subTreatments.map((sub, sIdx) => (
+                                          <div
+                                            key={`${cat.id}-${sub}-${sIdx}`}
+                                            className="flex items-center justify-between p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800 text-xs shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
+                                          >
+                                            <div className="flex items-center gap-2 min-w-0 pr-2">
+                                              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" />
+                                              <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                                                {sub}
+                                              </span>
+                                            </div>
+                                            {isOwner && (
+                                              <div className="flex items-center gap-1 shrink-0">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleOpenEditSubTreatment(cat.id, sub)}
+                                                  className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded transition-colors cursor-pointer"
+                                                  title="Edit sub-treatment name"
+                                                >
+                                                  <Pencil className="h-3 w-3" />
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setDeleteTreatmentConfirm({ type: "subTreatment", category: cat, subName: sub })}
+                                                  className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors cursor-pointer"
+                                                  title="Delete sub-treatment"
+                                                >
+                                                  <Trash2 className="h-3 w-3" />
+                                                </button>
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white dark:bg-slate-900 rounded-lg border border-dashed border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+                                        <span>This category acts as a direct procedure in the Dental Chart. You can add specific procedure variations if needed.</span>
+                                        {isOwner && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleOpenAddSubTreatment(cat.id)}
+                                            className="inline-flex items-center gap-1 font-bold text-blue-600 dark:text-blue-400 hover:underline shrink-0 cursor-pointer"
+                                          >
+                                            <Plus className="h-3 w-3" /> Add first sub-treatment
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+
           </div>
 
         </div>
@@ -14733,6 +15326,207 @@ ${clinicName}`;
                 </Button>
                 <Button type="button" onClick={handleDeleteStaff} className="bg-red-600 hover:bg-red-500 text-white font-bold h-10 px-5 text-xs">
                   Remove Staff
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- TREATMENT CATEGORY ADD/EDIT MODAL --- */}
+        {categoryModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5 animate-scaleIn">
+              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-[16px] font-bold text-slate-900 dark:text-white">
+                  {editingCategory ? "Edit Treatment Category" : "Add Treatment Category"}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setCategoryModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveCategory} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-medium">Category Name</Label>
+                  <Input
+                    required
+                    placeholder="e.g. Periodontics, Bleaching, Veneers"
+                    value={catFormName}
+                    onChange={(e) => setCatFormName(e.target.value)}
+                    className="h-10 text-[13px]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[13px] font-medium">Chart Color Indicator</Label>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                      {getColorPaletteByKey(catFormColorKey).label}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                    {TREATMENT_COLOR_PALETTES.map((pal) => {
+                      const isSelected = catFormColorKey.toLowerCase() === pal.key.toLowerCase();
+                      return (
+                        <button
+                          key={pal.key}
+                          type="button"
+                          onClick={() => setCatFormColorKey(pal.key)}
+                          className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
+                            isSelected
+                              ? "ring-2 ring-blue-600 ring-offset-2 dark:ring-offset-slate-900 scale-110 shadow-sm"
+                              : "opacity-80 hover:opacity-100 hover:scale-105"
+                          }`}
+                          style={{ backgroundColor: pal.hex }}
+                          title={pal.label}
+                        >
+                          {isSelected && <Check className="h-4 w-4 text-white drop-shadow-xs" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCategoryModalOpen(false)}
+                    className="h-10 px-4 text-xs font-semibold cursor-pointer"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-5 text-xs cursor-pointer shadow-xs"
+                  >
+                    {editingCategory ? "Save Category" : "Add Category"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* --- SUB-TREATMENT ADD/EDIT MODAL --- */}
+        {subTreatmentModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5 animate-scaleIn">
+              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-[16px] font-bold text-slate-900 dark:text-white">
+                  {editingSubTreatment ? "Edit Sub-Treatment" : "Add Sub-Treatment"}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setSubTreatmentModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveSubTreatment} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-medium">Category</Label>
+                  <select
+                    value={subFormCatId}
+                    onChange={(e) => setSubFormCatId(e.target.value)}
+                    disabled={!!editingSubTreatment}
+                    className="w-full h-10 px-3 text-[13px] rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white disabled:opacity-60 cursor-pointer"
+                  >
+                    {treatmentCategories.filter(c => c.isActive !== false).map(c => (
+                      <option key={c.id} value={c.id}>{c.displayName}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-medium">Sub-Treatment Name</Label>
+                  <Input
+                    required
+                    placeholder="e.g. Deep Scaling, Ceramic Crown, Clear Aligners"
+                    value={subFormName}
+                    onChange={(e) => setSubFormName(e.target.value)}
+                    className="h-10 text-[13px]"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setSubTreatmentModalOpen(false)}
+                    className="h-10 px-4 text-xs font-semibold cursor-pointer"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-10 px-5 text-xs cursor-pointer shadow-xs"
+                  >
+                    {editingSubTreatment ? "Save Changes" : "Add Sub-Treatment"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* --- TREATMENT DELETE CONFIRMATION MODAL --- */}
+        {deleteTreatmentConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+            <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 animate-scaleIn">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-full bg-red-100 dark:bg-red-955/50 text-red-600 flex items-center justify-center shrink-0">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-[16px] font-bold text-slate-900 dark:text-white">
+                    {deleteTreatmentConfirm.type === "category" ? "Delete Treatment Category?" : "Delete Sub-Treatment?"}
+                  </h3>
+                  <div className="text-[13px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                    {deleteTreatmentConfirm.type === "category" ? (
+                      <>
+                        Are you sure you want to delete category <strong className="text-slate-900 dark:text-white">{deleteTreatmentConfirm.category.name}</strong>?
+                        {deleteTreatmentConfirm.category.subTreatments && deleteTreatmentConfirm.category.subTreatments.length > 0 && (
+                          <div className="mt-2.5 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-955/30 border border-amber-200 dark:border-amber-900/40 text-amber-800 dark:text-amber-300 text-xs">
+                            <strong>Impact:</strong> Contains <strong>{deleteTreatmentConfirm.category.subTreatments.length} sub-treatments</strong> ({deleteTreatmentConfirm.category.subTreatments.join(", ")}). Removing this category will remove it and all child sub-treatments from future Dental Chart selections.
+                          </div>
+                        )}
+                        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                          *Historical patient clinical records and dental logs will remain safely preserved and will not be altered.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        Are you sure you want to delete sub-treatment <strong className="text-slate-900 dark:text-white">{deleteTreatmentConfirm.subName}</strong> from <strong className="text-slate-900 dark:text-white">{deleteTreatmentConfirm.category.name}</strong>?
+                        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                          This will remove it from future Dental Chart options. Existing patient history remains safe and intact.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDeleteTreatmentConfirm(null)}
+                  className="h-10 px-4 text-xs font-semibold cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleConfirmDeleteTreatment}
+                  className="bg-red-600 hover:bg-red-500 text-white font-bold h-10 px-5 text-xs cursor-pointer shadow-xs"
+                >
+                  {deleteTreatmentConfirm.type === "category" ? "Delete Category" : "Delete Sub-Treatment"}
                 </Button>
               </div>
             </div>
