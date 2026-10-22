@@ -8378,7 +8378,7 @@ ${clinicName}`;
                     {(() => {
                       const activeTreatmentAdvisedStr = formatTreatmentAdvisedFromChart(patientItem.dentalChart) || editTreatmentAdvised || "";
                       const activeTreatmentLinesCount = activeTreatmentAdvisedStr.split("\n").map(s => s.trim()).filter(Boolean).length;
-                      const isCaseSheetMultiPage = activeTreatmentLinesCount > 24;
+                      const isCaseSheetMultiPage = activeTreatmentLinesCount > 18;
                       const totalCaseSheetPages = 1 + (isCaseSheetMultiPage ? 1 : 0) + (includeCaseSheetBackPage ? 1 : 0);
 
                       return (

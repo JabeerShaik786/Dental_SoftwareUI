@@ -42,7 +42,7 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
   const templateUrl = getAssetPath("/VR_CaseSheet.jpg");
   const backPageUrl = getAssetPath("/templates/vr_post_op_instructions.jpg");
 
-  // Format consultation date cleanly in Asia/Kolkata
+  // Format consultation date cleanly in Asia/Kolkata (displayed in the top Patient Information section)
   const rawDate = visitDate ? (visitDate.includes(",") ? visitDate.split(",")[0].trim() : visitDate) : "";
   const displayDate = rawDate ? formatDbDateToUi(rawDate) : getTodayKolkataUiDate();
 
@@ -74,10 +74,10 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
     : [];
 
   // Capacity per column on Page 1:
-  // With 1 line for Chief Complaint, 2 lines for Intra Oral Exam, and 2 lines for Provisional Diagnosis,
-  // Section 4 has ~100mm of vertical height. 12 entries per column fit cleanly without crowding or clipping.
-  const PAGE1_COL_CAPACITY = 12;
-  const PAGE1_TOTAL_CAPACITY = PAGE1_COL_CAPACITY * 2; // 24 items total on Page 1
+  // With font sizes enlarged by 2-4px, Chief Complaint (1 line), Intra Oral Exam (+1 extra line = 3 lines),
+  // and Provisional Diagnosis (+1 extra line = 3 lines), each column accommodates up to 9 entries.
+  const PAGE1_COL_CAPACITY = 9;
+  const PAGE1_TOTAL_CAPACITY = PAGE1_COL_CAPACITY * 2; // 18 items total across both columns on Page 1
 
   const page1Entries = treatmentEntries.slice(0, PAGE1_TOTAL_CAPACITY);
   const col1Entries = page1Entries.slice(0, PAGE1_COL_CAPACITY);
@@ -85,8 +85,8 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
 
   // If treatment entries exceed the 2-column capacity of Page 1, handle safely via continuation page
   const overflowEntries = treatmentEntries.slice(PAGE1_TOTAL_CAPACITY);
-  const overflowCol1 = overflowEntries.slice(0, 18);
-  const overflowCol2 = overflowEntries.slice(18);
+  const overflowCol1 = overflowEntries.slice(0, 16);
+  const overflowCol2 = overflowEntries.slice(16);
 
   return (
     <div className="flex flex-col items-center">
@@ -101,60 +101,60 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
 
         {/* Overlaid Clinical Form Content: positioned strictly between the top header banner and the bottom General Consent block */}
         <div className="relative z-10 h-full flex flex-col justify-between pt-[37mm] pb-[60mm] px-[12mm] box-border">
-          {/* Sub-header Bar: Horizontally centered, emphasized CASE SHEET heading + OP No. on right */}
-          <div className="relative flex items-center justify-center border-b border-[#0f4c81]/40 pb-1.5 mb-2">
-            <h1 className="text-[17px] font-black uppercase tracking-wider text-[#0f4c81] text-center font-sans">
+          {/* Sub-header Bar: Horizontally centered, prominent CASE SHEET heading + OP No. on right */}
+          <div className="relative flex items-center justify-center border-b-2 border-[#0f4c81]/50 pb-1 mb-2">
+            <h1 className="text-[18px] font-black uppercase tracking-wider text-[#0f4c81] text-center font-sans">
               CASE SHEET
             </h1>
-            <div className="absolute right-0 text-[10.5px] font-bold text-slate-800 flex items-center">
+            <div className="absolute right-0 text-[12.5px] font-bold text-slate-800 flex items-center">
               <span>
                 <strong className="text-slate-600">OP No:</strong> {patient.id}
               </span>
             </div>
           </div>
 
-          {/* 1. PATIENT / CONTACT INFORMATION TABLE */}
-          <div className="border border-[#0f4c81]/70 rounded-xs overflow-hidden bg-white/80 backdrop-blur-[0.5px] mb-2 shadow-2xs">
-            <div className="bg-[#0f4c81] text-white px-2.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider flex justify-between items-center">
+          {/* 1. PATIENT / CONTACT INFORMATION TABLE (Enlarged font sizes by 2-3px) */}
+          <div className="border border-[#0f4c81]/70 rounded-xs overflow-hidden bg-white/85 backdrop-blur-[0.5px] mb-2 shadow-2xs">
+            <div className="bg-[#0f4c81] text-white px-2.5 py-1 text-[11.5px] font-bold uppercase tracking-wider flex justify-between items-center">
               <span>PATIENT / CONTACT INFORMATION</span>
             </div>
-            <table className="w-full text-[10px] border-collapse">
+            <table className="w-full text-[12px] border-collapse">
               <tbody>
                 <tr className="border-b border-slate-300">
-                  <td className="px-2 py-1 border-r border-slate-300 w-[40%]">
-                    <strong className="text-slate-700">Name: </strong>
-                    <span className="font-extrabold text-slate-950">{clean(patient.name)}</span>
+                  <td className="px-2.5 py-1.5 border-r border-slate-300 w-[40%]">
+                    <strong className="text-slate-700 font-bold">Name: </strong>
+                    <span className="font-extrabold text-slate-950 text-[12.5px]">{clean(patient.name)}</span>
                   </td>
-                  <td className="px-2 py-1 border-r border-slate-300 w-[30%]">
-                    <strong className="text-slate-700">Age / Gender: </strong>
+                  <td className="px-2.5 py-1.5 border-r border-slate-300 w-[30%]">
+                    <strong className="text-slate-700 font-bold">Age / Gender: </strong>
                     <span className="font-semibold text-slate-900">{ageSex}</span>
                   </td>
-                  <td className="px-2 py-1 w-[30%]">
-                    <strong className="text-slate-700">Date: </strong>
+                  <td className="px-2.5 py-1.5 w-[30%]">
+                    <strong className="text-slate-700 font-bold">Date: </strong>
                     <span className="font-semibold text-slate-900">{displayDate}</span>
                   </td>
                 </tr>
                 <tr className="border-b border-slate-300">
-                  <td className="px-2 py-1 border-r border-slate-300">
-                    <strong className="text-slate-700">Tel No.: </strong>
+                  <td className="px-2.5 py-1.5 border-r border-slate-300">
+                    <strong className="text-slate-700 font-bold">Tel No.: </strong>
                     <span className="font-semibold text-slate-900">{clean(patient.phone)}</span>
                   </td>
-                  <td className="px-2 py-1 border-r border-slate-300">
-                    <strong className="text-slate-700">Ref.: </strong>
+                  <td className="px-2.5 py-1.5 border-r border-slate-300">
+                    <strong className="text-slate-700 font-bold">Ref.: </strong>
                     <span className="font-semibold text-slate-900">{clean(patient.reference)}</span>
                   </td>
-                  <td className="px-2 py-1">
-                    <strong className="text-slate-700">Occupation: </strong>
+                  <td className="px-2.5 py-1.5">
+                    <strong className="text-slate-700 font-bold">Occupation: </strong>
                     <span className="font-semibold text-slate-900">{clean(patient.occupation)}</span>
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-2 py-1 border-r border-slate-300" colSpan={2}>
-                    <strong className="text-slate-700">Address: </strong>
+                  <td className="px-2.5 py-1.5 border-r border-slate-300" colSpan={2}>
+                    <strong className="text-slate-700 font-bold">Address: </strong>
                     <span className="font-semibold text-slate-900">{clean(patient.address)}</span>
                   </td>
-                  <td className="px-2 py-1">
-                    <strong className="text-slate-700">Email: </strong>
+                  <td className="px-2.5 py-1.5">
+                    <strong className="text-slate-700 font-bold">Email: </strong>
                     <span className="font-semibold text-slate-900">{clean(patient.email)}</span>
                   </td>
                 </tr>
@@ -162,19 +162,19 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
             </table>
           </div>
 
-          {/* 2. MEDICAL HISTORY CHECKBOXES */}
-          <div className="border border-[#0f4c81]/70 rounded-xs overflow-hidden bg-white/80 backdrop-blur-[0.5px] mb-2 shadow-2xs">
-            <div className="bg-[#0f4c81] text-white px-2.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider">
+          {/* 2. MEDICAL HISTORY CHECKBOXES (Enlarged font sizes by 2px) */}
+          <div className="border border-[#0f4c81]/70 rounded-xs overflow-hidden bg-white/85 backdrop-blur-[0.5px] mb-2 shadow-2xs">
+            <div className="bg-[#0f4c81] text-white px-2.5 py-1 text-[11.5px] font-bold uppercase tracking-wider">
               MEDICAL HISTORY
             </div>
-            <div className="p-2 space-y-1.5 text-[10px]">
-              <div className="grid grid-cols-4 gap-x-2 gap-y-1">
+            <div className="p-2.5 space-y-2 text-[12px]">
+              <div className="grid grid-cols-4 gap-x-2.5 gap-y-1.5">
                 {medConditionsList.map((cond) => {
                   const isChecked = medicalHistoryConditions.includes(cond);
                   return (
                     <div key={cond} className="flex items-center gap-1.5">
                       <span
-                        className={`w-3.5 h-3.5 border border-slate-700 bg-white inline-flex items-center justify-center font-bold text-[10px] leading-none shrink-0 ${
+                        className={`w-4 h-4 border border-slate-700 bg-white inline-flex items-center justify-center font-bold text-[11px] leading-none shrink-0 ${
                           isChecked ? "text-[#0f4c81]" : "text-transparent"
                         }`}
                       >
@@ -182,7 +182,7 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
                       </span>
                       <span className="font-semibold text-slate-900 truncate">{cond}</span>
                       {cond === "Others" && clean(medicalHistoryOthers) && (
-                        <span className="font-bold text-slate-950 text-[9.5px]">
+                        <span className="font-bold text-slate-950 text-[11.5px]">
                           ({clean(medicalHistoryOthers)})
                         </span>
                       )}
@@ -190,73 +190,73 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
                   );
                 })}
               </div>
-              <div className="pt-1 border-t border-slate-200 flex items-center gap-1.5 text-[10px]">
-                <strong className="text-slate-700 shrink-0">Medications if any:</strong>
+              <div className="pt-1.5 border-t border-slate-200 flex items-center gap-2 text-[12px]">
+                <strong className="text-slate-700 shrink-0 font-bold">Medications if any:</strong>
                 <span className="font-semibold text-slate-900">{clean(currentMedications)}</span>
               </div>
             </div>
           </div>
 
           {/* 3. CLINICAL CASE DETAILS */}
-          <div className="border border-[#0f4c81]/70 rounded-xs overflow-hidden bg-white/80 backdrop-blur-[0.5px] flex-1 flex flex-col justify-between shadow-2xs min-h-0">
-            <div className="bg-[#0f4c81] text-white px-2.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider shrink-0">
+          <div className="border border-[#0f4c81]/70 rounded-xs overflow-hidden bg-white/85 backdrop-blur-[0.5px] flex-1 flex flex-col justify-between shadow-2xs min-h-0">
+            <div className="bg-[#0f4c81] text-white px-2.5 py-1 text-[11.5px] font-bold uppercase tracking-wider shrink-0">
               CLINICAL CASE DETAILS
             </div>
 
-            {/* 1. Chief Complaint & Past Dental History (Strictly 1 line of writing space) */}
-            <div className="border-b border-slate-300 px-2.5 py-1 shrink-0">
-              <strong className="text-[9.5px] font-bold text-slate-900 uppercase tracking-wide block leading-none mb-0.5">
+            {/* 1. Chief Complaint & Past Dental History (Strictly 1 line of writing space, text-[12px]) */}
+            <div className="border-b border-slate-300 px-2.5 py-1.5 shrink-0">
+              <strong className="text-[11.5px] font-bold text-slate-900 uppercase tracking-wide block leading-none mb-1">
                 1. Chief Complaint & Past Dental History
               </strong>
-              <div className="text-[10px] text-slate-950 font-medium leading-[16px] h-[16px] overflow-hidden truncate">
+              <div className="text-[12px] text-slate-950 font-medium leading-[18px] h-[18px] overflow-hidden truncate">
                 {clean(chiefComplaint)}
               </div>
             </div>
 
-            {/* 2. Intra Oral Examination (Strictly 2 lines of writing space) */}
-            <div className="border-b border-slate-300 px-2.5 py-1 shrink-0">
-              <strong className="text-[9.5px] font-bold text-slate-900 uppercase tracking-wide block leading-none mb-0.5">
+            {/* 2. Intra Oral Examination (Expanded with +1 extra line: now 3 lines of writing space, text-[12px]) */}
+            <div className="border-b border-slate-300 px-2.5 py-1.5 shrink-0">
+              <strong className="text-[11.5px] font-bold text-slate-900 uppercase tracking-wide block leading-none mb-1">
                 2. Intra Oral Examination
               </strong>
-              <div className="text-[10px] text-slate-950 font-medium leading-[16px] h-[32px] overflow-hidden line-clamp-2">
+              <div className="text-[12px] text-slate-950 font-medium leading-[17px] h-[51px] overflow-hidden line-clamp-3">
                 {clean(intraOralExam)}
               </div>
             </div>
 
-            {/* 3. Provisional Diagnosis (Strictly 2 lines of writing space) */}
-            <div className="border-b border-slate-300 px-2.5 py-1 shrink-0">
-              <strong className="text-[9.5px] font-bold text-slate-900 uppercase tracking-wide block leading-none mb-0.5">
+            {/* 3. Provisional Diagnosis (Expanded with +1 extra line: now 3 lines of writing space, text-[12px]) */}
+            <div className="border-b border-slate-300 px-2.5 py-1.5 shrink-0">
+              <strong className="text-[11.5px] font-bold text-slate-900 uppercase tracking-wide block leading-none mb-1">
                 3. Provisional Diagnosis
               </strong>
-              <div className="text-[10px] text-slate-950 font-medium leading-[16px] h-[32px] overflow-hidden line-clamp-2">
+              <div className="text-[12px] text-slate-950 font-medium leading-[17px] h-[51px] overflow-hidden line-clamp-3">
                 {clean(provisionalDiagnosis)}
               </div>
             </div>
 
-            {/* 4. Treatment Advised (Two-Column Layout) */}
+            {/* 4. Treatment Advised (Two-Column Layout, text-[12px], moved down cleanly) */}
             <div className="p-2.5 flex-1 flex flex-col min-h-0 overflow-hidden">
-              <strong className="text-[9.5px] font-bold text-slate-900 uppercase tracking-wide block leading-none mb-1.5 shrink-0">
+              <strong className="text-[11.5px] font-bold text-slate-900 uppercase tracking-wide block leading-none mb-1.5 shrink-0">
                 4. Treatment Advised
               </strong>
-              <div className="grid grid-cols-2 gap-x-4 flex-1 text-[10px] text-slate-950 min-h-0">
+              <div className="grid grid-cols-2 gap-x-4 flex-1 text-[12px] text-slate-950 min-h-0">
                 {/* Left Column */}
-                <div className="space-y-1 min-h-0">
+                <div className="space-y-1.5 min-h-0">
                   {col1Entries.map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-1 leading-snug">
-                      <span className="text-[#0f4c81] font-bold shrink-0 mt-0.5">•</span>
+                    <div key={idx} className="flex items-start gap-1.5 leading-snug">
+                      <span className="text-[#0f4c81] font-bold text-[13px] shrink-0 mt-0.5">•</span>
                       <span className="font-semibold break-words">{item}</span>
                     </div>
                   ))}
                   {col1Entries.length === 0 && (
-                    <div className="text-slate-400 italic text-[9.5px]">No treatment advised recorded.</div>
+                    <div className="text-slate-400 italic text-[11px]">No treatment advised recorded.</div>
                   )}
                 </div>
 
                 {/* Right Column */}
-                <div className="space-y-1 min-h-0">
+                <div className="space-y-1.5 min-h-0">
                   {col2Entries.map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-1 leading-snug">
-                      <span className="text-[#0f4c81] font-bold shrink-0 mt-0.5">•</span>
+                    <div key={idx} className="flex items-start gap-1.5 leading-snug">
+                      <span className="text-[#0f4c81] font-bold text-[13px] shrink-0 mt-0.5">•</span>
                       <span className="font-semibold break-words">{item}</span>
                     </div>
                   ))}
@@ -266,10 +266,7 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
           </div>
         </div>
 
-        {/* Consultation Date accurately aligned over the official template's "Date & Time" dotted line */}
-        <div className="absolute bottom-[28.5mm] left-[16mm] text-[10px] font-bold text-slate-900 pointer-events-none select-none z-10">
-          {displayDate}
-        </div>
+        {/* NOTE: General Consent date overlay removed so the template's designated "Date & Time" blank area remains clean for manual entry */}
       </div>
 
       {/* PAGE 1.5 (CONTINUATION): IF TREATMENT ENTRIES EXCEED CAPACITY OF BOTH COLUMNS (SAFELY PREVENTS ANY TRUNCATION) */}
@@ -283,11 +280,11 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
 
           <div className="relative z-10 h-full flex flex-col justify-between pt-[37mm] pb-[60mm] px-[12mm] box-border">
             {/* Continuation Sub-header */}
-            <div className="relative flex items-center justify-center border-b border-[#0f4c81]/40 pb-1.5 mb-2">
-              <h1 className="text-[17px] font-black uppercase tracking-wider text-[#0f4c81] text-center font-sans">
+            <div className="relative flex items-center justify-center border-b-2 border-[#0f4c81]/50 pb-1 mb-2">
+              <h1 className="text-[18px] font-black uppercase tracking-wider text-[#0f4c81] text-center font-sans">
                 CASE SHEET (CONTINUATION)
               </h1>
-              <div className="absolute right-0 text-[10.5px] font-bold text-slate-800 flex items-center">
+              <div className="absolute right-0 text-[12.5px] font-bold text-slate-800 flex items-center">
                 <span>
                   <strong className="text-slate-600">OP No:</strong> {patient.id}
                 </span>
@@ -295,32 +292,32 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
             </div>
 
             {/* Continuation Patient Reference Strip */}
-            <div className="border border-[#0f4c81]/70 rounded-xs px-3 py-1.5 bg-white/90 backdrop-blur-[0.5px] mb-3 text-[10px] flex justify-between items-center shadow-2xs">
+            <div className="border border-[#0f4c81]/70 rounded-xs px-3 py-2 bg-white/90 backdrop-blur-[0.5px] mb-3 text-[12px] flex justify-between items-center shadow-2xs">
               <div>
-                <strong className="text-slate-700">Patient: </strong>
-                <span className="font-extrabold text-slate-950">{clean(patient.name)}</span>
+                <strong className="text-slate-700 font-bold">Patient: </strong>
+                <span className="font-extrabold text-slate-950 text-[12.5px]">{clean(patient.name)}</span>
               </div>
               <div>
-                <strong className="text-slate-700">Age / Gender: </strong>
+                <strong className="text-slate-700 font-bold">Age / Gender: </strong>
                 <span className="font-semibold text-slate-900">{ageSex}</span>
               </div>
               <div>
-                <strong className="text-slate-700">Date: </strong>
+                <strong className="text-slate-700 font-bold">Date: </strong>
                 <span className="font-semibold text-slate-900">{displayDate}</span>
               </div>
             </div>
 
             {/* Continuation Two-Column Treatment Advised Block */}
-            <div className="border border-[#0f4c81]/70 rounded-xs overflow-hidden bg-white/80 backdrop-blur-[0.5px] flex-1 flex flex-col shadow-2xs min-h-0">
-              <div className="bg-[#0f4c81] text-white px-2.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider shrink-0">
+            <div className="border border-[#0f4c81]/70 rounded-xs overflow-hidden bg-white/85 backdrop-blur-[0.5px] flex-1 flex flex-col shadow-2xs min-h-0">
+              <div className="bg-[#0f4c81] text-white px-2.5 py-1 text-[11.5px] font-bold uppercase tracking-wider shrink-0">
                 4. TREATMENT ADVISED (CONTINUED)
               </div>
-              <div className="p-3 grid grid-cols-2 gap-x-4 flex-1 text-[10px] text-slate-950 min-h-0">
+              <div className="p-3 grid grid-cols-2 gap-x-4 flex-1 text-[12px] text-slate-950 min-h-0">
                 {/* Overflow Column 1 */}
                 <div className="space-y-1.5 min-h-0">
                   {overflowCol1.map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-1 leading-snug">
-                      <span className="text-[#0f4c81] font-bold shrink-0 mt-0.5">•</span>
+                    <div key={idx} className="flex items-start gap-1.5 leading-snug">
+                      <span className="text-[#0f4c81] font-bold text-[13px] shrink-0 mt-0.5">•</span>
                       <span className="font-semibold break-words">{item}</span>
                     </div>
                   ))}
@@ -329,18 +326,14 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
                 {/* Overflow Column 2 */}
                 <div className="space-y-1.5 min-h-0">
                   {overflowCol2.map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-1 leading-snug">
-                      <span className="text-[#0f4c81] font-bold shrink-0 mt-0.5">•</span>
+                    <div key={idx} className="flex items-start gap-1.5 leading-snug">
+                      <span className="text-[#0f4c81] font-bold text-[13px] shrink-0 mt-0.5">•</span>
                       <span className="font-semibold break-words">{item}</span>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
-          </div>
-
-          <div className="absolute bottom-[28.5mm] left-[16mm] text-[10px] font-bold text-slate-900 pointer-events-none select-none z-10">
-            {displayDate}
           </div>
         </div>
       )}
