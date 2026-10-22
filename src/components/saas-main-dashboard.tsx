@@ -11166,6 +11166,7 @@ ${clinicName}`;
                         <div className="flex-1 overflow-y-auto p-2 sm:p-6 bg-slate-200/80 dark:bg-slate-950/80 flex justify-center shadow-inner">
                           <ResponsivePdfPreview
                             pageCount={1}
+                            pageHeightPx={1059}
                             title="Official Prescription"
                           >
                             <PrescriptionPrintTemplate

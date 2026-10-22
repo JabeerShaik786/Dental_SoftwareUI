@@ -6,6 +6,7 @@ import { ZoomIn, ZoomOut, RotateCcw, Maximize2 } from "lucide-react";
 export interface ResponsivePdfPreviewProps {
   children: React.ReactNode;
   pageCount?: number;
+  pageHeightPx?: number;
   title?: string;
   className?: string;
 }
@@ -17,6 +18,7 @@ const PAGE_GAP_PX = 20;
 export const ResponsivePdfPreview: React.FC<ResponsivePdfPreviewProps> = ({
   children,
   pageCount = 1,
+  pageHeightPx,
   title,
   className = "",
 }) => {
@@ -70,8 +72,9 @@ export const ResponsivePdfPreview: React.FC<ResponsivePdfPreviewProps> = ({
   }
 
   // Calculate scaled dimensions for the container
+  const effectivePageHeight = pageHeightPx || A4_HEIGHT_PX;
   const scaledWidth = Math.round(A4_WIDTH_PX * effectiveScale);
-  const totalUnscaledHeight = pageCount * A4_HEIGHT_PX + Math.max(0, pageCount - 1) * PAGE_GAP_PX;
+  const totalUnscaledHeight = pageCount * effectivePageHeight + Math.max(0, pageCount - 1) * PAGE_GAP_PX;
   const scaledHeight = Math.round(totalUnscaledHeight * effectiveScale);
 
   const handleZoomIn = () => {

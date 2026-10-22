@@ -9,7 +9,12 @@ export interface GeneratePrescriptionPdfOptions {
     name: string;
     age?: number | string;
     gender?: string;
+    phone?: string;
     medicalNotes?: string;
+    allergies?: string;
+    medicalConditions?: string;
+    medicalHistory?: string[];
+    medicalHistoryOthers?: string;
   };
   doctorName?: string;
   date?: string;
@@ -54,75 +59,108 @@ export async function generateAndDownloadPrescriptionPdf(options: GeneratePrescr
     parseDosageFn,
   } = options;
 
+  // Custom dimensions 210mm x 280mm matches the authentic template's 768:1024 (3:4) aspect ratio perfectly
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
-    format: "a4",
+    format: [210, 280],
   });
 
-  const templateUrl = getAssetPath("/templates/vr_prescription_template.png");
+  const templateUrl = getAssetPath("/vrprescription.jpg");
   try {
     const bgDataUrl = await getTemplateDataUrl(templateUrl);
-    doc.addImage(bgDataUrl, "PNG", 0, 0, 210, 297, undefined, "FAST");
+    doc.addImage(bgDataUrl, "JPEG", 0, 0, 210, 280, undefined, "FAST");
   } catch (err) {
     console.error("Failed to load prescription template background image:", err);
   }
 
   const displayDate = date ? formatDbDateToUi(date) : getTodayKolkataUiDate();
 
-  const ageSex = `${patient.age ? patient.age + " Yrs" : ""} ${patient.gender ? "/ " + patient.gender : ""}`.trim();
+  const ageSex = `${patient.age ? patient.age + " Yrs" : ""} ${patient.gender ? (patient.age ? "/ " : "") + patient.gender : ""}`.trim();
 
-  const cleanMedAlert =
-    patient.medicalNotes &&
-    patient.medicalNotes !== "None" &&
-    patient.medicalNotes !== "N/A" &&
-    patient.medicalNotes.trim().length > 0
-      ? patient.medicalNotes.trim()
-      : "";
+  // Resolve clean medical alert from patient allergies, notes, conditions, and history
+  const getCleanMedicalAlert = (p: GeneratePrescriptionPdfOptions["patient"]): string => {
+    const parts: string[] = [];
+    const cleanVal = (val?: string) => {
+      if (!val) return "";
+      const trimmed = val.trim();
+      const lower = trimmed.toLowerCase();
+      if (lower === "none" || lower === "n/a" || lower === "-" || lower === "null" || lower === "undefined") {
+        return "";
+      }
+      return trimmed;
+    };
 
-  // 1. Overlay Patient Information
+    const allergy = cleanVal(p.allergies);
+    if (allergy) parts.push(allergy);
+
+    const notes = cleanVal(p.medicalNotes);
+    if (notes && !parts.includes(notes)) parts.push(notes);
+
+    const cond = cleanVal(p.medicalConditions);
+    if (cond && !parts.includes(cond)) parts.push(cond);
+
+    if (Array.isArray(p.medicalHistory)) {
+      p.medicalHistory.forEach((item) => {
+        const cleanItem = cleanVal(item);
+        if (cleanItem && !parts.includes(cleanItem)) {
+          parts.push(cleanItem);
+        }
+      });
+    }
+
+    const others = cleanVal(p.medicalHistoryOthers);
+    if (others && !parts.includes(others)) parts.push(others);
+
+    return parts.join(", ");
+  };
+
+  const cleanMedAlert = getCleanMedicalAlert(patient);
+
+  // 1. Overlay Patient Information (aligned with pre-printed dotted lines, enlarged font sizes)
   // Name
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10.5);
+  doc.setFontSize(13);
   doc.setTextColor(15, 23, 42);
-  doc.text(patient.name, 98, 70.5);
+  doc.text(patient.name, 42.1, 62.0);
 
   // Date
-  doc.setFontSize(9.5);
-  doc.text(displayDate, 173, 70.5);
+  doc.setFontSize(12);
+  doc.text(displayDate, 174.5, 62.0);
 
   // Age / Sex
-  doc.setFontSize(9.5);
-  doc.text(ageSex || "-", 104, 78.5);
+  doc.setFontSize(12);
+  doc.text(ageSex || "-", 42.1, 69.6);
 
   // Medical Alert
   if (cleanMedAlert) {
     doc.setTextColor(185, 28, 28);
     doc.setFont("helvetica", "bold");
-    doc.text(cleanMedAlert, 109, 86.5);
+    doc.setFontSize(11.5);
+    doc.text(cleanMedAlert, 42.1, 77.0);
   }
 
   // 2. Prescription Writing Area
   // Rx symbol
   doc.setFont("times", "bold");
-  doc.setFontSize(22);
+  doc.setFontSize(26);
   doc.setTextColor(15, 23, 42);
-  doc.text("Rx", 87, 98);
-
-  let currentY = 100;
+  doc.text("Rx", 10.5, 87.0);
 
   // Diagnosis note
   if (diagnosis && diagnosis.trim()) {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
+    doc.setFontSize(10.5);
     doc.setTextColor(71, 85, 105);
-    doc.text("Diagnosis: ", 102, 97);
+    doc.text("Diagnosis: ", 25.0, 86.0);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(15, 23, 42);
-    doc.text(diagnosis.trim(), 118, 97);
+    doc.text(diagnosis.trim(), 46.0, 86.0);
   }
 
-  // Medicines Table
+  let currentY = 89.0;
+
+  // Medicines Table (Spans full available width 189mm, enlarged font sizes by 2-4px)
   if (medicines.length > 0) {
     const rows = medicines.map((med, idx) => {
       let timeStr = "-";
@@ -155,65 +193,66 @@ export async function generateAndDownloadPrescriptionPdf(options: GeneratePrescr
     });
 
     autoTable(doc, {
-      startY: 102,
-      margin: { left: 87, right: 16 },
-      head: [["#", "Medicine Name", "Dosage", "Meal", "Duration", "Instructions"]],
+      startY: 89.0,
+      margin: { left: 10.5, right: 10.5 },
+      head: [["#", "Medicine Name & Strength", "Dosage / Frequency", "Meal Timing", "Duration", "Special Instructions"]],
       body: rows,
       theme: "plain",
       styles: {
         textColor: [15, 23, 42],
-        fontSize: 8,
-        cellPadding: 1.8,
+        fontSize: 10,
+        cellPadding: 2.4,
         font: "helvetica",
       },
       headStyles: {
         fontStyle: "bold",
-        lineWidth: { bottom: 0.3 },
+        lineWidth: { bottom: 0.35 },
         lineColor: [51, 65, 85],
         textColor: [15, 23, 42],
+        fillColor: [248, 250, 252],
       },
       columnStyles: {
-        0: { cellWidth: 7, halign: "center" },
-        1: { cellWidth: 35, fontStyle: "bold" },
-        2: { cellWidth: 15 },
-        3: { cellWidth: 17 },
-        4: { cellWidth: 14 },
+        0: { cellWidth: 8, halign: "center" },
+        1: { cellWidth: 54, fontStyle: "bold" },
+        2: { cellWidth: 28 },
+        3: { cellWidth: 28 },
+        4: { cellWidth: 24 },
         5: { cellWidth: "auto" },
       },
     });
 
-    currentY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 6 : 140;
+    currentY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 5 : 125;
   }
 
-  // Doctor Advice
+  // Doctor Advice / Follow-Up Instructions (Enlarged font sizes)
   if (advice && advice.trim()) {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
+    doc.setFontSize(10.5);
     doc.setTextColor(15, 23, 42);
-    doc.text("Doctor Advice / Instructions:", 87, currentY);
+    doc.text("Doctor Advice & Follow-Up Instructions:", 10.5, currentY);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+    doc.setFontSize(10);
     doc.setTextColor(51, 65, 85);
-    const splitAdvice = doc.splitTextToSize(advice.trim(), 105);
-    doc.text(splitAdvice, 87, currentY + 4.5);
+    const splitAdvice = doc.splitTextToSize(advice.trim(), 189);
+    doc.text(splitAdvice, 10.5, currentY + 4.5);
   }
 
-  // Doctor Signature Block (Bottom right of writing area, above footer line)
+  // Doctor Signature Block (Bottom of writing area, right above pre-printed doctors horizontal line at y=209)
   doc.setFont("helvetica", "italic");
-  doc.setFontSize(7.5);
+  doc.setFontSize(9);
   doc.setTextColor(100, 116, 139);
-  doc.text("* Please complete the prescribed course as directed.", 87, 258);
+  doc.text("* Please complete the prescribed course as directed.", 10.5, 205);
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
+  doc.setFontSize(11.5);
   doc.setTextColor(15, 23, 42);
-  doc.text(doctorName || "Dr. M. Durga Praveen", 194, 253, { align: "right" });
+  doc.text(doctorName || "Dr. M. Durga Praveen", 199.5, 201, { align: "right" });
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
+  doc.setFontSize(9);
   doc.setTextColor(100, 116, 139);
-  doc.text("Authorized Signature", 194, 257.5, { align: "right" });
+  doc.text("Authorized Signature", 199.5, 205, { align: "right" });
 
   // Filename
   const safeName = (patient.name || "Patient").replace(/[^a-zA-Z0-9]/g, "_");
