@@ -1080,7 +1080,7 @@ export function validate10DigitPhone(phoneStr: string): boolean {
   return digits.length === 10;
 }
 
-// Sequential 4-digit Patient ID Generator (0001, 0002, ...)
+// Sequential OP Number / Patient ID Generator (starts from 10000, 10001, ...)
 export function getNextSequentialPatientId(patientsList: Array<{ id?: string; patient_id?: string }>): string {
   let maxNum = 0;
   patientsList.forEach(p => {
@@ -1095,8 +1095,8 @@ export function getNextSequentialPatientId(patientsList: Array<{ id?: string; pa
       });
     }
   });
-  const nextNum = maxNum + 1;
-  return nextNum.toString().padStart(4, "0");
+  const nextNum = maxNum >= 10000 ? maxNum + 1 : 10000;
+  return nextNum.toString();
 }
 
 const DEFAULT_MOCK_PATIENTS = [
@@ -5092,18 +5092,13 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       }
     }
 
-    // Generate unique Patient ID by counting rows in the database
-    const { count, error: countErr } = await supabase
+    // Generate sequential OP Number starting from 10000
+    const { data: dbAllPats } = await supabase
       .from("patients")
-      .select("*", { count: "exact", head: true });
+      .select("patient_id");
 
-    if (countErr) {
-      console.error("Walk-in ID generation failed: count query error", countErr.message, countErr.code);
-      showToast("Failed to generate patient ID.", "error");
-      return;
-    }
-
-    const patientId = `DS-${1000 + (count || 0) + 1}`;
+    const combinedList = dbAllPats && dbAllPats.length > 0 ? dbAllPats.map(p => ({ id: p.patient_id })) : patients;
+    const patientId = getNextSequentialPatientId(combinedList);
 
     const { data: insertedPat, error } = await supabase
       .from("patients")
@@ -8380,23 +8375,32 @@ ${clinicName}`;
                 {/* EXACT CASE SHEET PRESENTATION (WHEN VIEWING ON SCREEN) */}
                 {!isEditingCaseSheet ? (
                   <div className="bg-slate-200/80 dark:bg-slate-900/80 p-2 sm:p-6 rounded-xl flex flex-col items-center border border-slate-300 dark:border-slate-800 animate-fadeIn print:hidden shadow-inner w-full">
-                    <ResponsivePdfPreview
-                      pageCount={includeCaseSheetBackPage ? 2 : 1}
-                      title="Dental Case Sheet"
-                    >
-                      <CaseSheetPrintTemplate
-                        patient={patientItem}
-                        medicalHistoryConditions={editMedicalHistoryConditions}
-                        medicalHistoryOthers={editMedicalHistoryOthers}
-                        currentMedications={editCurrentMedications}
-                        chiefComplaint={editChiefComplaint}
-                        intraOralExam={editIntraOralExam}
-                        provisionalDiagnosis={editProvisionalDiagnosis}
-                        treatmentAdvised={formatTreatmentAdvisedFromChart(patientItem.dentalChart) || editTreatmentAdvised}
-                        visitDate={patientItem.visit || patientItem.firstVisit}
-                        includeBackPage={includeCaseSheetBackPage}
-                      />
-                    </ResponsivePdfPreview>
+                    {(() => {
+                      const activeTreatmentAdvisedStr = formatTreatmentAdvisedFromChart(patientItem.dentalChart) || editTreatmentAdvised || "";
+                      const activeTreatmentLinesCount = activeTreatmentAdvisedStr.split("\n").map(s => s.trim()).filter(Boolean).length;
+                      const isCaseSheetMultiPage = activeTreatmentLinesCount > 24;
+                      const totalCaseSheetPages = 1 + (isCaseSheetMultiPage ? 1 : 0) + (includeCaseSheetBackPage ? 1 : 0);
+
+                      return (
+                        <ResponsivePdfPreview
+                          pageCount={totalCaseSheetPages}
+                          title="Dental Case Sheet"
+                        >
+                          <CaseSheetPrintTemplate
+                            patient={patientItem}
+                            medicalHistoryConditions={editMedicalHistoryConditions}
+                            medicalHistoryOthers={editMedicalHistoryOthers}
+                            currentMedications={editCurrentMedications}
+                            chiefComplaint={editChiefComplaint}
+                            intraOralExam={editIntraOralExam}
+                            provisionalDiagnosis={editProvisionalDiagnosis}
+                            treatmentAdvised={activeTreatmentAdvisedStr}
+                            visitDate={patientItem.visit || patientItem.firstVisit}
+                            includeBackPage={includeCaseSheetBackPage}
+                          />
+                        </ResponsivePdfPreview>
+                      );
+                    })()}
                   </div>
                 ) : (
                   /* Digital Dental Case Sheet Editor Container (When Editing) */

@@ -65,27 +65,32 @@ END;
 $$;
 
 -- ----------------------------------------------------------------------------
--- 3. SEQUENCES & GENERATORS FOR PATIENT DISPLAY ID (DS-xxxx)
+-- 3. SEQUENCES & GENERATORS FOR PATIENT DISPLAY OP ID (STARTING AT 10000)
 -- ----------------------------------------------------------------------------
-CREATE SEQUENCE IF NOT EXISTS public.patient_id_seq START 1001;
+CREATE SEQUENCE IF NOT EXISTS public.patient_id_seq START 10000;
 
--- Reset sequence to the highest existing sequence number if patients already exist
+-- Reset sequence to start at 10000 (or safely above existing max if >= 10000)
 SELECT setval(
     'public.patient_id_seq', 
-    COALESCE(
-        (SELECT MAX(SUBSTRING(patient_id FROM '[0-9]+')::integer) FROM public.patients WHERE patient_id LIKE 'DS-%'),
-        1000
-    )
+    GREATEST(
+        9999,
+        COALESCE(
+            (SELECT MAX(SUBSTRING(patient_id FROM '[0-9]+')::bigint) FROM public.patients WHERE patient_id ~ '[0-9]+'),
+            9999
+        )
+    ),
+    true
 );
 
--- Trigger function to atomically assign display IDs on insert
+-- Trigger function to atomically assign display OP IDs on insert
 CREATE OR REPLACE FUNCTION public.generate_patient_id()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    IF NEW.patient_id IS NULL OR NEW.patient_id = '' OR NEW.patient_id LIKE 'DS-%' THEN
-        NEW.patient_id := 'DS-' || nextval('public.patient_id_seq')::text;
+    IF NEW.patient_id IS NULL OR NEW.patient_id = '' OR NEW.patient_id LIKE 'DS-%'
+       OR EXISTS (SELECT 1 FROM public.patients WHERE patient_id = NEW.patient_id) THEN
+        NEW.patient_id := nextval('public.patient_id_seq')::text;
     END IF;
     RETURN NEW;
 END;
@@ -96,6 +101,8 @@ CREATE TRIGGER tr_generate_patient_id
     BEFORE INSERT ON public.patients
     FOR EACH ROW
     EXECUTE FUNCTION public.generate_patient_id();
+
+ALTER TABLE public.patients ALTER COLUMN patient_id SET DEFAULT nextval('public.patient_id_seq')::text;
 
 -- ----------------------------------------------------------------------------
 -- 4. NEW TABLES DECLARATION

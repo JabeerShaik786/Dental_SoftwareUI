@@ -189,7 +189,7 @@ serve(async (req) => {
       if (matchedPatient) {
         patientUuid = matchedPatient.id;
       } else {
-        // Sequential 4-digit ID calculation (0001, 0002, ...)
+        // Sequential OP Number generation (starts from 10000, 10001, ...)
         let maxNum = 0;
         (dbPatients || []).forEach((p: any) => {
           const rawId = p.patient_id || p.id || "";
@@ -201,7 +201,8 @@ serve(async (req) => {
             });
           }
         });
-        const newSeqId = (maxNum + 1).toString().padStart(4, "0");
+        const nextNum = maxNum >= 10000 ? maxNum + 1 : 10000;
+        const newSeqId = nextNum.toString();
 
         const { data: newPat, error: newPatErr } = await supabase
           .from("patients")
