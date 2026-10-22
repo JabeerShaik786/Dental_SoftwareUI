@@ -3124,24 +3124,25 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     const oldPatientItem = patients.find(p => p.id === selectedPatientId);
 
-    const { error } = await supabase
-      .from("patients")
-      .update({
-        name: fullName,
-        phone: editMobile.trim(),
-        age: editAge,
-        gender: editGender,
-        address: fullAddress,
-        medical_notes: mergedMedicalNotes,
-        email: editEmail.trim() || null,
-        blood_group: editBloodGroup.trim() || null,
-        notes: clinicalNotes,
-        occupation: editOccupation.trim() || null,
-        reference: editRefDoctor.trim() || null,
-        medical_history: editMedicalHistoryConditions,
-        medical_history_others: editMedicalHistoryOthers.trim() || null
-      })
-      .eq("patient_id", selectedPatientId);
+    const updatePayload = {
+      name: fullName,
+      phone: editMobile.trim(),
+      age: editAge,
+      gender: editGender,
+      address: fullAddress,
+      medical_notes: mergedMedicalNotes,
+      email: editEmail.trim() || null,
+      blood_group: editBloodGroup.trim() || null,
+      notes: clinicalNotes,
+      occupation: editOccupation.trim() || null,
+      reference: editRefDoctor.trim() || null,
+      medical_history: editMedicalHistoryConditions,
+      medical_history_others: editMedicalHistoryOthers.trim() || null
+    };
+
+    const { error } = oldPatientItem?.uuid
+      ? await supabase.from("patients").update(updatePayload).eq("id", oldPatientItem.uuid)
+      : await supabase.from("patients").update(updatePayload).eq("patient_id", selectedPatientId);
 
     if (error) {
       console.error("Patient profile update failed:", error.message, error.code);
@@ -8576,9 +8577,18 @@ ${clinicName}`;
                         <div className="grid grid-cols-3 items-center gap-2">
                           <Label className="font-bold text-slate-800 dark:text-slate-200">Occupation:</Label>
                           <div className="col-span-2">
-                            <span className="font-semibold text-slate-900 dark:text-white">
-                              {(patientItem as any).occupation && (patientItem as any).occupation !== "N/A" ? (patientItem as any).occupation : ""}
-                            </span>
+                            {isEditingCaseSheet ? (
+                              <Input
+                                value={editOccupation}
+                                onChange={e => setEditOccupation(e.target.value)}
+                                placeholder="e.g. Teacher, Engineer, Student"
+                                className="h-8 text-xs"
+                              />
+                            ) : (
+                              <span className="font-semibold text-slate-900 dark:text-white">
+                                {patientItem.occupation && patientItem.occupation !== "N/A" ? patientItem.occupation : ""}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
