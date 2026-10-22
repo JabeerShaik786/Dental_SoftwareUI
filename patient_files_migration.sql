@@ -33,12 +33,12 @@ CREATE POLICY "Allow authenticated read patient_files" ON public.patient_files
 
 DROP POLICY IF EXISTS "Allow staff write patient_files" ON public.patient_files;
 CREATE POLICY "Allow staff write patient_files" ON public.patient_files
-    FOR ALL TO authenticated USING (public.get_user_role() IN ('admin', 'doctor', 'dentist', 'receptionist', 'assistant'));
+    FOR ALL TO authenticated USING (public.get_user_role() IN ('owner', 'admin', 'doctor', 'dentist', 'receptionist', 'assistant'));
 
 -- 5. Set up Supabase Storage bucket for patient files if storage schema is present
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('patient-files', 'patient-files', true)
-ON CONFLICT (id) DO NOTHING;
+VALUES ('patient-files', 'patient-files', false)
+ON CONFLICT (id) DO UPDATE SET public = false;
 
 DROP POLICY IF EXISTS "Allow authenticated access to patient files bucket" ON storage.objects;
 CREATE POLICY "Allow authenticated access to patient files bucket"
