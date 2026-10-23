@@ -84,6 +84,8 @@ import { CaseSheetPrintTemplate } from "@/components/print/CaseSheetPrintTemplat
 import { PrescriptionPrintTemplate } from "@/components/print/PrescriptionPrintTemplate";
 import { ResponsivePdfPreview } from "@/components/print/ResponsivePdfPreview";
 import { generateAndDownloadPrescriptionPdf } from "@/lib/prescriptionPdfGenerator";
+import { VRDentalInvoicePrintTemplate } from "@/components/print/VRDentalInvoicePrintTemplate";
+import { generateAndDownloadInvoicePdf } from "@/lib/invoicePdfGenerator";
 import { MedicineCategorySelector } from "@/components/prescription/MedicineCategorySelector";
 import {
   INITIAL_MEDICINES_CATALOGUE,
@@ -241,6 +243,14 @@ interface Appointment {
   avatarColor: string;
 }
 
+interface MultiTreatmentRow {
+  id: string;
+  description: string;
+  quantity: number | string;
+  unitPrice: number | string;
+  amount: number;
+}
+
 interface InvoiceItem {
   id: string;
   uuid?: string;
@@ -248,7 +258,12 @@ interface InvoiceItem {
   patientName: string;
   doctor: string;
   treatment: string;
-  items: { description: string; amount: number }[];
+  items: {
+    description: string;
+    amount: number;
+    quantity?: number;
+    unitPrice?: number;
+  }[];
   discount: number; // in percentage
   discountType?: "percentage" | "fixed";
   discountValue?: number;
@@ -2915,6 +2930,97 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [invTax, setInvTax] = useState("0");
   const [invPaid, setInvPaid] = useState("0");
 
+  // Multi-treatment invoice states (Matching Sameeksha Workflow)
+  const getNextInvoiceId = () => {
+    const num = (invoices?.length || 0) + 101;
+    return `INV-${num}`;
+  };
+
+  const [invoiceCustomId, setInvoiceCustomId] = useState("");
+  const [invoiceDoctor, setInvoiceDoctor] = useState("Dr. M. Durga Praveen");
+  const [invoiceTreatmentRows, setInvoiceTreatmentRows] = useState<MultiTreatmentRow[]>([
+    { id: "row_1", description: "", quantity: 1, unitPrice: "", amount: 0 }
+  ]);
+  const [invoiceDiscountType, setInvoiceDiscountType] = useState<"percentage" | "fixed">("percentage");
+  const [invoiceDiscountValue, setInvoiceDiscountValue] = useState<string>("0");
+  const [invoicePaidAmount, setInvoicePaidAmount] = useState<string>("0");
+  const [invoicePaymentMode, setInvoicePaymentMode] = useState<string>("Cash");
+  const [isSavingMultiInvoice, setIsSavingMultiInvoice] = useState(false);
+
+  // Global Create Invoice Modal (from Billing module)
+  const [isGlobalCreateInvoiceModalOpen, setIsGlobalCreateInvoiceModalOpen] = useState(false);
+  const [globalInvoicePatientId, setGlobalInvoicePatientId] = useState("");
+
+  const handleAddTreatmentRow = () => {
+    setInvoiceTreatmentRows(prev => [
+      ...prev,
+      {
+        id: `row_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        description: "",
+        quantity: 1,
+        unitPrice: "",
+        amount: 0,
+      }
+    ]);
+  };
+
+  const handleRemoveTreatmentRow = (rowId: string) => {
+    setInvoiceTreatmentRows(prev => {
+      if (prev.length <= 1) {
+        return [{ id: `row_${Date.now()}`, description: "", quantity: 1, unitPrice: "", amount: 0 }];
+      }
+      return prev.filter(r => r.id !== rowId);
+    });
+  };
+
+  const handleUpdateTreatmentRow = (
+    rowId: string,
+    field: "description" | "quantity" | "unitPrice",
+    val: string | number
+  ) => {
+    setInvoiceTreatmentRows(prev =>
+      prev.map(row => {
+        if (row.id !== rowId) return row;
+        const updated = { ...row, [field]: val };
+        const q = Number(field === "quantity" ? val : row.quantity) || 1;
+        const p = Number(field === "unitPrice" ? val : row.unitPrice) || 0;
+        updated.amount = q * p;
+        return updated;
+      })
+    );
+  };
+
+  const resetMultiTreatmentForm = () => {
+    setInvoiceCustomId(getNextInvoiceId());
+    setInvoiceTreatmentRows([
+      { id: `row_${Date.now()}`, description: "", quantity: 1, unitPrice: "", amount: 0 }
+    ]);
+    setInvoiceDiscountType("percentage");
+    setInvoiceDiscountValue("0");
+    setInvoicePaidAmount("0");
+    setInvoicePaymentMode("Cash");
+  };
+
+  const calculateInvoiceFormValues = () => {
+    const subtotal = invoiceTreatmentRows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    const discVal = Number(invoiceDiscountValue) || 0;
+    const discountAmount =
+      invoiceDiscountType === "percentage"
+        ? (subtotal * discVal) / 100
+        : discVal;
+    const totalPayable = Math.max(0, subtotal - discountAmount);
+    const paid = Number(invoicePaidAmount) || 0;
+    const balanceDue = Math.max(0, totalPayable - paid);
+
+    return {
+      subtotal,
+      discountAmount,
+      totalPayable,
+      paid,
+      balanceDue,
+    };
+  };
+
   const getPatientBalance = (patientId: string): number => {
     const patInvoices = invoices.filter(inv => inv.patientId === patientId || inv.patientName === patientId);
     return patInvoices.reduce((sum, inv) => sum + (inv.total - inv.paidAmount), 0);
@@ -4268,6 +4374,97 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     setInvPaid("0");
 
     showToast("Invoice saved successfully.", "success");
+  };
+
+  const handleSaveMultiTreatmentInvoice = async (e?: React.FormEvent, targetPatientId?: string) => {
+    if (e) e.preventDefault();
+    const pid = targetPatientId || selectedPatientId || globalInvoicePatientId;
+    const patientItem = patients.find(p => p.id === pid);
+
+    if (!patientItem) {
+      showToast("Please select a patient for this invoice.", "error");
+      return;
+    }
+
+    const validRows = invoiceTreatmentRows.filter(r => r.description && r.description.trim().length > 0);
+    if (validRows.length === 0) {
+      showToast("Please add at least one treatment / procedure to the invoice.", "error");
+      return;
+    }
+
+    const invId = (invoiceCustomId && invoiceCustomId.trim().length > 0) ? invoiceCustomId.trim() : getNextInvoiceId();
+    const { subtotal, discountAmount, totalPayable, paid, balanceDue } = calculateInvoiceFormValues();
+
+    setIsSavingMultiInvoice(true);
+
+    const status: "Paid" | "Partially Paid" | "Pending" =
+      balanceDue === 0 && totalPayable > 0 && paid >= totalPayable
+        ? "Paid"
+        : paid > 0
+        ? "Partially Paid"
+        : "Pending";
+
+    const treatmentSummary = validRows.map(r => r.description.trim()).join(", ");
+    const itemsFormatted = validRows.map(r => {
+      const q = Number(r.quantity) || 1;
+      const up = Number(r.unitPrice) || ((Number(r.amount) || 0) / q);
+      const amt = Number(r.amount) || (q * up);
+      return {
+        description: r.description.trim(),
+        quantity: q,
+        unitPrice: up,
+        amount: amt,
+      };
+    });
+
+    const newInvoice: InvoiceItem = {
+      id: invId,
+      patientId: patientItem.id,
+      patientName: patientItem.name,
+      doctor: invoiceDoctor || doctors[0]?.name || "Dr. M. Durga Praveen",
+      treatment: treatmentSummary,
+      items: itemsFormatted,
+      discount: invoiceDiscountType === "percentage" ? (Number(invoiceDiscountValue) || 0) : Math.round((discountAmount / (subtotal || 1)) * 100),
+      discountType: invoiceDiscountType,
+      discountValue: Number(invoiceDiscountValue) || 0,
+      tax: 0,
+      subtotal,
+      total: totalPayable,
+      paidAmount: paid,
+      status,
+      paymentDate: paid > 0 ? getTodayKolkataDbDate() : "",
+      paymentLogs: paid > 0 ? [{ method: invoicePaymentMode, amount: paid, date: getTodayKolkataDbDate() }] : []
+    };
+
+    setInvoices(prev => [newInvoice, ...prev.filter(i => i.id !== newInvoice.id)]);
+    await insertBillingRecord(newInvoice);
+
+    if (balanceDue === 0) {
+      await supabase
+        .from("patients")
+        .update({ balance: "₹0" })
+        .eq("patient_id", patientItem.id);
+      setPatients(prev => prev.map(p => p.id === patientItem.id ? { ...p, balance: "₹0" } : p));
+    }
+
+    setActivities(prev => [{
+      id: `act-${Date.now()}`,
+      type: "Billing",
+      msg: `Invoice ${invId} generated for ${patientItem.name} (₹${totalPayable.toLocaleString()}).`,
+      time: "Just now"
+    }, ...prev]);
+
+    setIsSavingMultiInvoice(false);
+    showToast(`Invoice ${invId} saved & generated successfully!`, "success");
+
+    // Close global creation modal if open
+    setIsGlobalCreateInvoiceModalOpen(false);
+
+    // Open Official Letterhead Preview Modal
+    setLastGeneratedReceipt(newInvoice);
+
+    // Reset multi treatment form for next invoice
+    resetMultiTreatmentForm();
   };
 
   // --- REAL PATIENT FILES UPLOAD, PREVIEW, DOWNLOAD & DELETE HANDLERS ---
@@ -9033,7 +9230,8 @@ ${clinicName}`;
                 </div>
 
                 {/* DEDICATED PHYSICAL STATIONERY A4 PRINT TEMPLATE FOR CASE SHEET */}
-                <div id="print-area" className="hidden print:block">
+                {!lastGeneratedReceipt && (
+                  <div id="print-area" className="hidden print:block">
                   <CaseSheetPrintTemplate
                     patient={patientItem}
                     medicalHistoryConditions={editMedicalHistoryConditions}
@@ -9047,6 +9245,7 @@ ${clinicName}`;
                     includeBackPage={includeCaseSheetBackPage}
                   />
                 </div>
+                )}
 
                 {/* EXACT CASE SHEET PRESENTATION (WHEN VIEWING ON SCREEN) */}
                 {!isEditingCaseSheet ? (
@@ -10483,56 +10682,384 @@ ${clinicName}`;
 
             {profileSubTab === "Invoices" && (
               <div className="space-y-6 animate-fadeIn">
-                {/* Billing invoice creation form */}
-                <form onSubmit={handleSaveInvoice} className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4 text-xs">
-                  <span className="font-bold text-sm block border-b pb-2 mb-2">Create New Billing Invoice</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label>Procedure / Item</Label>
-                      <select
-                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
-                        value={invProcedure}
-                        onChange={e => setInvProcedure(e.target.value)}
-                        required
-                      >
-                        <option value="">-- Choose Procedure --</option>
-                        {ALL_TREATMENTS.map(t => (
-                          <option key={t} value={t}>{t}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <Label>Procedure Amount (₹)</Label>
-                      <Input type="number" value={invAmount} onChange={e => setInvAmount(e.target.value)} required />
-                    </div>
-                    <div>
-                      <Label>Discount (%)</Label>
-                      <Input type="number" min="0" max="100" value={invDiscount} onChange={e => setInvDiscount(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Paid Amount (₹)</Label>
-                      <Input type="number" min="0" value={invPaid} onChange={e => setInvPaid(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label>Payment Mode</Label>
-                      <select
-                        className="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-xs focus:outline-none dark:border-slate-800 dark:bg-slate-900"
-                        value={invMode}
-                        onChange={e => setInvMode(e.target.value)}
-                      >
-                        <option value="UPI GPay">UPI / GPay</option>
-                        <option value="Cash">Cash</option>
-                        <option value="Card Swipe">Card</option>
-                        <option value="Bank Transfer">Net Banking</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-3 pt-2">
-                    <Button type="submit" className="h-9 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded">Save Invoice</Button>
-                  </div>
-                </form>
+                {/* Clean, Structured Multi-Treatment Invoice Creation Form (Matching Sameeksha Workflow) */}
+                {(() => {
+                  const currentPat = patients.find(p => p.id === selectedPatientId);
+                  const { subtotal, discountAmount, totalPayable, paid, balanceDue } = calculateInvoiceFormValues();
+
+                  return (
+                    <form
+                      onSubmit={(e) => handleSaveMultiTreatmentInvoice(e, selectedPatientId)}
+                      className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xs space-y-5 text-xs animate-fadeIn"
+                    >
+                      {/* Top Bar: Title & Manually Enterable Invoice ID */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-[#00529b] dark:text-blue-400">
+                              <Receipt className="h-4 w-4" />
+                            </span>
+                            <span className="font-bold text-sm text-slate-900 dark:text-white">
+                              Create Multi-Treatment Invoice
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500">
+                            Prepares an official tax invoice on V.R. Dental Care letterhead stationery
+                          </p>
+                        </div>
+
+                        {/* Invoice Number & Date Fields */}
+                        <div className="flex flex-wrap items-center gap-3 bg-slate-50 dark:bg-slate-900/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                          <div>
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                              Invoice ID (Editable)
+                            </label>
+                            <input
+                              type="text"
+                              value={invoiceCustomId || getNextInvoiceId()}
+                              onChange={(e) => setInvoiceCustomId(e.target.value)}
+                              placeholder="e.g. INV-1001"
+                              className="h-8 px-2.5 w-32 font-bold text-xs text-[#00529b] dark:text-blue-400 bg-white dark:bg-slate-900 rounded-lg border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              required
+                            />
+                          </div>
+
+                          <div className="border-l border-slate-200 dark:border-slate-800 pl-3">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                              Invoice Date
+                            </span>
+                            <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 leading-8">
+                              {getTodayKolkataUiDate()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Patient Details Banner (Selected Patient Name, ID, Age, Gender) */}
+                      {currentPat && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 rounded-xl p-3 text-xs">
+                          <div>
+                            <span className="text-[10.5px] font-bold text-slate-500 block">Patient Name</span>
+                            <span className="font-bold text-slate-900 dark:text-white text-xs">{currentPat.name}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10.5px] font-bold text-slate-500 block">Patient ID / OP #</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">{currentPat.id}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10.5px] font-bold text-slate-500 block">Age / Gender</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">
+                              {currentPat.age ? `${currentPat.age} Yrs` : "-"} / {currentPat.gender || "-"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10.5px] font-bold text-slate-500 block">Phone</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">{currentPat.phone || "-"}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Multi-Treatment Rows Table */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                            Treatments / Procedures
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            {invoiceTreatmentRows.length} {invoiceTreatmentRows.length === 1 ? "treatment line" : "treatment lines"}
+                          </span>
+                        </div>
+
+                        <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs">
+                          <table className="w-full text-left border-collapse text-xs">
+                            <thead>
+                              <tr className="bg-slate-100/80 dark:bg-slate-900/80 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider">
+                                <th className="py-2.5 px-3 text-center w-12">#</th>
+                                <th className="py-2.5 px-3">Treatment / Procedure Details</th>
+                                <th className="py-2.5 px-3 text-center w-24">Qty</th>
+                                <th className="py-2.5 px-3 text-right w-36">Unit Price (₹)</th>
+                                <th className="py-2.5 px-3 text-right w-36">Line Total (₹)</th>
+                                <th className="py-2.5 px-3 text-center w-14">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-950">
+                              {invoiceTreatmentRows.map((row, idx) => {
+                                const lineTotal = (Number(row.quantity) || 1) * (Number(row.unitPrice) || 0);
+
+                                return (
+                                  <tr key={row.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20">
+                                    <td className="py-2.5 px-3 text-center font-bold text-slate-500 text-xs">
+                                      {idx + 1}
+                                    </td>
+                                    <td className="py-2.5 px-3">
+                                      <div className="space-y-1.5">
+                                        <select
+                                          className="h-8 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                          value={row.description}
+                                          onChange={(e) => handleUpdateTreatmentRow(row.id, "description", e.target.value)}
+                                        >
+                                          <option value="">-- Select from Treatment Catalogue --</option>
+                                          {TREATMENT_CATEGORIES.map((cat) => (
+                                            <optgroup key={cat.id} label={cat.displayName || cat.name}>
+                                              <option value={cat.name}>{cat.name}</option>
+                                              {cat.subTreatments?.map((sub) => (
+                                                <option key={sub} value={`${cat.name} - ${sub}`}>
+                                                  &nbsp;&nbsp;↳ {sub}
+                                                </option>
+                                              ))}
+                                            </optgroup>
+                                          ))}
+                                        </select>
+                                        <input
+                                          type="text"
+                                          placeholder="Or specify custom description / tooth number..."
+                                          value={row.description}
+                                          onChange={(e) => handleUpdateTreatmentRow(row.id, "description", e.target.value)}
+                                          className="h-7 w-full rounded border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 px-2 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        />
+                                      </div>
+                                    </td>
+                                    <td className="py-2.5 px-3 text-center align-top pt-3">
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        value={row.quantity}
+                                        onChange={(e) => handleUpdateTreatmentRow(row.id, "quantity", e.target.value)}
+                                        className="h-8 w-16 text-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 mx-auto block"
+                                      />
+                                    </td>
+                                    <td className="py-2.5 px-3 text-right align-top pt-3">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="any"
+                                        placeholder="0.00"
+                                        value={row.unitPrice}
+                                        onChange={(e) => handleUpdateTreatmentRow(row.id, "unitPrice", e.target.value)}
+                                        className="h-8 w-28 text-right rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 ml-auto block"
+                                      />
+                                    </td>
+                                    <td className="py-2.5 px-3 text-right align-top pt-4 font-bold text-xs text-slate-900 dark:text-white">
+                                      ₹{lineTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </td>
+                                    <td className="py-2.5 px-3 text-center align-top pt-3">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveTreatmentRow(row.id)}
+                                        className="h-8 w-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center justify-center transition-colors mx-auto cursor-pointer"
+                                        title="Remove treatment row"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Add Treatment Row Button */}
+                        <div className="flex justify-between items-center pt-1">
+                          <button
+                            type="button"
+                            onClick={handleAddTreatmentRow}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-xl border border-blue-200 dark:border-blue-900 transition-colors cursor-pointer"
+                          >
+                            <Plus className="h-4 w-4" /> Add Treatment
+                          </button>
+
+                          <span className="text-[11px] text-slate-500">
+                            Subtotal of treatments: <strong className="text-slate-800 dark:text-slate-200">₹{subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Payment & Financial Calculations (2 Columns matching Sameeksha) */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2 border-t border-slate-200 dark:border-slate-800">
+                        {/* Left Column: Doctor, Payment Mode, Paid Amount */}
+                        <div className="space-y-3.5 bg-slate-50/70 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                          <span className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
+                            Payment Details
+                          </span>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Attending Doctor</Label>
+                              <select
+                                className="mt-1 flex h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900"
+                                value={invoiceDoctor}
+                                onChange={(e) => setInvoiceDoctor(e.target.value)}
+                              >
+                                {doctors.length > 0 ? (
+                                  doctors.map((d) => (
+                                    <option key={d.name} value={d.name}>{d.name}</option>
+                                  ))
+                                ) : (
+                                  <option value="Dr. M. Durga Praveen">Dr. M. Durga Praveen</option>
+                                )}
+                              </select>
+                            </div>
+
+                            <div>
+                              <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Payment Mode</Label>
+                              <select
+                                className="mt-1 flex h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900"
+                                value={invoicePaymentMode}
+                                onChange={(e) => setInvoicePaymentMode(e.target.value)}
+                              >
+                                <option value="Cash">Cash</option>
+                                <option value="UPI GPay">UPI / GPay</option>
+                                <option value="Card Swipe">Card</option>
+                                <option value="Bank Transfer">Net Banking</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between items-center mb-1">
+                              <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Paid Amount (₹)</Label>
+                              <div className="flex gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setInvoicePaidAmount(String(totalPayable))}
+                                  className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline px-1 cursor-pointer"
+                                >
+                                  Full (₹{totalPayable.toLocaleString()})
+                                </button>
+                                <span className="text-slate-300">•</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setInvoicePaidAmount("0")}
+                                  className="text-[10px] font-bold text-slate-500 hover:underline px-1 cursor-pointer"
+                                >
+                                  Zero (₹0)
+                                </button>
+                              </div>
+                            </div>
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              value={invoicePaidAmount}
+                              onChange={(e) => setInvoicePaidAmount(e.target.value)}
+                              className="h-9 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-bold text-emerald-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="0.00"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Right Column: Calculations & Totals (Structured Summary Box) */}
+                        <div className="space-y-2.5 bg-slate-50/70 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                          <span className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
+                            Invoice Calculation Summary
+                          </span>
+
+                          <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                            <span className="font-semibold">Subtotal:</span>
+                            <span className="font-bold text-slate-900 dark:text-white">
+                              ₹{subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+
+                          {/* Discount Input Row */}
+                          <div className="pt-1.5 border-t border-slate-200 dark:border-slate-800">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-slate-600 dark:text-slate-400">Discount:</span>
+                                <div className="inline-flex rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-0.5 text-[10px]">
+                                  <button
+                                    type="button"
+                                    onClick={() => setInvoiceDiscountType("percentage")}
+                                    className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition-colors ${
+                                      invoiceDiscountType === "percentage"
+                                        ? "bg-blue-600 text-white"
+                                        : "text-slate-500 hover:text-slate-800"
+                                    }`}
+                                  >
+                                    %
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setInvoiceDiscountType("fixed")}
+                                    className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition-colors ${
+                                      invoiceDiscountType === "fixed"
+                                        ? "bg-blue-600 text-white"
+                                        : "text-slate-500 hover:text-slate-800"
+                                    }`}
+                                  >
+                                    ₹ Fixed
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="any"
+                                  value={invoiceDiscountValue}
+                                  onChange={(e) => setInvoiceDiscountValue(e.target.value)}
+                                  className="h-7 w-20 text-right rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  placeholder="0"
+                                />
+                                {discountAmount > 0 && (
+                                  <span className="text-rose-600 font-bold text-xs">
+                                    -₹{discountAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Total Payable */}
+                          <div className="pt-2 border-t-2 border-slate-300 dark:border-slate-700 flex justify-between items-center text-sm font-extrabold text-[#00529b] dark:text-blue-400">
+                            <span>Total Payable:</span>
+                            <span className="text-base font-black">
+                              ₹{totalPayable.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+
+                          {/* Paid Amount */}
+                          <div className="flex justify-between items-center text-xs font-bold text-emerald-600">
+                            <span>Amount Paid:</span>
+                            <span>₹{paid.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
+
+                          {/* Balance Due */}
+                          <div className="pt-1.5 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs font-bold">
+                            <span className="text-slate-700 dark:text-slate-300">Balance Due:</span>
+                            <span className={balanceDue > 0 ? "text-amber-600 dark:text-amber-400 font-extrabold" : "text-emerald-600 font-semibold"}>
+                              {balanceDue > 0
+                                ? `₹${balanceDue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                : "✓ Nil (Fully Paid)"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer Actions: Save & Generate Invoice */}
+                      <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                        <button
+                          type="button"
+                          onClick={resetMultiTreatmentForm}
+                          className="h-10 px-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold transition-colors cursor-pointer w-full sm:w-auto"
+                        >
+                          Reset Form
+                        </button>
+
+                        <Button
+                          type="submit"
+                          disabled={isSavingMultiInvoice}
+                          className="h-10 px-6 bg-[#00529b] hover:bg-[#00417c] text-white font-extrabold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto"
+                        >
+                          <Receipt className="h-4 w-4" />
+                          {isSavingMultiInvoice ? "Saving & Generating..." : "Save & Generate Invoice"}
+                        </Button>
+                      </div>
+                    </form>
+                  );
+                })()}
 
                 {/* Invoices List */}
                 <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs text-xs space-y-3">
@@ -11077,7 +11604,7 @@ ${clinicName}`;
                 </div>
 
                 {/* DEDICATED PHYSICAL STATIONERY A4 PRINT TEMPLATE FOR PRESCRIPTION */}
-                {selectedPatientId && (() => {
+                {!lastGeneratedReceipt && selectedPatientId && (() => {
                   const pItem = patients.find(p => p.id === selectedPatientId);
                   if (!pItem) return null;
 
@@ -12684,8 +13211,33 @@ ${clinicName}`;
   const renderBillingModule = () => (
     <div className="space-y-6 animate-fadeIn">
       {activeSubTab === "Invoices" && (
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs overflow-x-auto scrollbar-thin">
-          <table className="w-full min-w-[760px] text-left border-collapse text-xs font-semibold">
+        <div className="space-y-4">
+          {/* Header Action Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Receipt className="h-5 w-5 text-[#00529b] dark:text-blue-400" />
+                Clinic Billing & Invoices
+              </h3>
+              <p className="text-xs text-slate-500">
+                Manage patient invoices, track payments, and generate official V.R. Dental stationery printouts
+              </p>
+            </div>
+            <Button
+              type="button"
+              onClick={() => {
+                resetMultiTreatmentForm();
+                setGlobalInvoicePatientId(selectedPatientId || (patients[0]?.id || ""));
+                setIsGlobalCreateInvoiceModalOpen(true);
+              }}
+              className="h-10 px-4 bg-[#00529b] hover:bg-[#00417c] text-white font-bold rounded-xl flex items-center gap-2 shadow-xs cursor-pointer self-start sm:self-auto"
+            >
+              <Plus className="h-4 w-4" /> Create New Invoice
+            </Button>
+          </div>
+
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs overflow-x-auto scrollbar-thin">
+            <table className="w-full min-w-[760px] text-left border-collapse text-xs font-semibold">
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider">
                 <th className="py-3 px-3 whitespace-nowrap min-w-[130px]">Invoice Number</th>
@@ -12757,6 +13309,7 @@ ${clinicName}`;
             </tbody>
           </table>
         </div>
+      </div>
       )}
 
       {activeSubTab === "Payments" && (
@@ -12777,6 +13330,385 @@ ${clinicName}`;
           </div>
         </div>
       )}
+      {/* GLOBAL CREATE INVOICE MODAL (FOR ANY PATIENT FROM BILLING MODULE) */}
+      {isGlobalCreateInvoiceModalOpen && (() => {
+        const modalPat = patients.find(p => p.id === globalInvoicePatientId);
+        const { subtotal, discountAmount, totalPayable, paid, balanceDue } = calculateInvoiceFormValues();
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-3 sm:p-5 overflow-y-auto">
+            <div className="bg-white dark:bg-slate-950 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-fadeIn">
+              {/* Modal Header */}
+              <div className="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <span className="h-9 w-9 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-[#00529b] dark:text-blue-400">
+                    <Receipt className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                      Create Multi-Treatment Invoice
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Generate official tax invoice for any registered patient
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsGlobalCreateInvoiceModalOpen(false)}
+                  className="h-8 w-8 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 text-xs scrollbar-thin">
+                {/* Patient Selector */}
+                <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-2">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Select Patient <span className="text-rose-500">*</span>
+                  </Label>
+                  <select
+                    className="flex h-9 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={globalInvoicePatientId}
+                    onChange={(e) => setGlobalInvoicePatientId(e.target.value)}
+                  >
+                    <option value="">-- Choose Patient --</option>
+                    {patients.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} (ID: {p.id}) {p.phone ? `• ${p.phone}` : ""}
+                      </option>
+                    ))}
+                  </select>
+
+                  {modalPat && (
+                    <div className="pt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-600 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 mt-2">
+                      <div>Name: <strong className="text-slate-900 dark:text-white">{modalPat.name}</strong></div>
+                      <div>ID: <strong className="text-slate-900 dark:text-white">{modalPat.id}</strong></div>
+                      <div>Age / Gender: <strong className="text-slate-900 dark:text-white">{modalPat.age ? `${modalPat.age} Y` : "-"} / {modalPat.gender || "-"}</strong></div>
+                      <div>Phone: <strong className="text-slate-900 dark:text-white">{modalPat.phone || "-"}</strong></div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Form Elements */}
+                <form
+                  onSubmit={(e) => handleSaveMultiTreatmentInvoice(e, globalInvoicePatientId)}
+                  className="space-y-5"
+                >
+                  {/* Top Bar: Invoice ID & Date */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                        Invoice ID (Editable)
+                      </label>
+                      <input
+                        type="text"
+                        value={invoiceCustomId || getNextInvoiceId()}
+                        onChange={(e) => setInvoiceCustomId(e.target.value)}
+                        placeholder="e.g. INV-1001"
+                        className="h-8 px-2.5 w-36 font-bold text-xs text-[#00529b] dark:text-blue-400 bg-white dark:bg-slate-900 rounded-lg border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                        Invoice Date
+                      </span>
+                      <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 leading-8">
+                        {getTodayKolkataUiDate()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Multi-Treatment Rows Table */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                        Treatments / Procedures
+                      </span>
+                      <span className="text-[11px] text-slate-400">
+                        {invoiceTreatmentRows.length} treatment lines
+                      </span>
+                    </div>
+
+                    <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-slate-100/80 dark:bg-slate-900/80 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider">
+                            <th className="py-2.5 px-3 text-center w-12">#</th>
+                            <th className="py-2.5 px-3">Treatment / Procedure Details</th>
+                            <th className="py-2.5 px-3 text-center w-24">Qty</th>
+                            <th className="py-2.5 px-3 text-right w-36">Unit Price (₹)</th>
+                            <th className="py-2.5 px-3 text-right w-36">Line Total (₹)</th>
+                            <th className="py-2.5 px-3 text-center w-14">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-950">
+                          {invoiceTreatmentRows.map((row, idx) => {
+                            const lineTotal = (Number(row.quantity) || 1) * (Number(row.unitPrice) || 0);
+
+                            return (
+                              <tr key={row.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20">
+                                <td className="py-2.5 px-3 text-center font-bold text-slate-500 text-xs">
+                                  {idx + 1}
+                                </td>
+                                <td className="py-2.5 px-3">
+                                  <div className="space-y-1.5">
+                                    <select
+                                      className="h-8 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                      value={row.description}
+                                      onChange={(e) => handleUpdateTreatmentRow(row.id, "description", e.target.value)}
+                                    >
+                                      <option value="">-- Select from Treatment Catalogue --</option>
+                                      {TREATMENT_CATEGORIES.map((cat) => (
+                                        <optgroup key={cat.id} label={cat.displayName || cat.name}>
+                                          <option value={cat.name}>{cat.name}</option>
+                                          {cat.subTreatments?.map((sub) => (
+                                            <option key={sub} value={`${cat.name} - ${sub}`}>
+                                              &nbsp;&nbsp;↳ {sub}
+                                            </option>
+                                          ))}
+                                        </optgroup>
+                                      ))}
+                                    </select>
+                                    <input
+                                      type="text"
+                                      placeholder="Or specify custom description / tooth number..."
+                                      value={row.description}
+                                      onChange={(e) => handleUpdateTreatmentRow(row.id, "description", e.target.value)}
+                                      className="h-7 w-full rounded border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 px-2 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    />
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-3 text-center align-top pt-3">
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={row.quantity}
+                                    onChange={(e) => handleUpdateTreatmentRow(row.id, "quantity", e.target.value)}
+                                    className="h-8 w-16 text-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 mx-auto block"
+                                  />
+                                </td>
+                                <td className="py-2.5 px-3 text-right align-top pt-3">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    placeholder="0.00"
+                                    value={row.unitPrice}
+                                    onChange={(e) => handleUpdateTreatmentRow(row.id, "unitPrice", e.target.value)}
+                                    className="h-8 w-28 text-right rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 ml-auto block"
+                                  />
+                                </td>
+                                <td className="py-2.5 px-3 text-right align-top pt-4 font-bold text-xs text-slate-900 dark:text-white">
+                                  ₹{lineTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="py-2.5 px-3 text-center align-top pt-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveTreatmentRow(row.id)}
+                                    className="h-8 w-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center justify-center transition-colors mx-auto cursor-pointer"
+                                    title="Remove treatment row"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-1">
+                      <button
+                        type="button"
+                        onClick={handleAddTreatmentRow}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 rounded-xl border border-blue-200 dark:border-blue-900 transition-colors cursor-pointer"
+                      >
+                        <Plus className="h-4 w-4" /> Add Treatment
+                      </button>
+
+                      <span className="text-[11px] text-slate-500">
+                        Subtotal: <strong className="text-slate-800 dark:text-slate-200">₹{subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Payment Details & Calculation */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <div className="space-y-3 bg-slate-50/70 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                      <span className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
+                        Payment Mode & Doctor
+                      </span>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Doctor</Label>
+                          <select
+                            className="mt-1 flex h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900"
+                            value={invoiceDoctor}
+                            onChange={(e) => setInvoiceDoctor(e.target.value)}
+                          >
+                            {doctors.length > 0 ? (
+                              doctors.map(d => <option key={d.name} value={d.name}>{d.name}</option>)
+                            ) : (
+                              <option value="Dr. M. Durga Praveen">Dr. M. Durga Praveen</option>
+                            )}
+                          </select>
+                        </div>
+
+                        <div>
+                          <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Payment Mode</Label>
+                          <select
+                            className="mt-1 flex h-8 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900"
+                            value={invoicePaymentMode}
+                            onChange={(e) => setInvoicePaymentMode(e.target.value)}
+                          >
+                            <option value="Cash">Cash</option>
+                            <option value="UPI GPay">UPI / GPay</option>
+                            <option value="Card Swipe">Card</option>
+                            <option value="Bank Transfer">Net Banking</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Paid Amount (₹)</Label>
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setInvoicePaidAmount(String(totalPayable))}
+                              className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline px-1 cursor-pointer"
+                            >
+                              Full (₹{totalPayable.toLocaleString()})
+                            </button>
+                            <span className="text-slate-300">•</span>
+                            <button
+                              type="button"
+                              onClick={() => setInvoicePaidAmount("0")}
+                              className="text-[10px] font-bold text-slate-500 hover:underline px-1 cursor-pointer"
+                            >
+                              Zero (₹0)
+                            </button>
+                          </div>
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          value={invoicePaidAmount}
+                          onChange={(e) => setInvoicePaidAmount(e.target.value)}
+                          className="h-9 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-bold text-emerald-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2.5 bg-slate-50/70 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                      <span className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
+                        Summary
+                      </span>
+
+                      <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                        <span className="font-semibold">Subtotal:</span>
+                        <span className="font-bold text-slate-900 dark:text-white">
+                          ₹{subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      <div className="pt-1.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-slate-600 dark:text-slate-400">Discount:</span>
+                          <div className="inline-flex rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-0.5 text-[10px]">
+                            <button
+                              type="button"
+                              onClick={() => setInvoiceDiscountType("percentage")}
+                              className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition-colors ${
+                                invoiceDiscountType === "percentage" ? "bg-blue-600 text-white" : "text-slate-500 hover:text-slate-800"
+                              }`}
+                            >
+                              %
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setInvoiceDiscountType("fixed")}
+                              className={`px-1.5 py-0.5 rounded font-bold cursor-pointer transition-colors ${
+                                invoiceDiscountType === "fixed" ? "bg-blue-600 text-white" : "text-slate-500 hover:text-slate-800"
+                              }`}
+                            >
+                              ₹ Fixed
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            step="any"
+                            value={invoiceDiscountValue}
+                            onChange={(e) => setInvoiceDiscountValue(e.target.value)}
+                            className="h-7 w-20 text-right rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            placeholder="0"
+                          />
+                          {discountAmount > 0 && (
+                            <span className="text-rose-600 font-bold text-xs">
+                              -₹{discountAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t-2 border-slate-300 dark:border-slate-700 flex justify-between items-center text-sm font-extrabold text-[#00529b] dark:text-blue-400">
+                        <span>Total Payable:</span>
+                        <span className="text-base font-black">
+                          ₹{totalPayable.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center text-xs font-bold text-emerald-600">
+                        <span>Amount Paid:</span>
+                        <span>₹{paid.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+
+                      <div className="pt-1.5 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs font-bold">
+                        <span className="text-slate-700 dark:text-slate-300">Balance Due:</span>
+                        <span className={balanceDue > 0 ? "text-amber-600 font-extrabold" : "text-emerald-600 font-semibold"}>
+                          {balanceDue > 0 ? `₹${balanceDue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "✓ Paid in Full"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setIsGlobalCreateInvoiceModalOpen(false)}
+                      className="h-10 px-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-300 font-bold cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <Button
+                      type="submit"
+                      disabled={isSavingMultiInvoice || !globalInvoicePatientId}
+                      className="h-10 px-6 bg-[#00529b] hover:bg-[#00417c] text-white font-extrabold rounded-xl shadow-md cursor-pointer flex items-center gap-2"
+                    >
+                      <Receipt className="h-4 w-4" />
+                      {isSavingMultiInvoice ? "Saving & Generating..." : "Save & Generate Invoice"}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 
@@ -16575,225 +17507,78 @@ ${clinicName}`;
         </div>
       )}
 
-      {/* Receipt Modal (Design printer-friendly print logs) */}
-      {lastGeneratedReceipt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/50 backdrop-blur-xs p-3 sm:p-6 overflow-hidden">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-2xl max-h-[calc(100dvh-24px)] sm:max-h-[calc(100vh-48px)] flex flex-col bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden text-xs my-auto"
-          >
-            {/* Header - Not printed */}
-            <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 shrink-0 no-print bg-white dark:bg-slate-950">
-              <span className="font-bold text-sm text-slate-900 dark:text-white">Professional Dental Invoice Preview</span>
-              <button onClick={() => setLastGeneratedReceipt(null)} className="text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 cursor-pointer p-1">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Printable Content Section */}
-            <div id="print-area" className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-4 bg-white text-slate-900 border-x border-slate-300 print:overflow-visible print:p-0 print:border-none scrollbar-thin">
-
-              {/* Clinic details header (Centered) */}
-              <div className="text-center space-y-1 pb-2">
-                <h1 className="text-xl font-extrabold text-blue-900 tracking-tight">
-                  VR Dental Care Dental Implant Centre
-                </h1>
-                <p className="text-[11px] text-slate-700 font-medium max-w-md mx-auto leading-tight">
-                  3rd Cross St, opp. GMC Balayogi stadium, Zicria Nagar, Yanam, Andhra Pradesh 533464
-                </p>
-                <p className="text-[11px] font-bold text-slate-800">
-                  PH: 09885349798
-                </p>
-              </div>
-              <hr className="border-slate-400 my-2" />
-
-              {/* Invoice Header Information & Patient Info */}
-              {(() => {
-                const patientObj = patients.find(p => p.id === lastGeneratedReceipt.patientId || p.name === lastGeneratedReceipt.patientName);
-                const ageGenderStr = patientObj ? `${patientObj.age} ${patientObj.gender}` : "";
-                const formattedDate = formatDbDateToUi(lastGeneratedReceipt.paymentDate);
-
-                return (
-                  <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-3 sm:gap-6 print:gap-6 text-xs font-semibold py-1 text-slate-900">
-                      {/* Left column */}
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-baseline gap-x-2">
-                          <span className="w-24 sm:w-28 print:w-28 shrink-0 font-bold text-slate-900">Invoice No :</span>
-                          <span className="font-semibold text-slate-800">{lastGeneratedReceipt.id}</span>
-                        </div>
-                        <div className="flex flex-wrap items-baseline gap-x-2">
-                          <span className="w-24 sm:w-28 print:w-28 shrink-0 font-bold text-slate-900">Date :</span>
-                          <span className="font-semibold text-slate-800">{formattedDate}</span>
-                        </div>
-                      </div>
-
-                      {/* Right column */}
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-baseline gap-x-2">
-                          <span className="w-24 sm:w-28 print:w-28 shrink-0 font-bold text-slate-900">Patient Name :</span>
-                          <span className="font-semibold text-slate-800">{lastGeneratedReceipt.patientName}</span>
-                        </div>
-                        {ageGenderStr ? (
-                          <div className="flex flex-wrap items-baseline gap-x-2">
-                            <span className="w-24 sm:w-28 print:w-28 shrink-0 font-bold text-slate-900">Age/Gender :</span>
-                            <span className="font-semibold text-slate-800">{ageGenderStr}</span>
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                    <hr className="border-slate-400 my-2" />
-                  </>
-                );
-              })()}
-
-              {/* Treatment Details Table */}
-              <div className="min-h-[140px] pt-1 overflow-x-auto print:overflow-visible scrollbar-thin">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b-2 border-slate-400 text-slate-900">
-                      <th className="py-2 px-2 font-bold w-14">Sl No.</th>
-                      <th className="py-2 px-2 font-bold">Treatment Details</th>
-                      <th className="py-2 px-2 font-bold text-right w-32">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {lastGeneratedReceipt.items && lastGeneratedReceipt.items.length > 0 ? (
-                      lastGeneratedReceipt.items.map((item, idx) => (
-                        <tr key={idx} className="text-slate-800">
-                          <td className="py-2.5 px-2 font-bold">{idx + 1}</td>
-                          <td className="py-2.5 px-2 font-medium break-words">{item.description}</td>
-                          <td className="py-2.5 px-2 text-right font-bold font-mono">
-                            {item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr className="text-slate-800">
-                        <td className="py-2.5 px-2 font-bold">1</td>
-                        <td className="py-2.5 px-2 font-medium break-words">{lastGeneratedReceipt.treatment || "Dental Treatment"}</td>
-                        <td className="py-2.5 px-2 text-right font-bold font-mono">
-                          {lastGeneratedReceipt.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <hr className="border-slate-400 my-3" />
-
-              {/* Financial Summary (Right Aligned) */}
-              <div className="flex justify-end my-3">
-                <div className="w-full sm:w-64 print:w-64 space-y-1.5 text-xs font-bold text-slate-900">
-                  <div className="flex justify-between">
-                    <span>Gross amount :</span>
-                    <span className="font-mono">
-                      {lastGeneratedReceipt.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
+      {/* Official V.R. Dental Care Letterhead Tax Invoice Preview & Print Modal */}
+      {lastGeneratedReceipt && (() => {
+        const patientObj = patients.find(p => p.id === lastGeneratedReceipt.patientId || p.name === lastGeneratedReceipt.patientName) || null;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto print:p-0 print:bg-white print:static">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[96vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-fadeIn print:border-none print:shadow-none print:max-w-none print:max-h-none print:rounded-none">
+              {/* Modal Header Bar (Screen Only) */}
+              <div className="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950 shrink-0 no-print">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-9 w-9 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-[#00529b] dark:text-blue-400">
+                    <Receipt className="h-5 w-5" />
                   </div>
-                  <div className="flex justify-between">
-                    <span>Amount paid :</span>
-                    <span className="font-mono">
-                      {lastGeneratedReceipt.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-t border-slate-300 pt-1">
-                    <span>Balance :</span>
-                    <span className="font-mono">
-                      {(lastGeneratedReceipt.total - lastGeneratedReceipt.paidAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
+                  <div>
+                    <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                      Official Invoice Preview
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Invoice No: <strong className="text-[#00529b] dark:text-blue-400">{lastGeneratedReceipt.id}</strong> • Patient: <strong className="text-slate-800 dark:text-slate-200">{lastGeneratedReceipt.patientName}</strong>
+                    </p>
                   </div>
                 </div>
-              </div>
 
-              {/* Payment Details Section Box */}
-              <div className="border border-slate-400 rounded-none p-0 my-3 overflow-hidden">
-                <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-400 font-bold text-xs text-slate-900">
-                  Payment Details
-                </div>
-                <div className="overflow-x-auto print:overflow-visible scrollbar-thin">
-                  <table className="w-full min-w-[500px] sm:min-w-full print:min-w-full text-center border-collapse text-[11px]">
-                    <thead>
-                      <tr className="border-b border-slate-300 bg-slate-50 text-slate-800 font-bold">
-                        <th className="py-1.5 px-2 border-r border-slate-300">Receipt No</th>
-                        <th className="py-1.5 px-2 border-r border-slate-300">Amt Received</th>
-                        <th className="py-1.5 px-2 border-r border-slate-300">Amt.Refund</th>
-                        <th className="py-1.5 px-2 border-r border-slate-300">Mode</th>
-                        <th className="py-1.5 px-2 border-r border-slate-300">Date</th>
-                        <th className="py-1.5 px-2 border-r border-slate-300">NO</th>
-                        <th className="py-1.5 px-2">Bank Name</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lastGeneratedReceipt.paymentLogs && lastGeneratedReceipt.paymentLogs.length > 0 ? (
-                        lastGeneratedReceipt.paymentLogs.map((log, idx) => (
-                          <tr key={idx} className="border-b border-slate-200 text-slate-800 font-medium">
-                            <td className="py-1.5 px-2 border-r border-slate-300 font-mono">10{idx + 1}</td>
-                            <td className="py-1.5 px-2 border-r border-slate-300 font-mono font-bold">
-                              {log.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                            <td className="py-1.5 px-2 border-r border-slate-300 font-mono">0.00</td>
-                            <td className="py-1.5 px-2 border-r border-slate-300">{log.method}</td>
-                            <td className="py-1.5 px-2 border-r border-slate-300">{log.date || lastGeneratedReceipt.paymentDate}</td>
-                            <td className="py-1.5 px-2 border-r border-slate-300">-</td>
-                            <td className="py-1.5 px-2">-</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr className="text-slate-800 font-medium">
-                          <td className="py-1.5 px-2 border-r border-slate-300 font-mono">101</td>
-                          <td className="py-1.5 px-2 border-r border-slate-300 font-mono font-bold">
-                            {lastGeneratedReceipt.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-1.5 px-2 border-r border-slate-300 font-mono">0.00</td>
-                          <td className="py-1.5 px-2 border-r border-slate-300">Cash</td>
-                          <td className="py-1.5 px-2 border-r border-slate-300">{lastGeneratedReceipt.paymentDate}</td>
-                          <td className="py-1.5 px-2 border-r border-slate-300">-</td>
-                          <td className="py-1.5 px-2">-</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => generateAndDownloadInvoicePdf({ patient: patientObj, invoice: lastGeneratedReceipt })}
+                    className="h-8 px-3 rounded-lg text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Download PDF
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="h-8 px-3 rounded-lg text-xs bg-[#00529b] hover:bg-[#00417c] text-white font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Printer className="h-3.5 w-3.5" /> Print Invoice
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setLastGeneratedReceipt(null)}
+                    className="h-8 w-8 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer ml-1"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
 
-              {/* Dynamic Amount in Words & Signatory Block */}
-              <div className="flex flex-col sm:flex-row print:flex-row justify-between items-start sm:items-end print:items-end gap-4 sm:gap-0 pt-4 my-2 text-xs">
-                <div className="font-extrabold text-slate-900 uppercase tracking-wide max-w-full sm:max-w-xs print:max-w-xs break-words">
-                  {numberToWords(lastGeneratedReceipt.paidAmount || lastGeneratedReceipt.total)}
-                </div>
-
-                <div className="text-left sm:text-right print:text-right space-y-1 text-slate-900 shrink-0 self-end sm:self-auto">
-                  <div className="font-bold">Authorised Signatory</div>
-                  <div className="text-[11px] font-semibold text-slate-800">VR Dental Care Dental Implant Centre</div>
-                  <div className="text-[10px] font-bold tracking-wider uppercase text-slate-900">PROSTHODONTIST</div>
-                </div>
+              {/* Responsive Zoomable Letterhead Stationery View (Screen) */}
+              <div className="flex-1 overflow-y-auto p-2 sm:p-6 bg-slate-200/80 dark:bg-slate-950/80 flex justify-center shadow-inner no-print">
+                <ResponsivePdfPreview
+                  pageCount={1}
+                  pageHeightPx={1123}
+                  title="Official Invoice"
+                >
+                  <VRDentalInvoicePrintTemplate
+                    patient={patientObj}
+                    invoice={lastGeneratedReceipt}
+                  />
+                </ResponsivePdfPreview>
               </div>
 
+              {/* Exact A4 Stationery for Window Print */}
+              <div id="print-area" className="hidden print:block">
+                <VRDentalInvoicePrintTemplate
+                  patient={patientObj}
+                  invoice={lastGeneratedReceipt}
+                />
+              </div>
             </div>
-
-            {/* Action buttons footer - Not printed */}
-            <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-2.5 shrink-0 no-print">
-              <button
-                onClick={() => {
-                  window.print();
-                }}
-                className="h-10 rounded-xl bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center gap-1.5 font-bold shadow-xs cursor-pointer"
-              >
-                <Printer className="h-4 w-4" /> Print Invoice
-              </button>
-              <button
-                onClick={() => setLastGeneratedReceipt(null)}
-                className="h-10 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-800 dark:hover:bg-slate-900 text-slate-800 dark:text-slate-200 flex items-center justify-center font-bold cursor-pointer"
-              >
-                Close Preview
-              </button>
-            </div>
-
-          </motion.div>
-        </div>
-      )}
+          </div>
+        );
+      })()}
       {/* RESCHEDULE APPOINTMENT MODAL DIALOG */}
       <AnimatePresence>
         {rescheduleModalAppt && (
