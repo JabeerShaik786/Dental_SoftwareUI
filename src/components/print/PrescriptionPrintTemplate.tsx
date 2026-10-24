@@ -1,6 +1,7 @@
 import React from "react";
 import { getAssetPath } from "@/lib/getAssetPath";
 import { formatDbDateToUi, getTodayKolkataUiDate } from "@/lib/dateTimeUtils";
+import { getCleanMedicalAlert } from "@/lib/medicalAlertUtils";
 
 export interface PrescriptionMedicineItem {
   name: string;
@@ -59,43 +60,7 @@ export const PrescriptionPrintTemplate: React.FC<PrescriptionPrintData> = ({
   // Patient age/sex format
   const ageSex = `${patient.age ? patient.age + " Yrs" : ""} ${patient.gender ? (patient.age ? "/ " : "") + patient.gender : ""}`.trim();
 
-  // Medical Alert: resolve from patient allergies, medical notes, medical conditions, and medical history
-  const getCleanMedicalAlert = (p: PrescriptionPrintData["patient"]): string => {
-    const parts: string[] = [];
-    const cleanVal = (val?: string) => {
-      if (!val) return "";
-      const trimmed = val.trim();
-      const lower = trimmed.toLowerCase();
-      if (lower === "none" || lower === "n/a" || lower === "-" || lower === "null" || lower === "undefined") {
-        return "";
-      }
-      return trimmed;
-    };
-
-    const allergy = cleanVal(p.allergies);
-    if (allergy) parts.push(allergy);
-
-    const notes = cleanVal(p.medicalNotes);
-    if (notes && !parts.includes(notes)) parts.push(notes);
-
-    const cond = cleanVal(p.medicalConditions);
-    if (cond && !parts.includes(cond)) parts.push(cond);
-
-    if (Array.isArray(p.medicalHistory)) {
-      p.medicalHistory.forEach((item) => {
-        const cleanItem = cleanVal(item);
-        if (cleanItem && !parts.includes(cleanItem)) {
-          parts.push(cleanItem);
-        }
-      });
-    }
-
-    const others = cleanVal(p.medicalHistoryOthers);
-    if (others && !parts.includes(others)) parts.push(others);
-
-    return parts.join(", ");
-  };
-
+  // Medical Alert: cleanly formatted and deduplicated from patient clinical records
   const cleanMedAlert = getCleanMedicalAlert(patient);
   const isOverflow = medicines.length > 7;
 

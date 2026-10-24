@@ -58,6 +58,10 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
   // Official V.R. Dental Care template image with authentic header, logo, watermark, General Consent, signature line, and footer
   const templateUrl = getAssetPath("/vrcasesheet.jpeg");
 
+  // Authentic General Consent text for sharp, high-contrast, print-friendly vector rendering
+  const generalConsentText =
+    "I had given my consent for the diagnostic tests, Dental Treatment and Oral related disease treatment. I had given my consent for anesthesia. Doctor had explained me the problems and consequences of the diagnostic test and the treatment. I undersigned, declare that the information provided by me is true to the best of my knowledge and give consent for my dental treatment and also undertake to pay advance / deposit as & when required & agree that I will settle the bills as per the requirement of V.R. DENTAL CARE management.";
+
   // Format consultation date cleanly in Asia/Kolkata (displayed in the top Patient Information section)
   const rawDate = visitDate ? (visitDate.includes(",") ? visitDate.split(",")[0].trim() : visitDate) : "";
   const displayDate = rawDate ? formatDbDateToUi(rawDate) : getTodayKolkataUiDate();
@@ -309,6 +313,20 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
           </div>
         </div>
 
+        {/* CRISP PRINT-FRIENDLY VECTOR GENERAL CONSENT OVERLAY (REPLACES BLURRY RASTER IMAGE TEXT) */}
+        <div
+          className="absolute z-10 bg-white text-slate-900 leading-[1.38] text-[9.5px] font-normal text-justify select-text box-border"
+          style={{
+            left: "9.5mm",
+            right: "9.5mm",
+            top: "243.5mm",
+            minHeight: "14.5mm",
+            padding: "0.5mm 1.5mm",
+          }}
+        >
+          {generalConsentText}
+        </div>
+
         {/* NOTE: General Consent date overlay removed so the template's designated "Date & Time" blank area remains clean for manual entry */}
       </div>
 
@@ -387,6 +405,20 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* CRISP PRINT-FRIENDLY VECTOR GENERAL CONSENT OVERLAY (REPLACES BLURRY RASTER IMAGE TEXT) */}
+            <div
+              className="absolute z-10 bg-white text-slate-900 leading-[1.38] text-[9.5px] font-normal text-justify select-text box-border"
+              style={{
+                left: "9.5mm",
+                right: "9.5mm",
+                top: "243.5mm",
+                minHeight: "14.5mm",
+                padding: "0.5mm 1.5mm",
+              }}
+            >
+              {generalConsentText}
             </div>
           </div>
         );

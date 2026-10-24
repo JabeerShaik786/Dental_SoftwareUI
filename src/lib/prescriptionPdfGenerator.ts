@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { getAssetPath } from "./getAssetPath";
 import { formatDbDateToUi, getTodayKolkataUiDate } from "./dateTimeUtils";
+import { getCleanMedicalAlert } from "./medicalAlertUtils";
 
 export interface GeneratePrescriptionPdfOptions {
   patient: {
@@ -79,42 +80,6 @@ export async function generateAndDownloadPrescriptionPdf(options: GeneratePrescr
   const ageSex = `${patient.age ? patient.age + " Yrs" : ""} ${patient.gender ? (patient.age ? "/ " : "") + patient.gender : ""}`.trim();
 
   // Resolve clean medical alert from patient allergies, notes, conditions, and history
-  const getCleanMedicalAlert = (p: GeneratePrescriptionPdfOptions["patient"]): string => {
-    const parts: string[] = [];
-    const cleanVal = (val?: string) => {
-      if (!val) return "";
-      const trimmed = val.trim();
-      const lower = trimmed.toLowerCase();
-      if (lower === "none" || lower === "n/a" || lower === "-" || lower === "null" || lower === "undefined") {
-        return "";
-      }
-      return trimmed;
-    };
-
-    const allergy = cleanVal(p.allergies);
-    if (allergy) parts.push(allergy);
-
-    const notes = cleanVal(p.medicalNotes);
-    if (notes && !parts.includes(notes)) parts.push(notes);
-
-    const cond = cleanVal(p.medicalConditions);
-    if (cond && !parts.includes(cond)) parts.push(cond);
-
-    if (Array.isArray(p.medicalHistory)) {
-      p.medicalHistory.forEach((item) => {
-        const cleanItem = cleanVal(item);
-        if (cleanItem && !parts.includes(cleanItem)) {
-          parts.push(cleanItem);
-        }
-      });
-    }
-
-    const others = cleanVal(p.medicalHistoryOthers);
-    if (others && !parts.includes(others)) parts.push(others);
-
-    return parts.join(", ");
-  };
-
   const cleanMedAlert = getCleanMedicalAlert(patient);
 
   // 1. Overlay Patient Information (aligned with pre-printed dotted lines, enlarged font sizes)
