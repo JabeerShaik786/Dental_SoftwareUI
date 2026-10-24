@@ -277,38 +277,42 @@ export const PrescriptionPrintTemplate: React.FC<PrescriptionPrintData> = ({
             )}
           </div>
 
-          {/* Bottom Section: Telugu Patient Instructions Card & Doctor Signature (above pre-printed doctors horizontal line) */}
-          <div className="mt-auto pt-2 border-t border-slate-300/60">
+          {/* Bottom of Central Area: Overflow Warning & Doctor Signature (above pre-printed doctors horizontal line) */}
+          <div className="pt-2">
             {isOverflow && (
-              <div className="print:hidden p-1 mb-1.5 bg-amber-50 border border-amber-300 text-amber-800 text-[11px] rounded font-semibold text-center">
+              <div className="print:hidden p-1.5 mb-1 bg-amber-50 border border-amber-300 text-amber-800 text-[11px] rounded font-semibold text-center">
                 Prescription contains {medicines.length} medicines. Physical template fits up to 7 medicines per sheet.
               </div>
             )}
 
-            <div className="flex justify-between items-end gap-3">
-              {/* Left: Authentic Telugu Post-Op Instructions Card */}
-              <div className="flex flex-col shrink-0">
-                <img
-                  src={teluguInstructionsUrl}
-                  alt="పన్ను తీసిన తర్వాత తీసుకోవలసిన జాగ్రత్తలు - Patient Instructions"
-                  className="w-auto h-[46mm] max-h-[48mm] object-contain rounded-xs border border-slate-300/60 bg-white shadow-2xs"
-                />
+            <div className="flex justify-between items-end border-t border-slate-300/60 pt-2">
+              <div className="text-[11.5px] text-slate-500 italic max-w-[300px]">
+                * Please complete the prescribed course as directed.
               </div>
-
-              {/* Right: Doctor Signature & Course Note */}
-              <div className="text-right flex flex-col justify-end shrink-0 pb-1">
-                <div className="text-[11px] text-slate-500 italic mb-2.5 max-w-[190px] leading-tight">
-                  * Please complete the prescribed course as directed.
-                </div>
-                <p className="text-[14px] font-bold text-slate-950 leading-tight">
+              <div className="text-right">
+                <p className="text-[14px] font-bold text-slate-950">
                   {doctorName || "Dr. M. Durga Praveen"}
                 </p>
-                <p className="text-[11.5px] text-slate-600 font-medium leading-tight">
+                <p className="text-[11.5px] text-slate-600 font-medium">
                   Authorized Signature
                 </p>
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* PAGE 2: TELUGU PATIENT POST-OP INSTRUCTIONS (BACK SIDE) */}
+      <div
+        className="relative w-[210mm] h-[280mm] min-h-[280mm] max-h-[280mm] bg-white text-slate-900 font-sans box-border overflow-hidden print:w-[210mm] print:h-[280mm] print:max-h-[280mm] print:overflow-hidden break-before-page shadow-md print:shadow-none mx-auto mt-6 print:mt-0 flex flex-col items-center justify-start pt-[35mm] px-[20mm] select-none"
+        style={{ breakBefore: "page", pageBreakBefore: "always" }}
+      >
+        <div className="w-full max-w-[155mm] flex flex-col items-center">
+          <img
+            src={teluguInstructionsUrl}
+            alt="పన్ను తీసిన తర్వాత తీసుకోవలసిన జాగ్రత్తలు - Patient Instructions"
+            className="w-full h-auto object-contain rounded-xs shadow-sm border border-slate-300/70 bg-white"
+          />
         </div>
       </div>
     </div>
