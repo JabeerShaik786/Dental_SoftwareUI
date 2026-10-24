@@ -26,6 +26,26 @@ export interface CaseSheetPrintData {
   includeBackPage?: boolean;
 }
 
+export const CASE_SHEET_PAGE1_TREATMENT_CAPACITY = 12;
+export const CASE_SHEET_CONTINUATION_PAGE_CAPACITY = 36;
+
+export function getCaseSheetTotalPages(
+  treatmentAdvised: string | undefined | null,
+  includeBackPage: boolean = false
+): number {
+  const entries = treatmentAdvised
+    ? treatmentAdvised
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+    : [];
+  const overflowCount = Math.max(0, entries.length - CASE_SHEET_PAGE1_TREATMENT_CAPACITY);
+  const continuationPages = overflowCount > 0
+    ? Math.ceil(overflowCount / CASE_SHEET_CONTINUATION_PAGE_CAPACITY)
+    : 0;
+  return 1 + continuationPages + (includeBackPage ? 1 : 0);
+}
+
 export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
   patient,
   medicalHistoryConditions = [],
@@ -65,6 +85,11 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
     "Others",
   ];
 
+  // Clean redundant leading bullet/dash marks from user input
+  const cleanTreatmentLine = (item: string) => {
+    return item.replace(/^[•\-\*]\s*/, "").trim();
+  };
+
   // Parse treatment advised entries line-by-line
   const treatmentEntries = treatmentAdvised
     ? treatmentAdvised
@@ -73,20 +98,42 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
         .filter(Boolean)
     : [];
 
-  // Capacity per column on Page 1:
-  // With font sizes enlarged by 2-4px, Chief Complaint (1 line), Intra Oral Exam (+1 extra line = 3 lines),
-  // and Provisional Diagnosis (+1 extra line = 3 lines), each column accommodates up to 9 entries.
-  const PAGE1_COL_CAPACITY = 9;
-  const PAGE1_TOTAL_CAPACITY = PAGE1_COL_CAPACITY * 2; // 18 items total across both columns on Page 1
+  // Page 1 holds up to 12 treatments in a balanced 2-column layout (up to 6 per column)
+  const page1Entries = treatmentEntries.slice(0, CASE_SHEET_PAGE1_TREATMENT_CAPACITY);
+  const overflowEntries = treatmentEntries.slice(CASE_SHEET_PAGE1_TREATMENT_CAPACITY);
 
-  const page1Entries = treatmentEntries.slice(0, PAGE1_TOTAL_CAPACITY);
-  const col1Entries = page1Entries.slice(0, PAGE1_COL_CAPACITY);
-  const col2Entries = page1Entries.slice(PAGE1_COL_CAPACITY);
+  // Balanced distribution across Column 1 and Column 2:
+  // Math.ceil ensures that if there are an odd number of items, Column 1 has one more
+  const page1Mid = Math.ceil(page1Entries.length / 2);
+  const col1Entries = page1Entries.slice(0, page1Mid);
+  const col2Entries = page1Entries.slice(page1Mid);
 
-  // If treatment entries exceed the 2-column capacity of Page 1, handle safely via continuation page
-  const overflowEntries = treatmentEntries.slice(PAGE1_TOTAL_CAPACITY);
-  const overflowCol1 = overflowEntries.slice(0, 16);
-  const overflowCol2 = overflowEntries.slice(16);
+  // Dynamic layout & density classes to preserve font styling and spacing while preventing overflow
+  const p1Count = page1Entries.length;
+  const isCompact = p1Count > 8; // 9-12 items (5-6 per column)
+  const isMedium = p1Count > 6 && p1Count <= 8; // 7-8 items (4 per column)
+  // <= 6 items is standard spacious layout (1-3 per column)
+
+  const containerPaddingClass = isCompact ? "px-2.5 py-1.5" : isMedium ? "px-2.5 py-2" : "p-2.5";
+  const listSpacingClass = isCompact ? "space-y-1" : isMedium ? "space-y-1" : "space-y-1.5";
+  const itemTextClass = isCompact
+    ? "text-[11px] leading-[15px]"
+    : isMedium
+    ? "text-[11.5px] leading-snug"
+    : "text-[12px] leading-snug";
+  const bulletTextClass = isCompact
+    ? "text-[11.5px]"
+    : isMedium
+    ? "text-[12.5px]"
+    : "text-[13px]";
+
+  // Chunk overflow entries into continuation pages
+  const continuationPages: string[][] = [];
+  if (overflowEntries.length > 0) {
+    for (let i = 0; i < overflowEntries.length; i += CASE_SHEET_CONTINUATION_PAGE_CAPACITY) {
+      continuationPages.push(overflowEntries.slice(i, i + CASE_SHEET_CONTINUATION_PAGE_CAPACITY));
+    }
+  }
 
   return (
     <div className="flex flex-col items-center">
@@ -233,18 +280,18 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
               </div>
             </div>
 
-            {/* 4. Treatment Advised (Two-Column Layout, text-[12px], moved down cleanly) */}
-            <div className="p-2.5 flex-1 flex flex-col min-h-0 overflow-hidden">
+            {/* 4. Treatment Advised (Two-Column Balanced Layout) */}
+            <div className={`${containerPaddingClass} flex-1 flex flex-col min-h-0`}>
               <strong className="text-[11.5px] font-bold text-slate-900 uppercase tracking-wide block leading-none mb-1.5 shrink-0">
                 4. Treatment Advised
               </strong>
-              <div className="grid grid-cols-2 gap-x-4 flex-1 text-[12px] text-slate-950 min-h-0">
+              <div className="grid grid-cols-2 gap-x-4 flex-1 min-h-0">
                 {/* Left Column */}
-                <div className="space-y-1.5 min-h-0">
+                <div className={`${listSpacingClass} min-h-0 min-w-0`}>
                   {col1Entries.map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-1.5 leading-snug">
-                      <span className="text-[#0f4c81] font-bold text-[13px] shrink-0 mt-0.5">•</span>
-                      <span className="font-semibold break-words">{item}</span>
+                    <div key={idx} className={`flex items-start gap-1.5 ${itemTextClass} min-w-0 text-slate-950`}>
+                      <span className={`text-[#0f4c81] font-bold ${bulletTextClass} shrink-0 mt-0.5 leading-none select-none`}>•</span>
+                      <span className="font-semibold break-words min-w-0 flex-1">{cleanTreatmentLine(item)}</span>
                     </div>
                   ))}
                   {col1Entries.length === 0 && (
@@ -253,11 +300,11 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
                 </div>
 
                 {/* Right Column */}
-                <div className="space-y-1.5 min-h-0">
+                <div className={`${listSpacingClass} min-h-0 min-w-0`}>
                   {col2Entries.map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-1.5 leading-snug">
-                      <span className="text-[#0f4c81] font-bold text-[13px] shrink-0 mt-0.5">•</span>
-                      <span className="font-semibold break-words">{item}</span>
+                    <div key={idx} className={`flex items-start gap-1.5 ${itemTextClass} min-w-0 text-slate-950`}>
+                      <span className={`text-[#0f4c81] font-bold ${bulletTextClass} shrink-0 mt-0.5 leading-none select-none`}>•</span>
+                      <span className="font-semibold break-words min-w-0 flex-1">{cleanTreatmentLine(item)}</span>
                     </div>
                   ))}
                 </div>
@@ -269,78 +316,92 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
         {/* NOTE: General Consent date overlay removed so the template's designated "Date & Time" blank area remains clean for manual entry */}
       </div>
 
-      {/* PAGE 1.5 (CONTINUATION): IF TREATMENT ENTRIES EXCEED CAPACITY OF BOTH COLUMNS (SAFELY PREVENTS ANY TRUNCATION) */}
-      {overflowEntries.length > 0 && (
-        <div className="relative w-[210mm] h-[297mm] min-h-[297mm] max-h-[297mm] bg-white text-slate-900 font-sans box-border overflow-hidden print:w-[210mm] print:h-[297mm] print:overflow-hidden break-before-page shadow-md print:shadow-none mt-6 print:mt-0">
-          <img
-            src={templateUrl}
-            alt="V.R Dental Care Official Case Sheet Continuation"
-            className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none z-0"
-          />
+      {/* PAGE 1.5+ (CONTINUATION): IF TREATMENT ENTRIES EXCEED CAPACITY OF BOTH COLUMNS (SAFELY PREVENTS ANY TRUNCATION) */}
+      {continuationPages.map((pageItems, pageIdx) => {
+        const cMid = Math.ceil(pageItems.length / 2);
+        const cCol1 = pageItems.slice(0, cMid);
+        const cCol2 = pageItems.slice(cMid);
+        const pageNumSuffix = continuationPages.length > 1 ? ` (PAGE ${pageIdx + 2})` : "";
 
-          <div className="relative z-10 h-full flex flex-col justify-between pt-[38mm] pb-[62mm] px-[12mm] box-border">
-            {/* Continuation Sub-header */}
-            <div className="relative flex items-center justify-center border-b-2 border-[#0f4c81]/50 pb-1 mb-2">
-              <h1 className="text-[18px] font-black uppercase tracking-wider text-[#0f4c81] text-center font-sans">
-                CASE SHEET (CONTINUATION)
-              </h1>
-              <div className="absolute right-0 text-[12.5px] font-bold text-slate-800 flex items-center">
-                <span>
-                  <strong className="text-slate-600">OP No:</strong> {patient.id}
-                </span>
-              </div>
-            </div>
+        return (
+          <div
+            key={pageIdx}
+            className="relative w-[210mm] h-[297mm] min-h-[297mm] max-h-[297mm] bg-white text-slate-900 font-sans box-border overflow-hidden print:w-[210mm] print:h-[297mm] print:overflow-hidden break-before-page shadow-md print:shadow-none mt-6 print:mt-0"
+            style={{ breakBefore: "page", pageBreakBefore: "always" }}
+          >
+            <img
+              src={templateUrl}
+              alt="V.R Dental Care Official Case Sheet Continuation"
+              className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none z-0"
+            />
 
-            {/* Continuation Patient Reference Strip */}
-            <div className="border border-[#0f4c81]/70 rounded-xs px-3 py-2 bg-white/90 backdrop-blur-[0.5px] mb-3 text-[12px] flex justify-between items-center shadow-2xs">
-              <div>
-                <strong className="text-slate-700 font-bold">Patient: </strong>
-                <span className="font-extrabold text-slate-950 text-[12.5px]">{clean(patient.name)}</span>
-              </div>
-              <div>
-                <strong className="text-slate-700 font-bold">Age / Gender: </strong>
-                <span className="font-semibold text-slate-900">{ageSex}</span>
-              </div>
-              <div>
-                <strong className="text-slate-700 font-bold">Date: </strong>
-                <span className="font-semibold text-slate-900">{displayDate}</span>
-              </div>
-            </div>
-
-            {/* Continuation Two-Column Treatment Advised Block */}
-            <div className="border border-[#0f4c81]/70 rounded-xs overflow-hidden bg-white/85 backdrop-blur-[0.5px] flex-1 flex flex-col shadow-2xs min-h-0">
-              <div className="bg-[#0f4c81] text-white px-2.5 py-1 text-[11.5px] font-bold uppercase tracking-wider shrink-0">
-                4. TREATMENT ADVISED (CONTINUED)
-              </div>
-              <div className="p-3 grid grid-cols-2 gap-x-4 flex-1 text-[12px] text-slate-950 min-h-0">
-                {/* Overflow Column 1 */}
-                <div className="space-y-1.5 min-h-0">
-                  {overflowCol1.map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-1.5 leading-snug">
-                      <span className="text-[#0f4c81] font-bold text-[13px] shrink-0 mt-0.5">•</span>
-                      <span className="font-semibold break-words">{item}</span>
-                    </div>
-                  ))}
+            <div className="relative z-10 h-full flex flex-col justify-between pt-[38mm] pb-[62mm] px-[12mm] box-border">
+              {/* Continuation Sub-header */}
+              <div className="relative flex items-center justify-center border-b-2 border-[#0f4c81]/50 pb-1 mb-2">
+                <h1 className="text-[18px] font-black uppercase tracking-wider text-[#0f4c81] text-center font-sans">
+                  CASE SHEET (CONTINUATION{pageNumSuffix})
+                </h1>
+                <div className="absolute right-0 text-[12.5px] font-bold text-slate-800 flex items-center">
+                  <span>
+                    <strong className="text-slate-600">OP No:</strong> {patient.id}
+                  </span>
                 </div>
+              </div>
 
-                {/* Overflow Column 2 */}
-                <div className="space-y-1.5 min-h-0">
-                  {overflowCol2.map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-1.5 leading-snug">
-                      <span className="text-[#0f4c81] font-bold text-[13px] shrink-0 mt-0.5">•</span>
-                      <span className="font-semibold break-words">{item}</span>
-                    </div>
-                  ))}
+              {/* Continuation Patient Reference Strip */}
+              <div className="border border-[#0f4c81]/70 rounded-xs px-3 py-2 bg-white/90 backdrop-blur-[0.5px] mb-3 text-[12px] flex justify-between items-center shadow-2xs shrink-0">
+                <div>
+                  <strong className="text-slate-700 font-bold">Patient: </strong>
+                  <span className="font-extrabold text-slate-950 text-[12.5px]">{clean(patient.name)}</span>
+                </div>
+                <div>
+                  <strong className="text-slate-700 font-bold">Age / Gender: </strong>
+                  <span className="font-semibold text-slate-900">{ageSex}</span>
+                </div>
+                <div>
+                  <strong className="text-slate-700 font-bold">Date: </strong>
+                  <span className="font-semibold text-slate-900">{displayDate}</span>
+                </div>
+              </div>
+
+              {/* Continuation Two-Column Treatment Advised Block */}
+              <div className="border border-[#0f4c81]/70 rounded-xs overflow-hidden bg-white/85 backdrop-blur-[0.5px] flex-1 flex flex-col shadow-2xs min-h-0">
+                <div className="bg-[#0f4c81] text-white px-2.5 py-1 text-[11.5px] font-bold uppercase tracking-wider shrink-0">
+                  4. TREATMENT ADVISED (CONTINUED)
+                </div>
+                <div className="p-3 grid grid-cols-2 gap-x-4 flex-1 text-[12px] text-slate-950 min-h-0">
+                  {/* Overflow Column 1 */}
+                  <div className="space-y-1.5 min-h-0 min-w-0">
+                    {cCol1.map((item, idx) => (
+                      <div key={idx} className="flex items-start gap-1.5 text-[12px] leading-snug min-w-0 text-slate-950">
+                        <span className="text-[#0f4c81] font-bold text-[13px] shrink-0 mt-0.5 leading-none select-none">•</span>
+                        <span className="font-semibold break-words min-w-0 flex-1">{cleanTreatmentLine(item)}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Overflow Column 2 */}
+                  <div className="space-y-1.5 min-h-0 min-w-0">
+                    {cCol2.map((item, idx) => (
+                      <div key={idx} className="flex items-start gap-1.5 text-[12px] leading-snug min-w-0 text-slate-950">
+                        <span className="text-[#0f4c81] font-bold text-[13px] shrink-0 mt-0.5 leading-none select-none">•</span>
+                        <span className="font-semibold break-words min-w-0 flex-1">{cleanTreatmentLine(item)}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })}
 
       {/* PAGE 2 (OPTIONAL): TELUGU POST-OP INSTRUCTIONS BACK PAGE */}
       {includeBackPage && (
-        <div className="relative w-[210mm] h-[297mm] min-h-[297mm] max-h-[297mm] bg-white text-slate-900 font-sans box-border overflow-hidden print:w-[210mm] print:h-[297mm] print:overflow-hidden break-before-page shadow-md print:shadow-none mt-6 print:mt-0">
+        <div
+          className="relative w-[210mm] h-[297mm] min-h-[297mm] max-h-[297mm] bg-white text-slate-900 font-sans box-border overflow-hidden print:w-[210mm] print:h-[297mm] print:overflow-hidden break-before-page shadow-md print:shadow-none mt-6 print:mt-0"
+          style={{ breakBefore: "page", pageBreakBefore: "always" }}
+        >
           <img
             src={backPageUrl}
             alt="V.R Dental Care Post Extraction Instructions"

@@ -80,7 +80,7 @@ import { DentalLogo } from "@/components/dental-logo";
 import { createClient } from "@/lib/supabase/client";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { CaseSheetPrintTemplate } from "@/components/print/CaseSheetPrintTemplate";
+import { CaseSheetPrintTemplate, getCaseSheetTotalPages } from "@/components/print/CaseSheetPrintTemplate";
 import { PrescriptionPrintTemplate } from "@/components/print/PrescriptionPrintTemplate";
 import { ResponsivePdfPreview } from "@/components/print/ResponsivePdfPreview";
 import { generateAndDownloadPrescriptionPdf } from "@/lib/prescriptionPdfGenerator";
@@ -9252,9 +9252,7 @@ ${clinicName}`;
                   <div className="bg-slate-200/80 dark:bg-slate-900/80 p-2 sm:p-6 rounded-xl flex flex-col items-center border border-slate-300 dark:border-slate-800 animate-fadeIn print:hidden shadow-inner w-full">
                     {(() => {
                       const activeTreatmentAdvisedStr = formatTreatmentAdvisedFromChart(patientItem.dentalChart) || editTreatmentAdvised || "";
-                      const activeTreatmentLinesCount = activeTreatmentAdvisedStr.split("\n").map(s => s.trim()).filter(Boolean).length;
-                      const isCaseSheetMultiPage = activeTreatmentLinesCount > 18;
-                      const totalCaseSheetPages = 1 + (isCaseSheetMultiPage ? 1 : 0) + (includeCaseSheetBackPage ? 1 : 0);
+                      const totalCaseSheetPages = getCaseSheetTotalPages(activeTreatmentAdvisedStr, includeCaseSheetBackPage);
 
                       return (
                         <ResponsivePdfPreview
