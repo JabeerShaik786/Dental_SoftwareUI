@@ -138,12 +138,12 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
   return (
     <div className="flex flex-col items-center">
       {/* PAGE 1: OFFICIAL V.R. DENTAL CARE CASE SHEET */}
-      <div className="relative w-[210mm] h-[297mm] min-h-[297mm] max-h-[297mm] bg-white text-slate-900 font-sans box-border overflow-hidden print:w-[210mm] print:h-[297mm] print:overflow-hidden shadow-md print:shadow-none">
+      <div className="a4-print-page relative w-[210mm] h-[297mm] min-h-[297mm] max-h-[297mm] bg-white text-slate-900 font-sans box-border overflow-hidden print:w-[210mm] print:h-[297mm] print:overflow-hidden shadow-md print:shadow-none">
         {/* Authentic Fixed Background Template Image (Header, Watermark, General Consent, Signature Line & Address Footer) */}
         <img
           src={templateUrl}
           alt="V.R Dental Care Official Case Sheet Template"
-          className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none z-0"
+          className="absolute inset-0 w-full h-full object-fill pointer-events-none select-none z-0"
         />
 
         {/* Overlaid Clinical Form Content: positioned strictly between the top header banner and the bottom General Consent block */}
@@ -340,13 +340,13 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
         return (
           <div
             key={pageIdx}
-            className="relative w-[210mm] h-[297mm] min-h-[297mm] max-h-[297mm] bg-white text-slate-900 font-sans box-border overflow-hidden print:w-[210mm] print:h-[297mm] print:overflow-hidden break-before-page shadow-md print:shadow-none mt-6 print:mt-0"
+            className="a4-print-page relative w-[210mm] h-[297mm] min-h-[297mm] max-h-[297mm] bg-white text-slate-900 font-sans box-border overflow-hidden print:w-[210mm] print:h-[297mm] print:overflow-hidden break-before-page shadow-md print:shadow-none mt-6 print:mt-0"
             style={{ breakBefore: "page", pageBreakBefore: "always" }}
           >
             <img
               src={templateUrl}
               alt="V.R Dental Care Official Case Sheet Continuation"
-              className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none z-0"
+              className="absolute inset-0 w-full h-full object-fill pointer-events-none select-none z-0"
             />
 
             <div className="relative z-10 h-full flex flex-col justify-between pt-[38mm] pb-[62mm] px-[12mm] box-border">

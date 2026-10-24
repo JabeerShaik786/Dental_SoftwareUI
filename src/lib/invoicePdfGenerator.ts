@@ -213,6 +213,7 @@ export async function generateAndDownloadInvoicePdf(options: GenerateInvoicePdfO
   doc.setFont("helvetica", "italic");
   doc.setFontSize(8.5);
   doc.setTextColor(100, 116, 139);
+  doc.text("Thank you for choosing V.R. Dental Care!", 20, 264.5);
   doc.text("Computer generated invoice. Retain for warranty & records.", 20, 269);
 
   doc.setDrawColor(148, 163, 184);

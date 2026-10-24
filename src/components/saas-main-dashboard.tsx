@@ -86,6 +86,7 @@ import { ResponsivePdfPreview } from "@/components/print/ResponsivePdfPreview";
 import { generateAndDownloadPrescriptionPdf } from "@/lib/prescriptionPdfGenerator";
 import { VRDentalInvoicePrintTemplate } from "@/components/print/VRDentalInvoicePrintTemplate";
 import { generateAndDownloadInvoicePdf } from "@/lib/invoicePdfGenerator";
+import { generateAndDownloadCaseSheetPdf } from "@/lib/caseSheetPdfGenerator";
 import { getAssetPath } from "@/lib/getAssetPath";
 import { MedicineCategorySelector } from "@/components/prescription/MedicineCategorySelector";
 import {
@@ -2845,6 +2846,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [editIntraOralExam, setEditIntraOralExam] = useState("");
   const [editProvisionalDiagnosis, setEditProvisionalDiagnosis] = useState("");
   const [editTreatmentAdvised, setEditTreatmentAdvised] = useState("");
+  const [activePrintDoc, setActivePrintDoc] = useState<"casesheet" | "invoice" | "prescription" | null>(null);
 
   // --- TOOTH TREATMENT FORM STATE ---
   const [chartSelectedTooth, setChartSelectedTooth] = useState<number | null>(null);
@@ -3230,6 +3232,15 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   ]);
 
   const [treatments, setTreatments] = useState<TreatmentItem[]>([]);
+
+  // Reset active print document state after print dialog closes
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      setActivePrintDoc(null);
+    };
+    window.addEventListener("afterprint", handleAfterPrint);
+    return () => window.removeEventListener("afterprint", handleAfterPrint);
+  }, []);
 
   // --- PATIENT PROFILE FORM SYNC & HANDLERS ---
   useEffect(() => {
@@ -4212,6 +4223,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     if (customData) {
       setActivePrintPrescription(customData);
+      setActivePrintDoc("prescription");
       setTimeout(() => {
         window.print();
       }, 50);
@@ -4240,6 +4252,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       medicines: prescMeds.filter(m => m.name.trim()),
       advice: prescAdvice,
     });
+    setActivePrintDoc("prescription");
     setTimeout(() => {
       window.print();
     }, 50);
@@ -4281,6 +4294,70 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     }
   };
 
+  const handlePrintCaseSheet = async () => {
+    const patientItem = patients.find(p => p.id === selectedPatientId);
+    if (!patientItem) {
+      showToast("Please select a patient before printing Case Sheet.", "error");
+      return;
+    }
+
+    try {
+      // 1. Ensure the background case sheet template image is preloaded in browser memory
+      const templateUrl = getAssetPath("/vrcasesheet.jpeg");
+      const img = new Image();
+      img.src = templateUrl;
+      if (!img.complete) {
+        await new Promise<void>((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        });
+      }
+
+      // 2. Ensure web fonts and document layout have decoded completely
+      if (typeof document !== "undefined" && document.fonts) {
+        await document.fonts.ready;
+      }
+
+      // 3. Set print document state to "casesheet"
+      setActivePrintDoc("casesheet");
+
+      // 4. Delay slightly to allow React to flush state and DOM updates before opening print dialog
+      setTimeout(() => {
+        window.print();
+      }, 100);
+    } catch (err) {
+      console.error("Print case sheet error:", err);
+      setActivePrintDoc("casesheet");
+      window.print();
+    }
+  };
+
+  const handleDownloadCaseSheetPDF = async () => {
+    const patientItem = patients.find(p => p.id === selectedPatientId);
+    if (!patientItem) {
+      showToast("Please select a patient before generating a Case Sheet PDF.", "error");
+      return;
+    }
+
+    try {
+      await generateAndDownloadCaseSheetPdf({
+        patient: patientItem,
+        medicalHistoryConditions: editMedicalHistoryConditions,
+        medicalHistoryOthers: editMedicalHistoryOthers,
+        currentMedications: editCurrentMedications,
+        chiefComplaint: editChiefComplaint,
+        intraOralExam: editIntraOralExam,
+        provisionalDiagnosis: editProvisionalDiagnosis,
+        treatmentAdvised: formatTreatmentAdvisedFromChart(patientItem.dentalChart) || editTreatmentAdvised,
+        visitDate: patientItem.visit || patientItem.firstVisit,
+      });
+      showToast("Case Sheet PDF downloaded successfully.", "success");
+    } catch (err) {
+      console.error("PDF download error:", err);
+      showToast("Failed to generate Case Sheet PDF.", "error");
+    }
+  };
+
   const handlePrintInvoice = async (invoiceToPrint?: InvoiceItem | null) => {
     const inv = invoiceToPrint || lastGeneratedReceipt;
     if (!inv) {
@@ -4309,13 +4386,15 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       if (inv !== lastGeneratedReceipt) {
         setLastGeneratedReceipt(inv);
       }
+      setActivePrintDoc("invoice");
 
       // 4. Delay slightly to allow React to flush state and DOM updates before opening print dialog
       setTimeout(() => {
         window.print();
-      }, 80);
+      }, 100);
     } catch (err) {
       console.error("Print invoice error:", err);
+      setActivePrintDoc("invoice");
       window.print();
     }
   };
@@ -9224,9 +9303,17 @@ ${clinicName}`;
                   <div className="flex items-center gap-2.5 shrink-0 no-print flex-wrap">
                     <Button
                       type="button"
-                      onClick={() => window.print()}
+                      onClick={handleDownloadCaseSheetPDF}
+                      className="h-9 px-3.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download PDF
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handlePrintCaseSheet}
                       variant="outline"
-                      className="h-9 px-3.5 text-xs font-semibold border-slate-300 text-slate-700 hover:bg-slate-50 flex items-center gap-1.5"
+                      className="h-9 px-3.5 text-xs font-semibold border-slate-300 text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer"
                     >
                       <Printer className="h-4 w-4 text-slate-500" />
                       Print / Save PDF
@@ -9258,23 +9345,6 @@ ${clinicName}`;
                     )}
                   </div>
                 </div>
-
-                {/* DEDICATED PHYSICAL STATIONERY A4 PRINT TEMPLATE FOR CASE SHEET */}
-                {!lastGeneratedReceipt && (
-                  <div id="print-area" className="hidden print:block">
-                  <CaseSheetPrintTemplate
-                    patient={patientItem}
-                    medicalHistoryConditions={editMedicalHistoryConditions}
-                    medicalHistoryOthers={editMedicalHistoryOthers}
-                    currentMedications={editCurrentMedications}
-                    chiefComplaint={editChiefComplaint}
-                    intraOralExam={editIntraOralExam}
-                    provisionalDiagnosis={editProvisionalDiagnosis}
-                    treatmentAdvised={formatTreatmentAdvisedFromChart(patientItem.dentalChart) || editTreatmentAdvised}
-                    visitDate={patientItem.visit || patientItem.firstVisit}
-                  />
-                </div>
-                )}
 
                 {/* EXACT CASE SHEET PRESENTATION (WHEN VIEWING ON SCREEN) */}
                 {!isEditingCaseSheet ? (
@@ -11628,34 +11698,6 @@ ${clinicName}`;
                   )}
                 </div>
 
-                {/* DEDICATED PHYSICAL STATIONERY A4 PRINT TEMPLATE FOR PRESCRIPTION */}
-                {!lastGeneratedReceipt && selectedPatientId && (() => {
-                  const pItem = patients.find(p => p.id === selectedPatientId);
-                  if (!pItem) return null;
-
-                  const dataToPrint = activePrintPrescription || {
-                    doctorName: prescDoctor || (doctors[0]?.name || "Dr. M. Durga Praveen"),
-                    date: prescDate,
-                    diagnosis: prescDiagnosis,
-                    medicines: prescMeds.filter(m => m.name.trim()),
-                    advice: prescAdvice,
-                  };
-
-                  return (
-                    <div id="print-area" className="hidden print:block">
-                      <PrescriptionPrintTemplate
-                        patient={pItem}
-                        doctorName={dataToPrint.doctorName}
-                        date={dataToPrint.date}
-                        diagnosis={dataToPrint.diagnosis}
-                        medicines={dataToPrint.medicines}
-                        advice={dataToPrint.advice}
-                        parseDosageFn={parseDosageString}
-                      />
-                    </div>
-                  );
-                })()}
-
                 {/* MODAL: INTERACTIVE ON-SCREEN PRESCRIPTION PREVIEW (OFFICIAL V.R. DENTAL CARE TEMPLATE) */}
                 {showPrescriptionPreviewModal && selectedPatientId && (() => {
                   const pItem = patients.find(p => p.id === selectedPatientId);
@@ -11695,6 +11737,7 @@ ${clinicName}`;
                               type="button"
                               onClick={() => {
                                 setActivePrintPrescription(currentData);
+                                setActivePrintDoc("prescription");
                                 setTimeout(() => window.print(), 50);
                               }}
                               className="h-8 px-3 rounded text-xs bg-slate-900 hover:bg-slate-800 text-white font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
@@ -17597,18 +17640,67 @@ ${clinicName}`;
         );
       })()}
 
-      {/* Dedicated A4 Physical Stationery Container for Invoice Browser Print (Root level, never clipped by modal) */}
-      {lastGeneratedReceipt && (() => {
-        const patientObj = patients.find(p => p.id === lastGeneratedReceipt.patientId || p.name === lastGeneratedReceipt.patientName) || null;
-        return (
-          <div id="print-area" className="hidden print:block">
-            <VRDentalInvoicePrintTemplate
-              patient={patientObj}
-              invoice={lastGeneratedReceipt}
-            />
-          </div>
-        );
-      })()}
+      {/* DEDICATED ROOT-LEVEL A4 PRINT CONTAINER (EXACT FIDELITY FOR CASE SHEET, INVOICE & PRESCRIPTION) */}
+      <div id="print-area" className="hidden print:block">
+        {(() => {
+          // 1. Invoice Print Mode
+          if (activePrintDoc === "invoice" || (!activePrintDoc && lastGeneratedReceipt)) {
+            if (!lastGeneratedReceipt) return null;
+            const patientObj = patients.find(p => p.id === lastGeneratedReceipt.patientId || p.name === lastGeneratedReceipt.patientName) || null;
+            return (
+              <VRDentalInvoicePrintTemplate
+                patient={patientObj}
+                invoice={lastGeneratedReceipt}
+              />
+            );
+          }
+
+          // 2. Prescription Print Mode
+          if (activePrintDoc === "prescription" || (!activePrintDoc && !lastGeneratedReceipt && (showPrescriptionPreviewModal || activePrintPrescription || (profileSubTab === "Prescriptions" && selectedPatientId)))) {
+            const pItem = patients.find(p => p.id === selectedPatientId);
+            if (!pItem) return null;
+            const dataToPrint = activePrintPrescription || {
+              doctorName: prescDoctor || (doctors[0]?.name || "Dr. M. Durga Praveen"),
+              date: prescDate,
+              diagnosis: prescDiagnosis,
+              medicines: prescMeds.filter(m => m.name.trim()),
+              advice: prescAdvice,
+            };
+            return (
+              <PrescriptionPrintTemplate
+                patient={pItem}
+                doctorName={dataToPrint.doctorName}
+                date={dataToPrint.date}
+                diagnosis={dataToPrint.diagnosis}
+                medicines={dataToPrint.medicines}
+                advice={dataToPrint.advice}
+                parseDosageFn={parseDosageString}
+              />
+            );
+          }
+
+          // 3. Case Sheet Print Mode (Default when viewing a patient profile Case Sheet)
+          if (selectedPatientId) {
+            const patientItem = patients.find(p => p.id === selectedPatientId);
+            if (!patientItem) return null;
+            return (
+              <CaseSheetPrintTemplate
+                patient={patientItem}
+                medicalHistoryConditions={editMedicalHistoryConditions}
+                medicalHistoryOthers={editMedicalHistoryOthers}
+                currentMedications={editCurrentMedications}
+                chiefComplaint={editChiefComplaint}
+                intraOralExam={editIntraOralExam}
+                provisionalDiagnosis={editProvisionalDiagnosis}
+                treatmentAdvised={formatTreatmentAdvisedFromChart(patientItem.dentalChart) || editTreatmentAdvised}
+                visitDate={patientItem.visit || patientItem.firstVisit}
+              />
+            );
+          }
+
+          return null;
+        })()}
+      </div>
       {/* RESCHEDULE APPOINTMENT MODAL DIALOG */}
       <AnimatePresence>
         {rescheduleModalAppt && (

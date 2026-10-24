@@ -84,7 +84,7 @@ export const VRDentalInvoicePrintTemplate: React.FC<VRDentalInvoicePrintData> = 
   return (
     <div className={`flex flex-col items-center ${className}`}>
       {/* A4 INVOICE CONTAINER (210mm x 297mm) */}
-      <div className="relative w-[210mm] h-[297mm] min-h-[297mm] max-h-[297mm] bg-white text-slate-900 font-sans box-border overflow-hidden print:w-[210mm] print:h-[297mm] print:overflow-hidden shadow-md print:shadow-none mx-auto select-none">
+      <div className="a4-print-page relative w-[210mm] h-[297mm] min-h-[297mm] max-h-[297mm] bg-white text-slate-900 font-sans box-border overflow-hidden print:w-[210mm] print:h-[297mm] print:overflow-hidden shadow-md print:shadow-none mx-auto select-none">
         {/* Authentic Pre-Printed Letterhead Background Image (Header Logo & Deep Blue Footer) */}
         <img
           src={letterheadUrl}
