@@ -23,15 +23,13 @@ export interface CaseSheetPrintData {
   treatmentAdvised?: string;
   visitDate?: string;
   doctorName?: string;
-  includeBackPage?: boolean;
 }
 
 export const CASE_SHEET_PAGE1_TREATMENT_CAPACITY = 12;
 export const CASE_SHEET_CONTINUATION_PAGE_CAPACITY = 36;
 
 export function getCaseSheetTotalPages(
-  treatmentAdvised: string | undefined | null,
-  includeBackPage: boolean = false
+  treatmentAdvised: string | undefined | null
 ): number {
   const entries = treatmentAdvised
     ? treatmentAdvised
@@ -43,7 +41,7 @@ export function getCaseSheetTotalPages(
   const continuationPages = overflowCount > 0
     ? Math.ceil(overflowCount / CASE_SHEET_CONTINUATION_PAGE_CAPACITY)
     : 0;
-  return 1 + continuationPages + (includeBackPage ? 1 : 0);
+  return 1 + continuationPages;
 }
 
 export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
@@ -56,11 +54,9 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
   provisionalDiagnosis = "",
   treatmentAdvised = "",
   visitDate = "",
-  includeBackPage = false,
 }) => {
   // Official V.R. Dental Care template image with authentic header, logo, watermark, General Consent, signature line, and footer
   const templateUrl = getAssetPath("/vrcasesheet.jpeg");
-  const backPageUrl = getAssetPath("/templates/vr_post_op_instructions.jpg");
 
   // Format consultation date cleanly in Asia/Kolkata (displayed in the top Patient Information section)
   const rawDate = visitDate ? (visitDate.includes(",") ? visitDate.split(",")[0].trim() : visitDate) : "";
@@ -395,20 +391,6 @@ export const CaseSheetPrintTemplate: React.FC<CaseSheetPrintData> = ({
           </div>
         );
       })}
-
-      {/* PAGE 2 (OPTIONAL): TELUGU POST-OP INSTRUCTIONS BACK PAGE */}
-      {includeBackPage && (
-        <div
-          className="relative w-[210mm] h-[297mm] min-h-[297mm] max-h-[297mm] bg-white text-slate-900 font-sans box-border overflow-hidden print:w-[210mm] print:h-[297mm] print:overflow-hidden break-before-page shadow-md print:shadow-none mt-6 print:mt-0"
-          style={{ breakBefore: "page", pageBreakBefore: "always" }}
-        >
-          <img
-            src={backPageUrl}
-            alt="V.R Dental Care Post Extraction Instructions"
-            className="absolute inset-0 w-full h-full object-fill pointer-events-none select-none z-0"
-          />
-        </div>
-      )}
     </div>
   );
 };

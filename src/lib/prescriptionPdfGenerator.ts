@@ -238,21 +238,36 @@ export async function generateAndDownloadPrescriptionPdf(options: GeneratePrescr
     doc.text(splitAdvice, 10.5, currentY + 4.5);
   }
 
-  // Doctor Signature Block (Bottom of writing area, right above pre-printed doctors horizontal line at y=209)
+  // Telugu Patient Instructions Card & Doctor Signature Block
+  // Sits neatly in the lower portion above the pre-printed doctors horizontal line at y=208
+  const instructionsUrl = getAssetPath("/templates/vr_telugu_post_op_instructions.png");
+  const imgWidth = 73; // mm
+  const imgHeight = 46; // mm (aspect ratio ~1.595)
+  const imgX = 10.5; // aligns with left margin
+  const imgY = Math.max(currentY + 4, 206 - imgHeight);
+
+  try {
+    const instructionsDataUrl = await getTemplateDataUrl(instructionsUrl);
+    doc.addImage(instructionsDataUrl, "PNG", imgX, imgY, imgWidth, imgHeight, undefined, "FAST");
+  } catch (err) {
+    console.error("Failed to load Telugu post-op instructions image:", err);
+  }
+
+  // Doctor Signature Block (Right side of instructions card)
   doc.setFont("helvetica", "italic");
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(100, 116, 139);
-  doc.text("* Please complete the prescribed course as directed.", 10.5, 205);
+  doc.text("* Please complete the prescribed course as directed.", 199.5, imgY + 22, { align: "right" });
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11.5);
+  doc.setFontSize(11);
   doc.setTextColor(15, 23, 42);
-  doc.text(doctorName || "Dr. M. Durga Praveen", 199.5, 201, { align: "right" });
+  doc.text(doctorName || "Dr. M. Durga Praveen", 199.5, imgY + 38, { align: "right" });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(100, 116, 139);
-  doc.text("Authorized Signature", 199.5, 205, { align: "right" });
+  doc.text("Authorized Signature", 199.5, imgY + 43, { align: "right" });
 
   // Filename
   const safeName = (patient.name || "Patient").replace(/[^a-zA-Z0-9]/g, "_");

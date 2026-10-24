@@ -2844,7 +2844,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [editIntraOralExam, setEditIntraOralExam] = useState("");
   const [editProvisionalDiagnosis, setEditProvisionalDiagnosis] = useState("");
   const [editTreatmentAdvised, setEditTreatmentAdvised] = useState("");
-  const [includeCaseSheetBackPage, setIncludeCaseSheetBackPage] = useState(false);
 
   // --- TOOTH TREATMENT FORM STATE ---
   const [chartSelectedTooth, setChartSelectedTooth] = useState<number | null>(null);
@@ -9183,15 +9182,6 @@ ${clinicName}`;
                   </div>
 
                   <div className="flex items-center gap-2.5 shrink-0 no-print flex-wrap">
-                    <label className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300 font-medium cursor-pointer mr-1">
-                      <input
-                        type="checkbox"
-                        checked={includeCaseSheetBackPage}
-                        onChange={(e) => setIncludeCaseSheetBackPage(e.target.checked)}
-                        className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                      />
-                      <span>Include Telugu Back Page</span>
-                    </label>
                     <Button
                       type="button"
                       onClick={() => window.print()}
@@ -9242,7 +9232,6 @@ ${clinicName}`;
                     provisionalDiagnosis={editProvisionalDiagnosis}
                     treatmentAdvised={formatTreatmentAdvisedFromChart(patientItem.dentalChart) || editTreatmentAdvised}
                     visitDate={patientItem.visit || patientItem.firstVisit}
-                    includeBackPage={includeCaseSheetBackPage}
                   />
                 </div>
                 )}
@@ -9252,7 +9241,7 @@ ${clinicName}`;
                   <div className="bg-slate-200/80 dark:bg-slate-900/80 p-2 sm:p-6 rounded-xl flex flex-col items-center border border-slate-300 dark:border-slate-800 animate-fadeIn print:hidden shadow-inner w-full">
                     {(() => {
                       const activeTreatmentAdvisedStr = formatTreatmentAdvisedFromChart(patientItem.dentalChart) || editTreatmentAdvised || "";
-                      const totalCaseSheetPages = getCaseSheetTotalPages(activeTreatmentAdvisedStr, includeCaseSheetBackPage);
+                      const totalCaseSheetPages = getCaseSheetTotalPages(activeTreatmentAdvisedStr);
 
                       return (
                         <ResponsivePdfPreview
@@ -9269,7 +9258,6 @@ ${clinicName}`;
                             provisionalDiagnosis={editProvisionalDiagnosis}
                             treatmentAdvised={activeTreatmentAdvisedStr}
                             visitDate={patientItem.visit || patientItem.firstVisit}
-                            includeBackPage={includeCaseSheetBackPage}
                           />
                         </ResponsivePdfPreview>
                       );
