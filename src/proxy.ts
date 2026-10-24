@@ -7,12 +7,23 @@ export async function proxy(request: NextRequest) {
   })
 
   const urlEnv = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-  const keyEnv = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'placeholder'
+  const keyEnv =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    'placeholder'
+
+  // Clean up stale cookies from previous clinic project if detected
+  if (request.cookies.has('sb-sxfowiececnrqytbtpcb-auth-token')) {
+    supabaseResponse.cookies.delete('sb-sxfowiececnrqytbtpcb-auth-token')
+  }
 
   const supabase = createServerClient(
     urlEnv,
     keyEnv,
     {
+      cookieOptions: {
+        name: 'sb-khkxwddrkwmmmcxbreau-auth-token',
+      },
       cookies: {
         getAll() {
           return request.cookies.getAll()
@@ -22,6 +33,9 @@ export async function proxy(request: NextRequest) {
           supabaseResponse = NextResponse.next({
             request,
           })
+          if (request.cookies.has('sb-sxfowiececnrqytbtpcb-auth-token')) {
+            supabaseResponse.cookies.delete('sb-sxfowiececnrqytbtpcb-auth-token')
+          }
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )

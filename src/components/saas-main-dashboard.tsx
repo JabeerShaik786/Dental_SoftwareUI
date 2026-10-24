@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -1310,7 +1310,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const isOwner = userRole === "owner";
   const isReceptionist = userRole === "receptionist";
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const seedMockPatients = async () => {
     const insertRows = DEFAULT_MOCK_PATIENTS.map(p => ({
@@ -1355,35 +1355,34 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     if (dbPatients) {
       if (dbPatients.length === 0) {
         setPatients([]);
-        return;
+      } else {
+        const mappedPatients: Patient[] = dbPatients.map((p: any) => ({
+          id: p.patient_id,
+          uuid: p.id,
+          name: p.name,
+          phone: p.phone,
+          age: p.age || 0,
+          gender: (p.gender === "Male" || p.gender === "Female") ? p.gender : "Male",
+          address: p.address || "",
+          visit: p.visit || "",
+          medicalNotes: p.medical_notes || "None",
+          balance: p.balance || "₹0",
+          status: (p.status === "Active" || p.status === "Inactive") ? p.status : "Active",
+          dentalChart: p.dental_chart || {},
+          prescriptions: p.prescriptions || [],
+          files: Array.isArray(p.files) ? p.files : [],
+          notes: p.notes || [],
+          email: p.email || undefined,
+          bloodGroup: p.blood_group || undefined,
+          patientType: p.patient_type || undefined,
+          occupation: p.occupation || undefined,
+          reference: p.reference || undefined,
+          medicalHistory: Array.isArray(p.medical_history) ? p.medical_history : [],
+          medicalHistoryOthers: p.medical_history_others || undefined,
+          createdAt: p.created_at || undefined
+        }));
+        setPatients(mappedPatients);
       }
-
-      const mappedPatients: Patient[] = dbPatients.map(p => ({
-        id: p.patient_id,
-        uuid: p.id,
-        name: p.name,
-        phone: p.phone,
-        age: p.age || 0,
-        gender: (p.gender === "Male" || p.gender === "Female") ? p.gender : "Male",
-        address: p.address || "",
-        visit: p.visit || "",
-        medicalNotes: p.medical_notes || "None",
-        balance: p.balance || "₹0",
-        status: (p.status === "Active" || p.status === "Inactive") ? p.status : "Active",
-        dentalChart: p.dental_chart || {},
-        prescriptions: p.prescriptions || [],
-        files: Array.isArray(p.files) ? p.files : [],
-        notes: p.notes || [],
-        email: p.email || undefined,
-        bloodGroup: p.blood_group || undefined,
-        patientType: p.patient_type || undefined,
-        occupation: p.occupation || undefined,
-        reference: p.reference || undefined,
-        medicalHistory: Array.isArray(p.medical_history) ? p.medical_history : [],
-        medicalHistoryOthers: p.medical_history_others || undefined,
-        createdAt: p.created_at || undefined
-      }));
-      setPatients(mappedPatients);
     }
 
     // 2. Fetch billing / invoices
@@ -1395,10 +1394,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     if (billErr) {
       showToast("Error loading invoices from database.", "error");
     } else if (dbBilling) {
-      const mappedInvoices: InvoiceItem[] = dbBilling.map(b => ({
+      const mappedInvoices: InvoiceItem[] = dbBilling.map((b: any) => ({
         id: b.invoice_id,
         uuid: b.id,
-        patientId: dbPatients?.find(p => p.id === b.patient_id)?.patient_id || "",
+        patientId: dbPatients?.find((p: any) => p.id === b.patient_id)?.patient_id || "",
         patientName: b.patient_name,
         doctor: b.doctor || "",
         treatment: b.treatment || "",
@@ -1427,7 +1426,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       console.error("Failed to load doctors from database:", docErr.message, docErr.code);
       showToast("Error loading doctors from database.", "error");
     } else if (dbDoctors) {
-      const mappedDoctors: Doctor[] = dbDoctors.map(d => ({
+      const mappedDoctors: Doctor[] = dbDoctors.map((d: any) => ({
         id: d.id,
         name: d.name,
         speciality: d.specialty || "",
@@ -1447,14 +1446,14 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       console.error("Failed to load appointments from database:", apptErr.message, apptErr.code);
       showToast("Error loading appointments from database.", "error");
     } else if (dbAppointments) {
-      const mappedAppointments: Appointment[] = dbAppointments.map(a => {
+      const mappedAppointments: Appointment[] = dbAppointments.map((a: any) => {
         // Resolve patient details
-        const patRecord = dbPatients?.find(p => p.id === a.patient_id);
+        const patRecord = dbPatients?.find((p: any) => p.id === a.patient_id);
         const localPatientId = patRecord ? patRecord.patient_id : "Unknown ID";
         const localPatientName = patRecord ? patRecord.name : "Unknown Name";
 
         // Resolve doctor name
-        const docRecord = dbDoctors?.find(d => d.id === a.doctor_id);
+        const docRecord = dbDoctors?.find((d: any) => d.id === a.doctor_id);
         const localDoctorName = docRecord ? docRecord.name : (a.doctor_id ? "Unknown Doctor" : "Unassigned");
 
         return {
@@ -1487,7 +1486,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       .order("created_at", { ascending: false })
       .limit(20);
     if (dbActivities && dbActivities.length > 0) {
-      const mappedAct: ActivityItem[] = dbActivities.map(act => ({
+      const mappedAct: ActivityItem[] = dbActivities.map((act: any) => ({
         id: act.id,
         type: (act.entity_type as any) || "Register",
         msg: act.description,
@@ -1503,7 +1502,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       .order("created_at", { ascending: false })
       .limit(20);
     if (dbNotifs && dbNotifs.length > 0) {
-      setNotifications(dbNotifs.map(n => ({ id: n.id, msg: n.message, unread: !n.is_read })));
+      setNotifications(dbNotifs.map((n: any) => ({ id: n.id, msg: n.message, unread: !n.is_read })));
     }
 
     // 8. Fetch treatments
@@ -1516,9 +1515,9 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       console.error("Failed to load treatments from database:", treatErr.message, treatErr.code);
       showToast("Error loading treatments from database.", "error");
     } else if (dbTreatments) {
-      const mappedTr: TreatmentItem[] = dbTreatments.map(t => {
-        const patRecord = dbPatients?.find(p => p.id === t.patient_id);
-        const docRecord = dbDoctors?.find(d => d.id === t.doctor_id);
+      const mappedTr: TreatmentItem[] = dbTreatments.map((t: any) => {
+        const patRecord = dbPatients?.find((p: any) => p.id === t.patient_id);
+        const docRecord = dbDoctors?.find((d: any) => d.id === t.doctor_id);
 
         return {
           id: t.id,
@@ -1545,7 +1544,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     let hasReceptionistAccount = false;
     let foundReceptionistProfile: any = null;
     if (dbProfiles && dbProfiles.length > 0) {
-      const mappedStaff: Staff[] = dbProfiles.map(p => ({
+      const mappedStaff: Staff[] = dbProfiles.map((p: any) => ({
         id: p.id,
         name: p.full_name || "Staff Member",
         role: p.custom_title || (p.role === "owner" ? "Owner / Dentist" : "Receptionist"),
@@ -1554,7 +1553,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       }));
       setStaffList(mappedStaff);
 
-      foundReceptionistProfile = dbProfiles.find(p => p.role === "receptionist" || p.custom_title?.toLowerCase().includes("reception") || p.custom_title?.toLowerCase().includes("desk"));
+      foundReceptionistProfile = dbProfiles.find((p: any) => p.role === "receptionist" || p.custom_title?.toLowerCase().includes("reception") || p.custom_title?.toLowerCase().includes("desk"));
       if (foundReceptionistProfile?.full_name) {
         setReceptionistUser(foundReceptionistProfile.full_name);
         setIsReceptionistAccountIdentity(true);
@@ -1606,8 +1605,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
       if (!medErr && dbMeds) {
         const sanitizedDbMeds: MedicineItem[] = dbMeds
-          .filter(m => !isOldMockMedicine(m.name))
-          .map(m => ({
+          .filter((m: any) => !isOldMockMedicine(m.name))
+          .map((m: any) => ({
             id: m.id,
             name: m.name,
             category: m.category || getCategoryForMedicine(m.name),
@@ -1637,7 +1636,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         .order("transaction_date", { ascending: false });
 
       if (!txErr && dbTx) {
-        setStockTransactions(dbTx.map(t => ({
+        setStockTransactions(dbTx.map((t: any) => ({
           id: t.id,
           medicine_id: t.medicine_id,
           transaction_type: t.transaction_type,
@@ -1658,7 +1657,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
         .order("created_at", { ascending: false });
 
       if (!prescErr && dbPrescs) {
-        setPatientPrescriptionsList(dbPrescs.map(pr => ({
+        setPatientPrescriptionsList(dbPrescs.map((pr: any) => ({
           id: pr.id,
           patient_id: pr.patient_id,
           patient_name: pr.patient_name,
@@ -1829,7 +1828,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
       if (!session) {
         router.push("/login");
       } else {
@@ -3138,7 +3137,6 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
   const fetchBackupHistory = React.useCallback(async () => {
     try {
-      const supabase = createClient();
       const { data, error } = await supabase
         .from("backup_history")
         .select("*")
@@ -3184,8 +3182,10 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   }, []);
 
   useEffect(() => {
-    fetchBackupHistory();
-  }, [fetchBackupHistory]);
+    if (!loadingSession && isOwner) {
+      fetchBackupHistory();
+    }
+  }, [loadingSession, isOwner, fetchBackupHistory]);
 
   useEffect(() => {
     try {
@@ -3339,15 +3339,15 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
           .select("*")
           .eq("patient_id", p.uuid)
           .order("created_at", { ascending: false })
-          .then(({ data: dbFiles, error }) => {
+          .then(({ data: dbFiles, error }: any) => {
             if (!error && dbFiles && dbFiles.length > 0) {
               setPatients(prev => prev.map(pat => {
                 if (pat.id === selectedPatientId) {
                   const existing = pat.files || [];
                   const existingPaths = new Set(existing.map(f => f.storage_path).filter(Boolean));
                   const newItems: FileAttachment[] = dbFiles
-                    .filter(df => !existingPaths.has(df.storage_path))
-                    .map(df => ({
+                    .filter((df: any) => !existingPaths.has(df.storage_path))
+                    .map((df: any) => ({
                       id: df.id,
                       name: df.name,
                       original_name: df.name,
@@ -6167,7 +6167,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       .from("patients")
       .select("patient_id");
 
-    const combinedList = dbAllPats && dbAllPats.length > 0 ? dbAllPats.map(p => ({ id: p.patient_id })) : patients;
+    const combinedList = dbAllPats && dbAllPats.length > 0 ? dbAllPats.map((p: any) => ({ id: p.patient_id })) : patients;
     const patientId = getNextSequentialPatientId(combinedList);
 
     const { data: insertedPat, error } = await supabase
@@ -6415,7 +6415,7 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
       .from("patients")
       .select("patient_id");
 
-    const combinedList = dbAllPats && dbAllPats.length > 0 ? dbAllPats.map(p => ({ id: p.patient_id })) : patients;
+    const combinedList = dbAllPats && dbAllPats.length > 0 ? dbAllPats.map((p: any) => ({ id: p.patient_id })) : patients;
     const patientId = getNextSequentialPatientId(combinedList);
 
     // Perform database insertion
@@ -9071,7 +9071,7 @@ ${clinicName}`;
           } else {
             currentChart[toothIndex] = updatedList.join(" | ");
           }
-          supabase.from("patients").update({ dental_chart: currentChart }).eq("patient_id", patientItem.id).then(({ error }) => {
+          supabase.from("patients").update({ dental_chart: currentChart }).eq("patient_id", patientItem.id).then(({ error }: any) => {
             if (error) console.error("Database error saving dental chart:", error);
           });
           setPatients(prev => prev.map(p => p.id === patientItem.id ? { ...p, dentalChart: currentChart } : p));
@@ -9113,7 +9113,7 @@ ${clinicName}`;
               currentChart[t.index] = [...existingList, entryStr].join(" | ");
             }
           });
-          supabase.from("patients").update({ dental_chart: currentChart }).eq("patient_id", patientItem.id).then(({ error }) => {
+          supabase.from("patients").update({ dental_chart: currentChart }).eq("patient_id", patientItem.id).then(({ error }: any) => {
             if (error) console.error("Database error saving dental chart:", error);
           });
           setPatients(prev => prev.map(p => p.id === patientItem.id ? { ...p, dentalChart: currentChart } : p));
@@ -9226,7 +9226,7 @@ ${clinicName}`;
             .select();
 
           if (insertedTreats && insertedTreats.length > 0) {
-            const newTreatItems: TreatmentItem[] = insertedTreats.map(row => ({
+            const newTreatItems: TreatmentItem[] = insertedTreats.map((row: any) => ({
               id: row.id,
               name: row.name,
               category: row.category || effectiveCategory,
@@ -15294,7 +15294,10 @@ ${clinicName}`;
           const staffEndpoint = `${supabaseUrl}/functions/v1/staff`;
 
           const { data: { session } } = await supabase.auth.getSession();
-          const authHeaders: Record<string, string> = { "Content-Type": "application/json" };
+          const authHeaders: Record<string, string> = {
+            "Content-Type": "application/json",
+            "apikey": process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+          };
           if (session?.access_token) {
             authHeaders["Authorization"] = `Bearer ${session.access_token}`;
           }
@@ -15355,7 +15358,9 @@ ${clinicName}`;
           const staffEndpoint = `${supabaseUrl}/functions/v1/staff?id=${encodeURIComponent(deleteStaffConfirm.id)}`;
 
           const { data: { session } } = await supabase.auth.getSession();
-          const authHeaders: Record<string, string> = {};
+          const authHeaders: Record<string, string> = {
+            "apikey": process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+          };
           if (session?.access_token) {
             authHeaders["Authorization"] = `Bearer ${session.access_token}`;
           }
@@ -15390,7 +15395,6 @@ ${clinicName}`;
       setIsBackingUp(true);
 
       try {
-        const supabase = createClient();
         const { data, error } = await supabase.functions.invoke("backup", {
           body: {},
         });
