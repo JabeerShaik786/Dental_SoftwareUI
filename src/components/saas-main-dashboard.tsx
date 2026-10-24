@@ -1118,7 +1118,7 @@ export function validate10DigitPhone(phoneStr: string): boolean {
   return digits.length === 10;
 }
 
-// Sequential OP Number / Patient ID Generator (starts from 10000, 10001, ...)
+// Sequential OP Number / Patient ID Generator (starts from 10001, 10002, ...)
 export function getNextSequentialPatientId(patientsList: Array<{ id?: string; patient_id?: string }>): string {
   let maxNum = 0;
   patientsList.forEach(p => {
@@ -1133,7 +1133,7 @@ export function getNextSequentialPatientId(patientsList: Array<{ id?: string; pa
       });
     }
   });
-  const nextNum = maxNum >= 10000 ? maxNum + 1 : 10000;
+  const nextNum = maxNum >= 10001 ? maxNum + 1 : 10001;
   return nextNum.toString();
 }
 
@@ -1354,9 +1354,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     if (dbPatients) {
       if (dbPatients.length === 0) {
-        await seedMockPatients();
-        // Re-fetch data statefully after insert completion
-        return fetchClinicData();
+        setPatients([]);
+        return;
       }
 
       const mappedPatients: Patient[] = dbPatients.map(p => ({
@@ -2206,6 +2205,8 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
   };
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [profileSubTab, setProfileSubTab] = useState("Case Sheet");
+  const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
+  const [isDeletingPatient, setIsDeletingPatient] = useState<boolean>(false);
 
   // Form input states (Patient / Appt modals)
   const [newPatName, setNewPatName] = useState("");
@@ -3543,6 +3544,84 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
 
     setIsEditingCaseSheet(false);
     showToast("Patient case sheet updated successfully.", "success");
+  };
+
+  const handleConfirmDeletePatient = async () => {
+    if (!patientToDelete) return;
+    if (!isOwner) {
+      showToast("Access Denied: Only authenticated clinic owners can delete patient profiles.", "error");
+      return;
+    }
+
+    setIsDeletingPatient(true);
+    const targetPat = patientToDelete;
+
+    try {
+      // 1. Clean associated files in storage buckets if any
+      if (Array.isArray(targetPat.files) && targetPat.files.length > 0) {
+        for (const f of targetPat.files) {
+          const path = (f as any).storage_path || (f as any).path || `${targetPat.id}/${f.name}`;
+          try {
+            await supabase.storage.from("patient-files").remove([path]);
+            await supabase.storage.from("patient-media").remove([path]);
+          } catch (storageErr) {
+            console.warn("Storage cleanup notice:", path, storageErr);
+          }
+        }
+      }
+
+      // Also clean any clinical media state for this patient
+      setPatientMedia(prev => prev.filter(m => m.patientId !== targetPat.id));
+
+      // 2. Remove dependent billing records for this patient
+      if (targetPat.uuid) {
+        await supabase.from("billing").delete().eq("patient_id", targetPat.uuid);
+      }
+      await supabase.from("billing").delete().eq("patient_name", targetPat.name);
+
+      // 3. Delete patient from Supabase (Postgres FK cascades appointments, treatments, dental_chart, prescriptions, clinical_notes, patient_files)
+      let delError: any = null;
+      if (targetPat.uuid) {
+        const { error } = await supabase.from("patients").delete().eq("id", targetPat.uuid);
+        delError = error;
+      } else {
+        const { error } = await supabase.from("patients").delete().eq("patient_id", targetPat.id);
+        delError = error;
+      }
+
+      if (delError) {
+        console.error("Patient delete failed:", delError);
+        showToast(`Failed to delete patient profile: ${delError.message || "Database permission error."}`, "error");
+        setIsDeletingPatient(false);
+        return;
+      }
+
+      // 4. Log deletion in activities
+      await supabase.from("activities").insert({
+        action: "Delete",
+        entity_type: "Patient",
+        description: `Deleted patient ${targetPat.name} (OP: ${targetPat.id}).`
+      });
+
+      // 5. Update local React state
+      setPatients(prev => prev.filter(p => p.id !== targetPat.id && (!targetPat.uuid || p.uuid !== targetPat.uuid)));
+      setAppointments(prev => prev.filter(a => a.patientId !== targetPat.id));
+      setTreatments(prev => prev.filter(t => t.patient !== targetPat.name));
+      setInvoices(prev => prev.filter(inv => inv.patientId !== targetPat.id && inv.patientName !== targetPat.name));
+
+      if (selectedPatientId === targetPat.id) {
+        setSelectedPatientId(null);
+        setProfileSubTab("Case Sheet");
+      }
+
+      showToast(`Patient ${targetPat.name} (${targetPat.id}) was permanently deleted.`, "success");
+      setPatientToDelete(null);
+    } catch (err: any) {
+      console.error("Unexpected error during patient deletion:", err);
+      showToast(`Error deleting patient: ${err?.message || "Unknown error"}`, "error");
+    } finally {
+      setIsDeletingPatient(false);
+    }
   };
 
   const handleChartToothSelect = async (toothIndex: number) => {
@@ -9251,7 +9330,7 @@ ${clinicName}`;
               </div>
             </div>
 
-            <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 border-l sm:border-l-0 pl-4 sm:pl-0">
+            <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 border-l sm:border-l-0 pl-4 sm:pl-0 flex-wrap">
               <div>
                 <span className="text-[11px] font-bold text-slate-405 block uppercase">Phone</span>
                 <span className="text-slate-800 dark:text-slate-200 text-[13px] sm:text-[14px] font-semibold">{patientItem.phone}</span>
@@ -9264,6 +9343,17 @@ ${clinicName}`;
                 <span className="text-[11px] font-bold text-slate-405 block uppercase">Status</span>
                 <span className="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full font-bold text-[11px] inline-block">{patientItem.status}</span>
               </div>
+              {isOwner && (
+                <Button
+                  type="button"
+                  onClick={() => setPatientToDelete(patientItem)}
+                  variant="outline"
+                  className="h-8 px-3 text-xs font-semibold border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-1.5 cursor-pointer ml-auto"
+                >
+                  <Trash2 className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+                  Delete Patient
+                </Button>
+              )}
             </div>
           </div>
 
@@ -12825,9 +12915,23 @@ ${clinicName}`;
                         }`}>{pat.status}</span>
                       </td>
                       <td className="py-3.5 px-3 text-center whitespace-nowrap">
-                        <button onClick={() => setSelectedPatientId(pat.id)} className="text-blue-605 hover:underline text-[14px] sm:text-[15px] font-semibold cursor-pointer">
-                          Open Profile
-                        </button>
+                        <div className="flex items-center justify-center gap-2.5">
+                          <button onClick={() => setSelectedPatientId(pat.id)} className="text-blue-605 hover:underline text-[14px] sm:text-[15px] font-semibold cursor-pointer">
+                            Open Profile
+                          </button>
+                          {isOwner && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPatientToDelete(pat);
+                              }}
+                              className="text-rose-500 hover:text-rose-700 hover:underline text-[13px] font-medium cursor-pointer"
+                              title={`Delete patient ${pat.name}`}
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -18889,6 +18993,87 @@ ${clinicName}`;
                 className="h-9 px-5 rounded bg-purple-600 hover:bg-purple-500 text-white font-semibold flex items-center gap-2 cursor-pointer"
               >
                 Dispense Medicine
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE PATIENT CONFIRMATION MODAL (OWNER ONLY) */}
+      {patientToDelete && isOwner && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl max-w-md w-full space-y-5 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-full bg-rose-100 dark:bg-rose-950/60 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Delete Patient Profile
+                  </h3>
+                  <span className="text-xs text-slate-400 font-medium">Owner Authorization Required</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPatientToDelete(null)}
+                disabled={isDeletingPatient}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1 rounded-lg text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-3.5 text-xs font-semibold">
+              <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 uppercase text-[10px] font-bold">Patient Name</span>
+                  <span className="text-slate-900 dark:text-white font-bold text-sm">{patientToDelete.name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 uppercase text-[10px] font-bold">OP Number</span>
+                  <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{patientToDelete.id}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 uppercase text-[10px] font-bold">Mobile</span>
+                  <span className="text-slate-600 dark:text-slate-300 font-medium">{patientToDelete.phone}</span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-xl text-[11px] text-rose-800 dark:text-rose-300 space-y-1 font-medium">
+                <p className="font-bold">⚠️ Warning: This action is permanent and cannot be undone.</p>
+                <p>Deleting this patient will permanently remove their medical history, clinical notes, appointments, treatments, dental charts, invoices, and associated consent documents / video recordings.</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPatientToDelete(null)}
+                disabled={isDeletingPatient}
+                className="h-9 px-4 rounded font-semibold cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleConfirmDeletePatient}
+                disabled={isDeletingPatient}
+                className="h-9 px-4 rounded bg-rose-600 hover:bg-rose-500 text-white font-semibold flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                {isDeletingPatient ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Deleting Patient...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    <span>Permanently Delete</span>
+                  </>
+                )}
               </Button>
             </div>
           </div>
