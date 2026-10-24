@@ -218,16 +218,6 @@ export async function generateAndDownloadInvoicePdf(options: GenerateInvoicePdfO
   doc.setTextColor(30, 41, 59);
   doc.text("Amount Paid :", 142, totY);
   doc.text(`Rs. ${paid.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 190, totY, { align: "right" });
-  totY += 5.5;
-
-  // Balance Due
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text("Balance Due :", 142, totY);
-  const balStr = balance > 0
-    ? `Rs. ${balance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    : "Rs. 0.00 (Paid in Full)";
-  doc.text(balStr, 190, totY, { align: "right" });
 
   // 5. SIGNATORY & FOOTER (Strictly above bottom blue letterhead banner at y=276)
   doc.setFont("helvetica", "italic");

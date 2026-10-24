@@ -185,7 +185,7 @@ export const VRDentalInvoicePrintTemplate: React.FC<VRDentalInvoicePrintData> = 
               <div className="border-b-[1.5px] border-slate-800 my-4" />
             </div>
 
-            {/* 4. TOTALS SECTION (Right-aligned, prominent Total, smaller Amount Paid & Balance Due) */}
+            {/* 4. TOTALS SECTION (Right-aligned, prominent Total and Amount Paid) */}
             <div className="flex justify-end pt-1">
               <div className="w-72 space-y-1.5 text-right">
                 {discountAmount > 0 && (
@@ -214,16 +214,6 @@ export const VRDentalInvoicePrintTemplate: React.FC<VRDentalInvoicePrintData> = 
                   <span>Amount Paid :</span>
                   <span className="tabular-nums">
                     Rs. {paid.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-
-                {/* Balance Due */}
-                <div className="flex justify-between text-[13px] font-semibold">
-                  <span className="text-slate-800">Balance Due :</span>
-                  <span className={balance > 0 ? "text-amber-800 font-bold" : "text-slate-700 font-medium"}>
-                    {balance > 0
-                      ? `Rs. ${balance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                      : "Rs. 0.00 (Paid in Full)"}
                   </span>
                 </div>
               </div>
