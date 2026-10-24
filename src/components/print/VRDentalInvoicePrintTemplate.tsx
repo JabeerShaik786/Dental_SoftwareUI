@@ -130,14 +130,6 @@ export const VRDentalInvoicePrintTemplate: React.FC<VRDentalInvoicePrintData> = 
                     {ageGenderStr}
                   </div>
                 </div>
-
-                {/* Invoice No. */}
-                <div className="flex items-baseline">
-                  <span className="w-28 font-medium text-slate-800 shrink-0">Invoice No. :</span>
-                  <div className="flex-1 border-b border-slate-600 font-bold text-slate-950 pb-0.5 px-1 min-h-[22px]">
-                    {invoice.id}
-                  </div>
-                </div>
               </div>
 
               {/* Right Column */}
@@ -161,7 +153,7 @@ export const VRDentalInvoicePrintTemplate: React.FC<VRDentalInvoicePrintData> = 
             </div>
 
             {/* 3. TREATMENT DETAILS (Numbered entries, right-aligned amount, clean horizontal divider) */}
-            <div className="pt-6">
+            <div className="pt-5">
               <div className="space-y-3.5 min-h-[70px]">
                 {items.map((item, idx) => {
                   const lineAmount =

@@ -492,6 +492,9 @@
     color: black !important;
     margin: 0 !important;
     padding: 0 !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -501,20 +504,35 @@
   .no-print, .print\:hidden {
     display: none !important;
   }
+  /* Remove overflow clipping and height constraints from all containers during print */
+  #__next,
+  main,
+  .min-h-screen,
+  [class*="overflow-hidden"],
+  [class*="overflow-y-auto"] {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
   #print-area, #print-area * {
-    visibility: visible;
+    visibility: visible !important;
   }
   #print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100% !important;
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
     background: white !important;
     color: black !important;
     box-shadow: none !important;
     border: none !important;
     padding: 0 !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
+    overflow: visible !important;
+    z-index: 99999 !important;
   }
   /* Hide print buttons and layout wrappers during print */
   #print-area .no-print,

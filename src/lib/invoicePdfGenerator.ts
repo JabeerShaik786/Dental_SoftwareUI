@@ -132,16 +132,6 @@ export async function generateAndDownloadInvoicePdf(options: GenerateInvoicePdfO
   doc.text(ageGenderStr, 48, 65);
   doc.line(47, 66.5, 105, 66.5);
 
-  // Line 3: Invoice No.
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(71, 85, 105);
-  doc.text("Invoice No. :", 20, 74);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(15, 23, 42);
-  doc.text(invoice.id, 48, 74);
-  doc.line(47, 75.5, 105, 75.5);
-
   // Right Column
   // Line 1: OP No.
   doc.setFont("helvetica", "normal");
@@ -164,7 +154,7 @@ export async function generateAndDownloadInvoicePdf(options: GenerateInvoicePdfO
   doc.line(137, 66.5, 190, 66.5);
 
   // 3. TREATMENT DETAILS (Numbered entries, right-aligned amount, clean divider line)
-  let itemY = 88;
+  let itemY = 78;
   items.forEach((item, idx) => {
     const qty = Number(item.quantity) || 1;
     const unitPrice = Number(item.unitPrice) || ((Number(item.amount) || 0) / qty);

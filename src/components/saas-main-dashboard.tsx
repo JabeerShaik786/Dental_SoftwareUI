@@ -86,6 +86,7 @@ import { ResponsivePdfPreview } from "@/components/print/ResponsivePdfPreview";
 import { generateAndDownloadPrescriptionPdf } from "@/lib/prescriptionPdfGenerator";
 import { VRDentalInvoicePrintTemplate } from "@/components/print/VRDentalInvoicePrintTemplate";
 import { generateAndDownloadInvoicePdf } from "@/lib/invoicePdfGenerator";
+import { getAssetPath } from "@/lib/getAssetPath";
 import { MedicineCategorySelector } from "@/components/prescription/MedicineCategorySelector";
 import {
   INITIAL_MEDICINES_CATALOGUE,
@@ -4277,6 +4278,45 @@ export default function SaaSMainDashboard({ initialTab = "Dashboard" }: { initia
     } catch (err) {
       console.error("PDF download error:", err);
       showToast("Failed to generate PDF.", "error");
+    }
+  };
+
+  const handlePrintInvoice = async (invoiceToPrint?: InvoiceItem | null) => {
+    const inv = invoiceToPrint || lastGeneratedReceipt;
+    if (!inv) {
+      showToast("No invoice selected to print.", "error");
+      return;
+    }
+
+    try {
+      // 1. Ensure the background letterhead template image is preloaded in browser memory
+      const letterheadUrl = getAssetPath("/vr_letterhead.png");
+      const img = new Image();
+      img.src = letterheadUrl;
+      if (!img.complete) {
+        await new Promise<void>((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        });
+      }
+
+      // 2. Ensure web fonts and document layout have decoded completely
+      if (typeof document !== "undefined" && document.fonts) {
+        await document.fonts.ready;
+      }
+
+      // 3. Ensure receipt state is set so #print-area is populated in the DOM
+      if (inv !== lastGeneratedReceipt) {
+        setLastGeneratedReceipt(inv);
+      }
+
+      // 4. Delay slightly to allow React to flush state and DOM updates before opening print dialog
+      setTimeout(() => {
+        window.print();
+      }, 80);
+    } catch (err) {
+      console.error("Print invoice error:", err);
+      window.print();
     }
   };
 
@@ -11109,7 +11149,6 @@ ${clinicName}`;
                               )}
                               <button
                                 onClick={() => {
-                                  alert(`Print layout prepared for receipt ${inv.id}.`);
                                   setLastGeneratedReceipt(inv);
                                 }}
                                 className="text-blue-600 hover:underline font-bold"
@@ -17497,8 +17536,8 @@ ${clinicName}`;
       {lastGeneratedReceipt && (() => {
         const patientObj = patients.find(p => p.id === lastGeneratedReceipt.patientId || p.name === lastGeneratedReceipt.patientName) || null;
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto print:p-0 print:bg-white print:static">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[96vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-fadeIn print:border-none print:shadow-none print:max-w-none print:max-h-none print:rounded-none">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto print:hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[96vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-fadeIn">
               {/* Modal Header Bar (Screen Only) */}
               <div className="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950 shrink-0 no-print">
                 <div className="flex items-center gap-2.5">
@@ -17525,7 +17564,7 @@ ${clinicName}`;
                   </Button>
                   <Button
                     type="button"
-                    onClick={() => window.print()}
+                    onClick={() => handlePrintInvoice(lastGeneratedReceipt)}
                     className="h-8 px-3 rounded-lg text-xs bg-[#00529b] hover:bg-[#00417c] text-white font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
                     <Printer className="h-3.5 w-3.5" /> Print Invoice
@@ -17553,15 +17592,20 @@ ${clinicName}`;
                   />
                 </ResponsivePdfPreview>
               </div>
-
-              {/* Exact A4 Stationery for Window Print */}
-              <div id="print-area" className="hidden print:block">
-                <VRDentalInvoicePrintTemplate
-                  patient={patientObj}
-                  invoice={lastGeneratedReceipt}
-                />
-              </div>
             </div>
+          </div>
+        );
+      })()}
+
+      {/* Dedicated A4 Physical Stationery Container for Invoice Browser Print (Root level, never clipped by modal) */}
+      {lastGeneratedReceipt && (() => {
+        const patientObj = patients.find(p => p.id === lastGeneratedReceipt.patientId || p.name === lastGeneratedReceipt.patientName) || null;
+        return (
+          <div id="print-area" className="hidden print:block">
+            <VRDentalInvoicePrintTemplate
+              patient={patientObj}
+              invoice={lastGeneratedReceipt}
+            />
           </div>
         );
       })()}
