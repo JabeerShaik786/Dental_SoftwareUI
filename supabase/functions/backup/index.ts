@@ -2,23 +2,39 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 
 const allowedOrigins = [
+  "https://vrdentalyanam.com",
+  "https://www.vrdentalyanam.com",
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   "https://jabeershaik786.github.io",
 ];
 
-serve(async (req: Request) => {
+function getCorsHeaders(req: Request): Record<string, string> {
   const requestOrigin = req.headers.get("Origin") ?? "";
+  const normalizedOrigin = requestOrigin.replace(/\/+$/, "");
+  const isAllowed = allowedOrigins.some(
+    (origin) => origin.toLowerCase() === normalizedOrigin.toLowerCase()
+  );
 
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": allowedOrigins.includes(requestOrigin)
-      ? requestOrigin
-      : "",
+  const headers: Record<string, string> = {
     "Access-Control-Allow-Headers":
       "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Max-Age": "86400",
     "Vary": "Origin",
   };
+
+  if (isAllowed) {
+    headers["Access-Control-Allow-Origin"] = requestOrigin;
+  } else if (!requestOrigin) {
+    headers["Access-Control-Allow-Origin"] = "https://vrdentalyanam.com";
+  }
+
+  return headers;
+}
+
+serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
 
   // 1. Handle CORS Preflight Requests
   if (req.method === "OPTIONS") {
